@@ -5,25 +5,16 @@ build .build: tmpdir
 rule link
   command = ln -f $in $out
   description = link $in into build dir
-rule pollen
-  command = PLTSTDERR=warning@pollen raco pollen render $in && mv $tmp $out
-  description = generate $out from a pollen source file
-rule frontmatter
-  command = scripts/split.py $in $out
-  description = transform $in to $out
-build .build/index.html.pm: link content/index.html.pm | .build
-build public/index.html: pollen .build/index.html.pm | .build
-  tmp = .build/index.html
-build .build/template.html.p: link content/template.html.p | .build
-build .build/you-are-in-a-box.html.pmd: frontmatter $
-    content/you-are-in-a-box.md | scripts/split.py .build
-build public/you-are-in-a-box.html: pollen .build/you-are-in-a-box.html.pmd $
-    | .build
-  tmp = .build/you-are-in-a-box.html
-build .build/foo.html.pmd: frontmatter content/foo.md | scripts/split.py $
-    .build
-build public/foo.html: pollen .build/foo.html.pmd | .build
-  tmp = .build/foo.html
+rule blossom
+  command = clojure -Sdeps blossom/deps.edn -M blossom/parse.clj $in $out
+  description = render $in -> $out using clojure
+rule markdown
+  command = pulldown-cmark -TFSULG $in > $out
+  description = render markdown -> HTML: $in -> $out
+build .build/bar.md: blossom content/bar.md.clj | blossom
+build public/bar.html: markdown .build/bar.md
+build public/you-are-in-a-box.html: markdown content/you-are-in-a-box.md
+build public/foo.html: markdown content/foo.md
 rule ninja-meta
   command = scripts/gen.py
   description = rebuild build.ninja itself

@@ -1,4 +1,16 @@
- {:deps {instaparse/instaparse {:mvn/version "1.5.0"}}
+ {:deps {
+    instaparse/instaparse {:mvn/version "1.5.0"}
+    org.babashka/sci {:mvn/version "0.10.47"}}
   :aliases {
     ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
-    :extra-paths ["parse.clj"]}}
+    :extra-paths ["parse.clj"]
+    :test
+      {:extra-paths ["parse.clj"]
+      :extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
+      :exec-fn     kaocha.runner/exec-fn
+      :exec-args   {:skip-meta :slow}}
+
+      :watch
+      {:exec-args   {:watch?     true
+                    :skip-meta  :slow
+                    :fail-fast? true}}}}
