@@ -1,0 +1,8 @@
+rule pollen
+  command = raco pollen render $in && mv $tmp $out
+  description = generate an output from a pollen source file
+rule ninja-meta
+  command = scripts/gen.py
+  description = rebuild build.ninja itself
+build build.ninja: ninja-meta scripts/gen.py
+  generator = true

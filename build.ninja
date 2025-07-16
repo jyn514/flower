@@ -1,0 +1,19 @@
+rule pollen
+  command = raco pollen render $in && mv $tmp $out
+  description = generate an output from a pollen source file
+rule frontmatter
+  command = scripts/split.py $in $out
+  description = transform $in to $out
+rule ninja-meta
+  command = scripts/gen.py
+  description = rebuild build.ninja itself
+build build.ninja: ninja-meta scripts/gen.py
+  generator = true
+build public/index.html: pollen content/index.html.pm
+  tmp = content/index.html
+build content/you-are-in-a-box.html.pp: frontmatter $
+    content/you-are-in-a-box.md | scripts/split.py
+build public/you-are-in-a-box.html.pp: pollen content/you-are-in-a-box.md
+  tmp = content/you-are-in-a-box.html.pp
+build public/you-are-in-a-box.html: pollen content/you-are-in-a-box.html.pp
+  tmp = content/you-are-in-a-box.html
