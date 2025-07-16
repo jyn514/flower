@@ -1,2 +1,4 @@
- {:deps
-  {instaparse/instaparse {:mvn/version "1.5.0"}}}
+ {:deps {instaparse/instaparse {:mvn/version "1.5.0"}}
+  :aliases {
+    ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
+    :extra-paths ["parse.clj"]}}

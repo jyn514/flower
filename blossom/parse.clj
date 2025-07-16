@@ -1,5 +1,6 @@
 (ns blossom
-  (:require [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta])
+  (:require [sci.core :as sci]))
 ; REPL
 ; (add-lib 'instaparse/instaparse)
 ; (require '(instaparse [core :as insta]))
@@ -7,32 +8,22 @@
    (insta/parser
      "Start = (Text | Lisp)*
       Text = #'[^◊]+'
-      Lisp = '◊' List
-      List = '(' (Atom | List)* ')'
+      Lisp = <'◊'> List
+      List = <'('> (Atom | List)* <')'>
       Atom = #'[^()]*' "))
 
-(defn treduce [l]
-  (if (string? l) l
-    (reduce (fn [x y] (if string? y)
-              (str x y)
-              (str x "(" (map treduce y) ")")) "" l)))
+(defn teval [tree src] (insta/transform {
+  :Start str,
+  :Text identity,
+  :Lisp (fn [l]
+    (def lisp (apply subs src (insta/span l)))
+    ; TODO: add standard library
+    (sci/eval-string lisp))
+} tree))
 
-(defmulti tquote first)
-(defmethod tquote :List [[_ _ & xs]]
-  (let [args (drop-last xs)]
-    (map tquote args)))
-(defmethod tquote :Atom [[_ t]] t)
-
-  ; https://github.com/babashka/sci
-
-(defmulti teval (fn [x] (if (sequential? x) (first x) x)))
-(defmethod teval :Start [_] "")
-(defmethod teval :Text [[_ t]] t)
-(defmethod teval :Lisp [[_ _ l]] (tquote l))
-
-; for repl
-(def tree (parse "x◊(a (b c))"))
-(def p (first (drop 2 (map teval tree))))
-
-(def lisp (get tree 2))
-(def l (last lisp))
+(defn render [src] (teval (parse src) src))
+; ; https://github.com/babashka/sci
+; ; https://babashka.org/
+; ; https://github.com/weavejester/hiccup
+; ; for repl
+(def src "x◊(+ 1 2)")
