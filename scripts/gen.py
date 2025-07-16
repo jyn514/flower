@@ -28,6 +28,7 @@ def gen(writer):
     writer.rule(name='link', command='ln -f $in $out',
                 description='link $in into build dir')
 
+    # https://docs.racket-lang.org/reference/logging.html#%28tech._log._receiver%29
     writer.rule(name='pollen', command=f'PLTSTDERR=warning@pollen raco pollen render $in && mv $tmp $out',
                description='generate $out from a pollen source file')
     writer.rule(name='frontmatter', command='scripts/split.py $in $out',

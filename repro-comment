@@ -1,0 +1,8 @@
+#lang racket
+(require txexpr)
+(require markdown/parse)
+(define i (car (parse-markdown "<!-- abc -->")))
+(println i)
+(xexpr->string i)
+(require (prefix-in markdown: markdown/display-xexpr))
+(markdown:xexpr->string i)
