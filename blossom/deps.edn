@@ -1,5 +1,6 @@
  {:deps {
     instaparse/instaparse {:mvn/version "1.5.0"}
+    hiccup/hiccup {:mvn/version "2.0.0"}
     org.babashka/sci {:mvn/version "0.10.47"}}
   :aliases {
     ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}

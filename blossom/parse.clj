@@ -29,13 +29,15 @@
 
 (defn renderf [in out] ; [] (let [[in out] (*command-line-args*)]
   (spit out (render (slurp in))))
+; (print "hi")
+(def -main renderf)
+(apply renderf *command-line-args*)
+; (let [[in out] *command-line-args*] (renderf in out))
+
 ; ; https://babashka.org/
 ; ; https://github.com/weavejester/hiccup
 ; ; for repl
 (def src "x◊(+ 1 2)")
-; (print "hi")
-(def -main renderf)
-(let [[in out] *command-line-args*] (renderf in out))
 
 (ns blossom-test (:require [clojure.test :as t])
   (:require [blossom]))
