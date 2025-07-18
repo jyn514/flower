@@ -1,0 +1,1 @@
+: foreach ./third-website/build/* | build |> soupault |> build/%B

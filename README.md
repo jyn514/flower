@@ -18,6 +18,7 @@ and some weird ones:
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary)
 - default templating language is a fully-featured programming environment (clojure). the same language is used in posts and templates, with no restrictions.
 - choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates.
+- render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
 ## why a new SSG?
 
@@ -32,7 +33,16 @@ because all the others are a pain to use.
 flower is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
 
 flower is meant to be something you fork and embed in your own repository. you can download pre-built binaries, but you can also just as easily have your own copy of the source. there is no pressure to update unless you need a bug fix.
-
+## guide
+- three phases
+	- preprocessing
+	- templates 
+	- post processing
+- four kinds of files
+	- pages
+	- templates
+	- preprocessed files
+	- static files
 ## how do i use it?
 
 the smallest flower site is simply a markdown file with your content:
@@ -61,17 +71,16 @@ flower has three kinds of files:
 - pages
 - templates
 - preprocessed files
+- static files
 
 let's look at them one at a time.
-
 ### pages
-
 "look-ma-new-site.md" is a "page", like most other SSGs. it can contain metadata as frontmatter:
 ```
 ---
-title: Look ma, new site!
 description: how i built a new site using flower
 ---
+# Look ma, new site!
 
 flower is cool because it lets me choose my own syntax highlighter!
 ```
@@ -96,7 +105,6 @@ for more steps than ◊(bb5) actually run forever—or in other words, that ◊(
 is the maximum finite number of steps for which any 5-state Turing machine can
 run. That’s what it means for BB(5) to equal ◊(bb5).
 ```
-
 that replaces all instances of `◊(bb5)` with the string `47,176,870`.
 see [Pollen: The lozenge](https://docs.racket-lang.org/pollen/pollen-command-syntax.html#%28part._the-lozenge%29) for how to type the escape character and background about how it was picked.
 flower embeds a fully-featured clojure interpreter; see [Learn Clojure](https://clojure.org/guides/learn/clojure) for more information.
@@ -107,9 +115,9 @@ you may want to write your own libraries for your posts (these are often called 
 ```clojure
 ◊(def sed clojure.string/replace)
 ◊(defn kbd [keys]
-  (str "<kbd>"
-    (sed (sed keys " " "</kbd><kbd>")
-      "+" " + ") "</kbd>"))
+  (let [transformed
+        (sed (sed keys " " "</kbd><kbd>") "+" " + ")]
+    (fmt "<kbd>{transformed}</kbd>")))
 
 my tmux prefix key is ◊(kbd "ctrl+k f").
 ```
@@ -121,21 +129,50 @@ flower also embeds the `hiccup` library, with `html` in the default namespace, s
          (str/split keys #" "))))
 ```
 if you want to reuse this code between posts, place it in `lib/kbd.clj`. the directory and file extension are important, but the file name isn't; all .clj files in `lib/` will be loaded, unless it's a template or preprocessed file as discussed below.
-
+#### index pages
+often, you will want to make an index of pages in your site.
+to do so, first mark your page as an index. then, simply generate your pages using the `pages` local variable.
+<!-- https://medium.com/code-is-data-data-is-code/python-f-string-like-string-interpolation-in-clojure-385015ab2dc2 -->
+```clojure
+---
+index = true
+---
+<ul>◊(for [page pages]
+	(let [title (:title page)] (fmt "<li>{title}</li>")))</ul>
+```
+other than the `pages` local, index pages are just normal pages, which means you can combine them with templates like normal.
 ## templates
-above, we had `title` and `description` metadata keys in our page. that metadata is *not* interpreted by flower itself, but by your templates. templates are any file in `lib/` ending with `.html.clj`.
+above, we had a `description` metadata keys in our page. that metadata is *not* interpreted by flower itself, but by your templates. templates are any file in `lib/` ending with `.html.clj`.
 
 here's a simple example of what `lib/page.html.clj` could look like:
 ```
 <!DOCTYPE html><html>
-<head><title>the website of jyn</title></head>
-<body>◊(content)</body>
+<head>
+  <title>the website of jyn</title>
+  <meta name=description>◊(:description post)
+</head>
+<body>◊(:content post)</body>
 </html>
 ```
-note that this is exactly the same syntax as before, we just have a `content` local variable available to us now. see the API reference for a full list of locals injected by flower.
+note that this is exactly the same syntax as before, we just have a `post` local variable available to us now. see the API reference for a full list of locals injected by flower.
 
 if you want to change which template is used for a single file, add `template = my-template.html.clj` to the frontmatter, with the filename relative to the `lib` dir.
 
+
+<!--
+by default, this requires rebuilding your page whenever any post in your site changes.
+to rebuild less frequently, say which files you want to index by defining a `depends` variable:
+```clojure
+◊(def depends "*") <!-- allows any file glob -->
+<!-- or --
+◊(def depends ["first-post.html", "second-post.html"]) <!-- takes a list of file paths, relative to "src" -->
+<!-- or --
+# https://jsoup.org/
+<!-- takes an arbitrary clojure function.
+     note that at this stage of processing, `(:content post)` is  an empty string. --
+◊(def depends (fn [post] (contains? (:metadata post) "author")))
+```
+-->
 ## preprocessed files
 so far we have been working with pages and templates.
 but these are not the only options available to us.
@@ -161,6 +198,17 @@ why two separate options? in case you want to have a template generated with clo
 ### advanced: custom preprocessors
 
 TODO
+
+## postprocessors
+TODO
+
+say that you want to have some HTML that is common across every generated page, regardless of what template it was generated from. flower allows you to transform generated pages using “post-processors”. just like before, you write clojure. but unlike before, you define a function named `transform` instead of embedding clojure in your content.
+```clojure
+(def transform [post]
+  (let [title (:content (select post "h1"))]
+    (append (html [:title title])
+      (select "head"))))
+```
 
 ## custom build tasks
 say you are building a demo of a Rust program that compiles to WASM and runs in the browser. you want to integrate that build with the build of your site.

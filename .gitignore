@@ -1,3 +1,7 @@
 **/compiled/pollen/*
 /public
 /.build
+/build
+/third-website
+.soupault-cache
+.tup
