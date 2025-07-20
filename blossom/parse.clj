@@ -52,10 +52,14 @@
 (defn teval
   ([tree src] (teval tree src (create-sci-context {})))
   ([tree src cx]
-    (let [template
-          ; sci.lang.Var means this was a `def`
-          (fn [lisp] (fmt "(let [user-code #{lisp}] (str (if (= (type user-code) sci.lang.Var) \"\" (print-str user-code))))"))
-          seval #(sci/eval-string* cx (template %))]
+    (let [read #(sci/parse-string cx %)
+          embed (fn [lisp]
+                  `(let [user-code ~lisp]
+                     ; sci.lang.Var means this was a `def`
+                     (if (= (type user-code) sci.lang.Var)
+                       ""
+                       (print-str user-code))))
+          seval #(sci/eval-form cx (embed (read %)))]
       (insta/transform {
         :Start str
         :Text identity
