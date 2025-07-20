@@ -1,3 +1,6 @@
+; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
+; see https://github.com/liquidz/frontmatter
+
 ; (ns blossom.core
 (ns blossom
   (:require [instaparse.core :as insta]
@@ -6,6 +9,9 @@
             [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.data.json :as json]
+            [clojure.edn       :as edn]
+            [yaml.core     :as yaml]
+            [toml-clj.core :as toml]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
 
@@ -74,12 +80,44 @@
   [json] (let [parsed (json/read-str json)]
            (render (get parsed "content") (dissoc parsed "content"))))
 
+; https://github.com/liquidz/frontmatter/blob/34a86ed3c6524f63cb457079c1316d9707be061a/src/frontmatter/core.clj
+(defn- split-lines
+  [lines delim]
+  (let [x (take-while #(not= delim %) lines)]
+    (list x (drop (+ 1 (count x)) lines))))
+
+(defn- parse-json [s]
+  (json/read-str (str "{" s "}")
+                 :key-fn keyword))
+
+(defn- parse-edn [s]
+  (edn/read-string (str "{" s "}")))
+
+(defn- select-parse-fn
+  [first-line]
+  (case first-line
+    "---" yaml/parse-string
+    "+++" toml/read-string
+    ";;;" parse-json
+    "###" parse-edn
+    nil))
+
+(defn parse-frontmatter
+  [original-body]
+  (let [[first-line & rest-lines] (str/split-lines original-body)
+        [frontmatter body]        (split-lines rest-lines first-line)]
+    (if-let [parser (select-parse-fn first-line)]
+      {:body (str/join "\n" body)
+       :frontmatter (parser (str/join "\n" frontmatter))}
+      {:frontmatter {} :body original-body})))
+
 (defn error [msg] (binding [*out* *err*]
                     (println (str "blossom: error: " msg))))
 
 (defn -main [& args]
   (case (first args)
         ("render-page") (->> *in* slurp render-page print)
+        ("split-frontmatter") (json/write (->> *in* slurp parse-frontmatter) *out*)
         (error (str "unrecognized command: " (first args)))))
 
 ;

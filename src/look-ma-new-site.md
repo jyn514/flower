@@ -1,7 +1,7 @@
-+++
-languages = ["cpp", "clj"]
-template = "post.clj"
-+++
+---
+languages: ["cpp", "clj"]
+template: "post.clj"
+---
 
 #define TITLE the website of jyn
 
