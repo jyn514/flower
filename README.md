@@ -91,26 +91,27 @@ by default, flower enables a clojure preprocessor, which looks like this (credit
 ```clojure
 ◊(def bb5 "47,176,870")
 
-# BusyBeaver(5) is now known to be ◊(bb5)
+# BusyBeaver(5) is now known to be ◊bb5
 
 Only now, after an additional 41 years, do we know the fifth Busy Beaver value.
 Today, an international collaboration called bbchallenge is announcing that
 it’s determined, and even formally verified using the Coq proof system, that
-BB(5) is equal to ◊(bb5)—the value that’s been conjectured since 1990, when
+BB(5) is equal to ◊bb5—the value that’s been conjectured since 1990, when
 Heiner Marxen and Jürgen Buntrock discovered a 5-state Turing machine that runs
-for exactly ◊(bb5) steps before halting, when started on a blank tape. The new
+for exactly ◊bb5 steps before halting, when started on a blank tape. The new
 bbchallenge achievement is to prove that all 5-state Turing machines that run
-for more steps than ◊(bb5) actually run forever—or in other words, that ◊(bb5)
+for more steps than ◊bb5 actually run forever—or in other words, that ◊(bb5)
 is the maximum finite number of steps for which any 5-state Turing machine can
-run. That’s what it means for BB(5) to equal ◊(bb5).
+run. That’s what it means for BB(5) to equal ◊bb5.
 ```
-that replaces all instances of `◊(bb5)` with the string `47,176,870`.
+that replaces all instances of `◊bb5` with the string `47,176,870`.
 see [Pollen: The lozenge](https://docs.racket-lang.org/pollen/pollen-command-syntax.html#%28part._the-lozenge%29) for how to type the escape character and background about how it was picked.
 flower embeds a fully-featured clojure interpreter; see [Learn Clojure](https://clojure.org/guides/learn/clojure) for more information.
 
-as a shortcut, `◊ident` can be used in place of `◊(ident)`, as long as `ident` is a single clojure identifier.
+note that the first line uses `◊(def)` while the replacements use `◊bb5`, with no parens. as a shortcut, `◊ident` can be used in place of `◊(print-str ident)`, as long as `ident` is a single clojure identifier. `◊(bb5)` won't do what you expect—it tries to evaluate `bb5` as a function.
 
 you may want to write your own libraries for your pages (these are often called "shortcodes" or "macros" in other SSGs). to do so, you write normal clojure. here's an example function that transforms `◊(kbd ctrl+k f)` into `<kbd>ctrl + k</kbd><kbd>f</kbd>`:
+<!-- TODO test all these examples -->
 ```clojure
 ◊(def sed clojure.string/replace)
 ◊(defn kbd [keys]
@@ -291,3 +292,8 @@ clojure runs on the JVM, which means:
 - most importantly, you get GraalVM, which gives you native binaries and extremely fast startup times. no need to install the JRE or the racket compiler; the bundled executable comes with everything you need.
 ## why a "meta-build" system instead of something simpler?
 because if i'm going to be insane enough to write my own SSG, i want it to be one that i don't rip up and throw away in a year. that means it has to be extensible *and* not break *and* be easy enough to import that i don't spend a bunch of time rewriting things away from jinja again.
+
+# security
+it's an SSG. it's running arbitrary code because you (or i) wrote all the code. don't treat it as a security boundary and you'll be fine.
+
+the built-in web server is probably not resilient to any kind of malicious use. only use it for dev when you want live-reload. use a real web server (e.g. Caddy) to serve things in prod and you'll be fine.
