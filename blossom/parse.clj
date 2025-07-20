@@ -4,10 +4,41 @@
             [hiccup2.core :as h]
             [clojure.string :as str]
             [clojure.java.io :as io]
-            ; [clojure.edn :as edn]
-            ; [clojure.walk :as walk]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
+
+(defmacro fmt [^String string]
+  (let [-re #"#\{(.*?)\}"
+        fstr (clojure.string/replace string -re "%s")
+        fargs (map #(read-string (second %)) (re-seq -re string))]
+    `(format ~fstr ~@fargs)))
+
+(defn create-sci-context
+  "Create SCI context with standard library and local variables"
+  [locals]
+  ; todo: https://github.com/babashka/sci/tree/master?tab=readme-ov-file#macros
+  (def html ^:sci/macro (fn [_&form _&env x & rest] (h/html (into [x] rest))))
+  ; (defmacro copy-ns [sym ns]
+  ;   `(let [binding (sci/create-ns ~sym)
+  ;          new-ns (sci/copy-ns ~ns binding)]
+  ;           new-ns))
+  ; (copy-ns 'clojure.string 'clojure.string)
+  ; (println "hiiiii")
+  (defn copy-ns [ns]
+    (let [binding (sci/create-ns ns)
+          publics (ns-publics ns)]
+      (update-vals publics #(sci/copy-var* % binding))))
+  (sci/init {:namespaces
+             ; {}
+              {'hiccup2.core (copy-ns 'hiccup2.core)
+               'clojure.lang {'Var clojure.lang.Var}}
+              ; {'hiccup2.core {'html html}]
+               ; 'clojure.string (copy-ns 'clojure.string 'clojure.string)}
+             :bindings
+              (merge {'html html
+                      'str str
+                      'fmt format} ; TODO: wrong
+                      locals)}))
 
 (def parse
    (insta/parser
@@ -17,6 +48,21 @@
       List = <'('> (Atom | List)* <')'>
       Ident = #'[a-zA-Z_][a-zA-Z0-9_-]*'
       Atom = #'[^()]*' "))
+
+(defn teval
+  ([tree src] (teval tree src (create-sci-context {})))
+  ([tree src cx]
+    (let [template
+          ; sci.lang.Var means this was a `def`
+          (fn [lisp] (fmt "(let [user-code #{lisp}] (str (if (= (type user-code) sci.lang.Var) \"\" (print-str user-code))))"))
+          seval #(sci/eval-string* cx (template %))]
+      (insta/transform {
+        :Start str
+        :Text identity
+        ; str? if this was an Ident
+        :Lisp #(if (string? %) % (seval (apply subs src (insta/span %))))
+        :Ident #(seval %)
+      } tree))))
 
 (def frontmatter-regex #"(?s)^---\n(.*?)\n---\n(.*)$")
 
@@ -35,74 +81,14 @@
       {:metadata metadata :content body})
     {:metadata {} :content content}))
 
-(defn classify-file
-  "Classify file by type based on path and extension"
-  [path]
-  (cond
-    (str/starts-with? path "src/")
-    (cond
-      (str/ends-with? path ".md.clj") :preprocessed-md
-      (str/ends-with? path ".html.clj") :preprocessed-html
-      (str/ends-with? path ".md") :page
-      :else :static)
-    
-    (str/starts-with? path "lib/")
-    (cond
-      (str/ends-with? path ".html.clj") :template
-      (str/ends-with? path ".clj") :library
-      :else :static)
-    
-    :else :static))
-
-(defn file-dependencies
-  "Calculate dependencies for a file based on its type and metadata"
-  [file-path file-type metadata]
-  (case file-type
-    :page [(or (:template metadata) "page.html.clj")]
-    :template []
-    :preprocessed-md []
-    :preprocessed-html []
-    :library []
-    :static []))
-
-(defn create-sci-context
-  "Create SCI context with standard library and local variables"
-  [locals]
-  ; todo: https://github.com/babashka/sci/tree/master?tab=readme-ov-file#macros
-  (def html ^:sci/macro (fn [_&form _&env x & rest] (h/html (into [x] rest))))
-  (sci/init {:namespaces {'hiccup2.core {'html html}
-                          'clojure.string str}
-             :bindings (merge {'html html
-                              'str str
-                              'fmt format} ; TODO: wrong
-                             locals)}))
-
-(defn teval [tree src locals]
-  (let [ctx (create-sci-context locals)]
-    (insta/transform {
-      :Start str
-      :Text identity
-      :Lisp (fn [l]
-              (let [lisp (apply subs src (insta/span l))]
-                (try
-                  (sci/eval-string (str "(print-str " lisp ")") {:bindings (merge (:bindings ctx) locals)})
-                  (catch Exception e
-                    (str "Error: " (.getMessage e))))))
-      :Ident (fn [ident]
-               (try
-                 (sci/eval-string (str "(print-str " ident ")") {:bindings (merge (:bindings ctx) locals)})
-                 (catch Exception e
-                   (str "Error: " (.getMessage e)))))
-    } tree)))
-
-(defn render-with-locals
+(defn render
   "Render content with local variables available"
-  ([src] (render-with-locals src {}))
-  ([src locals] 
-   (let [parsed (parse src)]
+  ([src] (render src {}))
+  ([src locals]
+   (let [parsed (parse src) cx (create-sci-context locals)]
      (if (insta/failure? parsed)
        (str "Parse error: " (pr-str parsed))
-       (teval parsed src locals)))))
+       (teval parsed src cx)))))
 
 (defn load-library-files
   "Load all .clj files from lib/ directory"
@@ -127,14 +113,14 @@
   [template-path page-data]
   (let [template-content (slurp template-path)
         {:keys [metadata content]} (parse-frontmatter template-content)]
-    (render-with-locals content {:page page-data})))
+    (render content {:page page-data})))
 
 (defn process-page
   "Process a page file"
   [page-path]
   (let [content (slurp page-path)
         {:keys [metadata content]} (parse-frontmatter content)
-        processed-content (render-with-locals content)
+        processed-content (render content)
         
         ; Apply template if specified
         template-name (or (:template metadata) "page.html.clj")
@@ -166,7 +152,7 @@
   [page-path all-pages]
   (let [content (slurp page-path)
         {:keys [metadata content]} (parse-frontmatter content)
-        processed-content (render-with-locals content {:pages all-pages})
+        processed-content (render content {:pages all-pages})
         
         template-name (or (:template metadata) "index.html.clj")
         template-path (str "lib/" template-name)]
@@ -179,23 +165,6 @@
                         :pages all-pages})
       processed-content)))
 
-(defn build-dependency-graph
-  "Build dependency graph for all files"
-  [root-dir]
-  (let [all-files (->> (file-seq (io/file root-dir))
-                       (filter #(.isFile %))
-                       (map #(.getPath %)))]
-    (->> all-files
-         (map (fn [path]
-                (let [file-type (classify-file path)
-                      {:keys [metadata]} (when (#{:page :template :preprocessed-md :preprocessed-html} file-type)
-                                           (parse-frontmatter (slurp path)))]
-                  {:path path
-                   :type file-type
-                   :metadata metadata
-                   :dependencies (file-dependencies path file-type metadata)})))
-         (group-by :type))))
-
 (defn process-markdown
   "Process markdown content using nextjournal/markdown"
   [content]
@@ -205,60 +174,24 @@
       h/html
       str))
 
-(defn flower-build
-  "Main build function for flower SSG"
-  [config]
-  (let [{:keys [src-dir lib-dir output-dir]} config
-        dependency-graph (build-dependency-graph ".")
-        all-pages (collect-pages src-dir)]
-    
-    ; Phase 1: Build dependency graph (already done above)
-    (println "Phase 1: Building dependency graph...")
-    
-    ; Phase 2: Preprocessing and template embedding
-    (println "Phase 2: Processing files...")
-    (doseq [page-file (:page dependency-graph)]
-      (let [page-path (:path page-file)
-            output-path (str/replace page-path #"^src/" output-dir)
-            output-path (str/replace output-path #"\.md$" ".html")]
-        (println "Processing page:" page-path)
-        (let [processed (if (get-in page-file [:metadata :index])
-                          (process-index-page page-path all-pages)
-                          (process-page page-path))
-              final-content (if (str/ends-with? page-path ".md")
-                              (process-markdown processed)
-                              processed)]
-          (io/make-parents output-path)
-          (spit output-path final-content))))
-    
-    ; Phase 3: Post-processing (placeholder)
-    (println "Phase 3: Post-processing...")
-    (println "Build complete!")))
-
 ; Legacy render function for compatibility
-(defn render [src] (render-with-locals src))
+; (defn render [src] (render-with-locals src))
 
 (defn renderf [in out]
   (spit out (render (slurp in))))
 
-(def -main renderf)
-
-; Main entry point for building a flower site
-(defn -main-build [& args]
-  (let [config {:src-dir "src/"
-                :lib-dir "lib/"
-                :output-dir "public/"}]
-    (flower-build config)))
+; (def -main (render (slurp *in*)))
 
 ; Test data and compatibility
 (def src "x◊(+ 1 2)")
 
 ; Conditional execution for command line
-(when *command-line-args*
-  (println *command-line-args* )
-  (if (= (first *command-line-args*) "build")
-    (apply -main-build (rest *command-line-args*))
-    (apply renderf *command-line-args*)))
+; (when *command-line-args*
+;   (println *command-line-args* )
+;   (-main))
+  ; (if (= (first *command-line-args*) "build")
+  ;   (apply -main-build (rest *command-line-args*))
+  ;   (apply renderf *command-line-args*)))
 
 ; ; https://babashka.org/
 ; ; https://github.com/weavejester/hiccup
@@ -277,7 +210,7 @@
   (t/testing "any start"
     (t/is (= "3x" (blossom/render "◊(+ 1 2)x"))))
   (t/testing "ident shortcut"
-    (t/is (= "x3" (blossom/render-with-locals "x◊test" {'test 3}))))
+    (t/is (= "x3" (blossom/render "x◊test" {'test 3}))))
   (t/testing "errors handled gracefully"
     (t/is (str/includes? (blossom/render "◊(") "Parse error"))))
 
@@ -294,14 +227,6 @@
           result (blossom/parse-frontmatter content)]
       (t/is (= {} (:metadata result)))
       (t/is (= content (:content result))))))
-
-(t/deftest file-classification
-  (t/testing "classifies files correctly"
-    (t/is (= :page (blossom/classify-file "src/hello.md")))
-    (t/is (= :template (blossom/classify-file "lib/page.html.clj")))
-    (t/is (= :preprocessed-md (blossom/classify-file "src/about.md.clj")))
-    (t/is (= :library (blossom/classify-file "lib/macros.clj")))
-    (t/is (= :static (blossom/classify-file "public/style.css")))))
 
 (t/deftest markdown-processing
   (t/testing "processes markdown correctly"
