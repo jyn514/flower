@@ -18,8 +18,7 @@
 (defn create-sci-context
   "Create SCI context with standard library and local variables"
   [locals]
-  ; todo: https://github.com/babashka/sci/tree/master?tab=readme-ov-file#macros
-  (defmacro copy-macro [sym] `(^:sci/macro (fn [_&form _&env & rest] (~sym rest))))
+  (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
   (defn copy-ns [ns]
     (let [binding (sci/create-ns ns)
           publics (ns-publics ns)]
@@ -73,42 +72,23 @@
 (defn render-page
   "Preprocess and render a JSON blob"
   [json] (let [parsed (json/read-str json)]
-           (render (:content parsed) (dissoc parsed :content))))
+           (render (get parsed "content") (dissoc parsed "content"))))
 
 (defn error [msg] (binding [*out* *err*]
                     (println (str "blossom: error: " msg))))
 
-(defn main [args in out]
+(defn -main [& args]
   (case (first args)
-        ("render-page") (spit out (->> in slurp render-page))
+        ("render-page") (->> *in* slurp render-page print)
         (error (str "unrecognized command: " (first args)))))
 
-(defn -main [& all] (main *command-line-args* *in* *out*))
-
+;
 ; (defn process-template
 ;   "Process a template file with page data"
 ;   [template-path page-data]
 ;   (let [template-content (slurp template-path)
 ;         {:keys [metadata content]} (parse-frontmatter template-content)]
 ;     (render content {:page page-data})))
-
-; (defn process-page
-;   "Process a page file"
-;   [page-path]
-;   (let [content (slurp page-path)
-;         {:keys [metadata content]} (parse-frontmatter content)
-;         processed-content (render content)
-;         
-;         ; Apply template if specified
-;         template-name (or (:template metadata) "page.html.clj")
-;         template-path (str "lib/" template-name)]
-;     
-;     (if (.exists (io/file template-path))
-;       (process-template template-path 
-;                        {:metadata metadata 
-;                         :content processed-content
-;                         :path page-path})
-;       processed-content)))
 
 ; (defn collect-pages
 ;   "Collect all pages for index generation"
@@ -151,13 +131,8 @@
 ;       h/html
 ;       str))
 
-; Legacy render function for compatibility
-; (defn render [src] (render-with-locals src))
-
 (defn renderf [in out]
   (spit out (render (slurp in))))
-
-; (def -main (render (slurp *in*)))
 
 ; Test data and compatibility
 (def src "x◊(+ 1 2)")
