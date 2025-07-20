@@ -11,11 +11,14 @@ class Path(os.PathLike):
     def __str__(self): return self.p.__str__()
     def __add__(self, right): return self.p.__add__(right)
     def replace(self, old, new): return self.p.replace(old, new)
-content = Path('content')
+src = Path('src')
+lib = Path('lib')
 public = Path('public')
 build = Path('.build')
 scripts = Path('scripts')
-blossom = Path('blossom')
+# blossom_p = Path('blossom')
+blossom_f = Path('blossom.clj')
+blossom = 'clj -M --main blossom'
 
 # if this links the file into public/, it MUST return None
 def register(writer, f):
@@ -26,7 +29,13 @@ def register(writer, f):
         writer.build(build/base, 'blossom', f, implicit=blossom)
         return build/base
     elif in_ == 'md':
-        writer.build(public/base + '.html', 'markdown', f)
+        json = build/base + '.md.json'
+        md = build/base + '.md'
+        writer.build(json, 'frontmatter', f, implicit=blossom_f)
+        writer.build(md, 'blossom', json, implicit=blossom_f)
+        # TODO: parse frontmatter to see if there's a custom preprocessor
+        # TODO: templates
+        writer.build(public/base + '.html', 'markdown', md)
     #     out += '.html'
     #     generated = out+'.pmd'
     #     writer.build(outputs=build/generated, rule='frontmatter', inputs=[f], implicit=['scripts/split.py', build])
@@ -37,17 +46,18 @@ def gen(writer):
     writer.build(build, 'tmpdir')
     writer.rule(name='link', command='ln -f $in $out',
                 description='link $in into build dir')
-    writer.rule(name='blossom', command=f'clojure -Sdeps {blossom}/deps.edn -M {blossom}/parse.clj $in $out',
+    writer.rule(name='blossom', command=f'{blossom} render-page < $in > $out',
                 description='render $in -> $out using clojure')
     writer.rule(name='markdown', command=f'pulldown-cmark -TFSULG $in > $out',
                 description='render markdown -> HTML: $in -> $out')
+    writer.rule(name='frontmatter', command=f'{blossom} split-frontmatter < $in > $out')
 
     # writer.rule(name='watch', command='scripts/watch.sh',
     #             description='watch the site for changes')
     # writer.build('watch', 'watch')
 
-    for f in os.listdir(content):
-        f = content/f
+    for f in os.listdir(src):
+        f = src/f
         while True:
             if new := register(writer, f):
                 f = new
@@ -57,9 +67,9 @@ def gen(writer):
             break
 
 
-    writer.rule(name='ninja-meta', command='scripts/gen.py',
+    writer.rule(name='ninja-meta', command=scripts/'gen.py',
                 description='rebuild build.ninja itself')
-    writer.build('build.ninja', 'ninja-meta', ['scripts/gen.py', content],
+    writer.build('build.ninja', 'ninja-meta', [scripts/'gen.py', src],
                  variables={'generator':'true'})
 
 if __name__=='__main__':

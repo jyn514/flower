@@ -15,11 +15,18 @@
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
 
+; helpers
+
 (defmacro fmt [^String string]
   (let [-re #"#\{(.*?)\}"
         fstr (clojure.string/replace string -re "%s")
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
+
+(defn error [msg] (binding [*out* *err*]
+                    (println (str "blossom: error: " msg))))
+
+; rendering
 
 (defn create-sci-context
   "Create SCI context with standard library and local variables"
@@ -30,7 +37,12 @@
           publics (ns-publics ns)]
       (update-vals publics #(sci/copy-var* % binding))))
   (sci/init {:namespaces
+             ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
+             ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
+             ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them...
               {'hiccup2.core (copy-ns 'hiccup2.core) 
+               'hiccup.util (copy-ns 'hiccup.util) 
+               'hiccup.compiler (copy-ns 'hiccup.compiler) 
                'instaparse.core (copy-ns 'instaparse.core) 
                'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
              :bindings  ; TODO: check how this behaves if someone defines a custom `html` local
@@ -53,6 +65,7 @@
   ([tree src cx]
     (let [read #(sci/parse-string cx %)
           embed (fn [lisp]
+                  ; (println lisp)
                   `(let [user-code ~lisp]
                      ; sci.lang.Var means this was a `def`
                      (if (var? user-code) ""
@@ -73,12 +86,18 @@
   ([src locals]
    (let [parsed (parse src)
          cx (create-sci-context locals)]
+    ; (println parsed src)
     (teval parsed src cx))))
+
+; preprocessing
 
 (defn render-page
   "Preprocess and render a JSON blob"
   [json] (let [parsed (json/read-str json)]
-           (render (get parsed "content") (dissoc parsed "content"))))
+           ; (println parsed)
+           (render (get parsed "content") (get parsed "frontmatter"))))
+
+; frontmatter
 
 ; https://github.com/liquidz/frontmatter/blob/34a86ed3c6524f63cb457079c1316d9707be061a/src/frontmatter/core.clj
 (defn- split-lines
@@ -98,7 +117,7 @@
   (case first-line
     "---" yaml/parse-string
     "+++" toml/read-string
-    ";;;" parse-json
+    ";;;" parse-json ; TODO: just use {} like hugo
     "###" parse-edn
     nil))
 
@@ -107,12 +126,11 @@
   (let [[first-line & rest-lines] (str/split-lines original-body)
         [frontmatter body]        (split-lines rest-lines first-line)]
     (if-let [parser (select-parse-fn first-line)]
-      {:body (str/join "\n" body)
+      {:content (str/join "\n" body)
        :frontmatter (parser (str/join "\n" frontmatter))}
-      {:frontmatter {} :body original-body})))
+      {:frontmatter {} :content original-body})))
 
-(defn error [msg] (binding [*out* *err*]
-                    (println (str "blossom: error: " msg))))
+; postprocessing
 
 (defn -main [& args]
   (case (first args)
@@ -168,9 +186,6 @@
 ;       (md.transform/->hiccup)
 ;       h/html
 ;       str))
-
-(defn renderf [in out]
-  (spit out (render (slurp in))))
 
 ; Test data and compatibility
 (def src "x◊(+ 1 2)")

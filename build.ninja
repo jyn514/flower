@@ -6,17 +6,20 @@ rule link
   command = ln -f $in $out
   description = link $in into build dir
 rule blossom
-  command = clojure -Sdeps blossom/deps.edn -M blossom/parse.clj $in $out
+  command = clj -M --main blossom render-page < $in > $out
   description = render $in -> $out using clojure
 rule markdown
   command = pulldown-cmark -TFSULG $in > $out
   description = render markdown -> HTML: $in -> $out
-build .build/bar.md: blossom content/bar.md.clj | blossom
-build public/bar.html: markdown .build/bar.md
-build public/you-are-in-a-box.html: markdown content/you-are-in-a-box.md
-build public/foo.html: markdown content/foo.md
+rule frontmatter
+  command = clj -M --main blossom split-frontmatter < $in > $out
+build .build/look-ma-new-site.md.json: frontmatter src/look-ma-new-site.md $
+    | blossom.clj
+build .build/look-ma-new-site.md: blossom .build/look-ma-new-site.md.json | $
+    blossom.clj
+build public/look-ma-new-site.html: markdown .build/look-ma-new-site.md
 rule ninja-meta
   command = scripts/gen.py
   description = rebuild build.ninja itself
-build build.ninja: ninja-meta scripts/gen.py content
+build build.ninja: ninja-meta scripts/gen.py src
   generator = true
