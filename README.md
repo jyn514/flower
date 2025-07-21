@@ -205,18 +205,23 @@ TODO
 
 ### postprocessors
 say that you want to have some HTML that is common across every generated page, regardless of what template it was generated from. flower allows you to transform generated pages using “post-processors”.
-here is a sample post-processor, in a file named `lib/title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
-just like before, you write clojure, and specify the type of file with frontmatter.
-but unlike before, you define a function named `transform` instead of embedding clojure in your content.
+here is a sample post-processor, in a file named `lib/postprocess-title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
+just like before, you write clojure, but unlike before, you define a function
+named `transform` instead of embedding clojure in your content.
 ```clojure
----
-postprocessor = true
----
 (def transform [page]
   (let [title (:content (select page "h1"))]
     (append (html [:title title])
       (select "head"))))
 ```
+note that post-processors are *not* allowed to have frontmatter.
+they work on each page, one at a time, and cannot be configured.
+any configuration logic goes in your code, not in the meta-build system.
+
+the only configuration allowed is to tell the build system which files are post-processors.
+by default all files in `lib/postprocess*.clj` are postprocessors.
+you can change this by putting e.g. `postprocessors = "lib/postprocessors/*` in `config.toml` in the root directory.
+the string is a libc-style file glob.
 
 ### custom build tasks
 say you are building a demo of a Rust program that compiles to WASM and runs in the browser. you want to integrate that build with the build of your site.
@@ -270,6 +275,12 @@ pollen operates in three phases. within a phase, ordering is not specified (for 
 	- post-processing steps must never depend on a list of all files (since that would prevent us from statically constructing build.ninja).
 	- post-processing steps must not change the filename.
 	- post-processing steps must not depend on the order in which they are run.
+
+### limitations
+NOTE: embedded clojure can write to stderr like normal.
+but it cannot write to stdout, because that's used by flower for internal communication.
+attempts to do so will be redirected to stderr.
+
 ---
 # FAQ
 

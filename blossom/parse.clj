@@ -28,38 +28,68 @@
 
 ; rendering
 
-(defn create-sci-context
-  "Create SCI context with standard library and local variables"
-  [locals]
-  (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
-  (defn copy-ns [ns]
-    (let [binding (sci/create-ns ns)
-          publics (ns-publics ns)]
-      (update-vals publics #(sci/copy-var* % binding))))
-  (sci/init {:namespaces
-             ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
-             ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
-             ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them...
-              {'hiccup2.core (copy-ns 'hiccup2.core) 
-               'hiccup.util (copy-ns 'hiccup.util) 
-               'hiccup.compiler (copy-ns 'hiccup.compiler) 
-               'instaparse.core (copy-ns 'instaparse.core) 
-               'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
-             :bindings  ; TODO: check how this behaves if someone defines a custom `html` local
-              (merge {'html (copy-macro 'h/html)
-                      'str str
-                      'fmt (copy-macro 'fmt)}
-                      locals)}))
+(defn load-sci-file [file] 
+  {:file file :source (slurp file)})
 
-(defn seval [cx lisp]
-  (let [sread #(sci/parse-string cx %)
-        embed (fn [lisp]
-                ; (println lisp)
-                `(let [user-code# ~lisp]
-                    ; sci.lang.Var means this was a `def`
-                    (if (var? user-code#) ""
-                      (print-str user-code#))))]
-        (->> lisp sread embed (sci/eval-form cx))))
+(defn load-fn
+  "load user code on-demand"
+  [{ns- :namespace}]
+    (when (str/starts-with? "flower.user." (name ns-))
+      (let [file (-> ns- name (str/split #"\.") last (str "lib/" ".clj"))]
+        (load-sci-file file))))
+
+(defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
+(defn copy-ns [ns]
+  (let [binding (sci/create-ns ns)
+        publics (ns-publics ns)]
+    (update-vals publics #(sci/copy-var* % binding))))
+
+; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
+(defn merge-deep [& maps]
+  (if (every? map? maps)
+    (apply merge-with merge-deep maps)
+    (last maps)))
+
+(defn inspect [x] (println x) x)
+
+(defn create-sci-cx
+  "Create SCI context with standard library and local variables"
+  ([] (create-sci-cx {}))
+  ([opts]
+    (sci/init (-> opts (merge-deep {
+      :load-fn load-fn
+      ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
+      ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
+      ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them…
+      :namespaces {'hiccup2.core (copy-ns 'hiccup2.core) 
+                   'hiccup.util (copy-ns 'hiccup.util) 
+                   'hiccup.compiler (copy-ns 'hiccup.compiler) 
+                   'instaparse.core (copy-ns 'instaparse.core) 
+                   'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
+      :bindings {'html (copy-macro 'h/html)
+                 'str str
+                 'fmt (copy-macro 'fmt)}}) inspect))))
+
+(defn embed
+  "given a quoted form, embeds it in a program that prints out the stringified value"
+  [lisp]
+    ; (println lisp)
+    `(let [user-code# ~lisp]
+        ; sci.lang.Var means this was a `def`
+        (cond (var? user-code#) ""
+              (hiccup.util/raw-string? user-code#) (str user-code#)
+              true (print-str user-code#))))
+
+(defn eval-form
+  "form eval. innermost function; use this instead of sci/eval-form directly."
+  [cx form]
+  (sci/binding [sci/out *err*
+                sci/err *err*]
+    (sci/eval-form cx form)))
+
+(defn seval "string eval" [cx s]
+  (let [sread #(sci/parse-string cx %)]
+    (->> s sread embed (eval-form cx))))
 
 (def parse
    (insta/parser
@@ -71,7 +101,7 @@
       Atom = #'[^()]*' "))
 
 (defn teval
-  ([tree src] (teval tree src (create-sci-context {})))
+  ([tree src] (teval tree src (create-sci-cx)))
   ([tree src cx]
       (insta/transform {
         :Start str
@@ -86,10 +116,9 @@
   "Render content with local variables available"
   ([src] (render src {}))
   ([src locals]
-   (let [parsed (parse src)
-         cx (create-sci-context locals)]
+   (let [cx (create-sci-cx {:locals locals})]
     ; (println parsed src)
-    (teval parsed src cx))))
+    (teval (parse src) src cx))))
 
 ; preprocessing
 
@@ -133,11 +162,41 @@
       {:frontmatter {} :content original-body})))
 
 ; postprocessing
+(defn postprocess
+  [json]
+  (let [parsed (json/read-str json :key-fn keyword)
+        transformer (:transformer parsed)
+        lisp (embed
+             '(do;(ns transformer)
+               ; (flower.__internal/load-file transformer)
+               ; *ns*))
+               ; (clojure.repl/dir transformer)))
+               ; (println *ns*)
+               (require 'flower.__internal.transformer)
+               ; (println (all-ns))
+               (clojure.repl/dir flower.__internal.transformer)
+               ))
+               ; (flower.__internal.transformer/transform page)))
+        load (fn [{ns- :namespace}]
+               (println ns-)
+               (if (= ns- 'flower.__internal.transformer)
+                 (load-sci-file transformer)
+                 (load-fn {:namespace ns-})))
+        locals {'transformer transformer
+                'page {:content (:content parsed)
+                       :frontmatter (:frontmatter parsed)}}
+        ; ns- {'flower.__internal {'load-file load-file}}
+        cx (create-sci-cx {:locals locals :load-fn load})]
+    (println lisp transformer cx)
+    (->> lisp (eval-form cx))))
+           ; (println parsed)
+           ; (render (:content parsed) (:frontmatter parsed))))
 
 (defn -main [& args]
   (case (first args)
         ("render-page") (->> *in* slurp render-page print)
-        ("split-frontmatter") (json/write (->> *in* slurp parse-frontmatter) *out*)
+        ("postprocess") (->> *in* slurp postprocess print)
+        ("split-frontmatter") (->> *in* slurp parse-frontmatter (json/write *out*))
         (error (str "unrecognized command: " (first args)))))
 
 ;
