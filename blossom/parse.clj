@@ -51,6 +51,16 @@
                       'fmt (copy-macro 'fmt)}
                       locals)}))
 
+(defn seval [cx lisp]
+  (let [sread #(sci/parse-string cx %)
+        embed (fn [lisp]
+                ; (println lisp)
+                `(let [user-code# ~lisp]
+                    ; sci.lang.Var means this was a `def`
+                    (if (var? user-code#) ""
+                      (print-str user-code#))))]
+        (->> lisp sread embed (sci/eval-form cx))))
+
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
@@ -63,22 +73,14 @@
 (defn teval
   ([tree src] (teval tree src (create-sci-context {})))
   ([tree src cx]
-    (let [read #(sci/parse-string cx %)
-          embed (fn [lisp]
-                  ; (println lisp)
-                  `(let [user-code ~lisp]
-                     ; sci.lang.Var means this was a `def`
-                     (if (var? user-code) ""
-                       (print-str user-code))))
-          seval #(sci/eval-form cx (embed (read %)))]
       (insta/transform {
         :Start str
         :Text identity
         ; str? if this was an Ident
         :Lisp #(if (string? %) %
-                (seval (apply subs src (insta/span %))))
-        :Ident #(seval %)
-      } tree))))
+                (seval cx (apply subs src (insta/span %))))
+        :Ident #(seval cx %)
+      } tree)))
 
 (defn render
   "Render content with local variables available"
