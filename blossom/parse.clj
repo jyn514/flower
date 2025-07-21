@@ -116,7 +116,7 @@
   "Render content with local variables available"
   ([src] (render src {}))
   ([src locals]
-   (let [cx (create-sci-cx {:locals locals})]
+   (let [cx (create-sci-cx {:bindings locals})]
     ; (println parsed src)
     (teval (parse src) src cx))))
 
@@ -165,8 +165,7 @@
 (defn postprocess
   [json]
   (let [parsed (json/read-str json :key-fn keyword)
-        transformer (:transformer parsed)
-        lisp (embed
+        #_lisp #_(embed
              '(do;(ns transformer)
                ; (flower.__internal/load-file transformer)
                ; *ns*))
@@ -177,18 +176,25 @@
                (clojure.repl/dir flower.__internal.transformer)
                ))
                ; (flower.__internal.transformer/transform page)))
-        load (fn [{ns- :namespace}]
+        #_load #_(fn [{ns- :namespace}]
                (println ns-)
                (if (= ns- 'flower.__internal.transformer)
                  (load-sci-file transformer)
                  (load-fn {:namespace ns-})))
-        locals {'transformer transformer
+        locals {;'transformer transformer
                 'page {:content (:content parsed)
                        :frontmatter (:frontmatter parsed)}}
         ; ns- {'flower.__internal {'load-file load-file}}
-        cx (create-sci-cx {:locals locals :load-fn load})]
-    (println lisp transformer cx)
-    (->> lisp (eval-form cx))))
+        cx (create-sci-cx {:bindings locals #_:load-fn #_load})
+        ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
+        f (-> parsed :transformer slurp)
+        ls (str "(do " f ")")
+        transformer (->> ls inspect (sci/parse-string cx))
+        lisp (embed (list 'do transformer '(println "xxx" page) #_'(transform page)))]
+    (println (:transformer parsed) transformer lisp)
+    ; (println cx)
+    (eval-form cx lisp)))
+    ; (->> lisp (eval-form cx))))
            ; (println parsed)
            ; (render (:content parsed) (:frontmatter parsed))))
 
