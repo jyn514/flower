@@ -26,24 +26,6 @@
 (defn error [msg] (binding [*out* *err*]
                     (println (str "blossom: error: " msg))))
 
-; rendering
-
-(defn load-sci-file [file] 
-  {:file file :source (slurp file)})
-
-(defn load-fn
-  "load user code on-demand"
-  [{ns- :namespace}]
-    (when (str/starts-with? "flower.user." (name ns-))
-      (let [file (-> ns- name (str/split #"\.") last (str "lib/" ".clj"))]
-        (load-sci-file file))))
-
-(defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
-(defn copy-ns [ns]
-  (let [binding (sci/create-ns ns)
-        publics (ns-publics ns)]
-    (update-vals publics #(sci/copy-var* % binding))))
-
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& maps]
   (if (every? map? maps)
@@ -52,12 +34,33 @@
 
 (defn inspect [x] (println x) x)
 
+; rendering
+
+(defn load-sci-file [file] 
+  {:file file :source (slurp file)})
+
+; very broken; (-> str) doesn't work
+#_(defn load-fn
+  "load user code on-demand"
+  [{ns- :namespace}]
+    (when (str/starts-with? "flower.user." (name ns-))
+      (let [file (-> ns- name (str/split #"\.") last (str "lib/" ".clj"))]
+        (load-sci-file file))))
+
+(def userns (sci/create-ns 'user))
+; (defn copy-macro [sym] (sci/copy-var* sym userns))
+; (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
+(defn copy-ns [ns]
+  (let [binding (sci/create-ns ns)
+        publics (ns-publics ns)]
+    (update-vals publics #(sci/copy-var* % binding))))
+
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
   ([] (create-sci-cx {}))
   ([opts]
     (sci/init (-> opts (merge-deep {
-      :load-fn load-fn
+      ; :load-fn load-fn
       ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
       ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
       ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them…
@@ -66,15 +69,17 @@
                    'hiccup.compiler (copy-ns 'hiccup.compiler) 
                    'instaparse.core (copy-ns 'instaparse.core) 
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
-      :bindings {'html (copy-macro 'h/html)
+      :bindings {'html (sci/copy-var h/html userns)
                  'str str
-                 'fmt (copy-macro 'fmt)}}) inspect))))
+                 'fmt (sci/copy-var fmt userns)}}) ))))
 
 (defn embed
   "given a quoted form, embeds it in a program that prints out the stringified value"
   [lisp]
-    ; (println lisp)
-    `(let [user-code# ~lisp]
+  ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
+  ; it won't be evaluated eagerly and we will get a resolution error from `let`.
+  ; use `eval` to delay resolution.
+    `(let [user-code# (eval '~lisp)]
         ; sci.lang.Var means this was a `def`
         (cond (var? user-code#) ""
               (hiccup.util/raw-string? user-code#) (str user-code#)
@@ -117,7 +122,6 @@
   ([src] (render src {}))
   ([src locals]
    (let [cx (create-sci-cx {:bindings locals})]
-    ; (println parsed src)
     (teval (parse src) src cx))))
 
 ; preprocessing
@@ -125,7 +129,6 @@
 (defn render-page
   "Preprocess and render a JSON blob"
   [json] (let [parsed (json/read-str json)]
-           ; (println parsed)
            (render (get parsed "content") (get parsed "frontmatter"))))
 
 ; frontmatter
@@ -165,38 +168,15 @@
 (defn postprocess
   [json]
   (let [parsed (json/read-str json :key-fn keyword)
-        #_lisp #_(embed
-             '(do;(ns transformer)
-               ; (flower.__internal/load-file transformer)
-               ; *ns*))
-               ; (clojure.repl/dir transformer)))
-               ; (println *ns*)
-               (require 'flower.__internal.transformer)
-               ; (println (all-ns))
-               (clojure.repl/dir flower.__internal.transformer)
-               ))
-               ; (flower.__internal.transformer/transform page)))
-        #_load #_(fn [{ns- :namespace}]
-               (println ns-)
-               (if (= ns- 'flower.__internal.transformer)
-                 (load-sci-file transformer)
-                 (load-fn {:namespace ns-})))
-        locals {;'transformer transformer
-                'page {:content (:content parsed)
+        locals {'page {:content (:content parsed)
                        :frontmatter (:frontmatter parsed)}}
-        ; ns- {'flower.__internal {'load-file load-file}}
         cx (create-sci-cx {:bindings locals #_:load-fn #_load})
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         f (-> parsed :transformer slurp)
         ls (str "(do " f ")")
-        transformer (->> ls inspect (sci/parse-string cx))
-        lisp (embed (list 'do transformer '(println "xxx" page) #_'(transform page)))]
-    (println (:transformer parsed) transformer lisp)
-    ; (println cx)
-    (eval-form cx lisp)))
-    ; (->> lisp (eval-form cx))))
-           ; (println parsed)
-           ; (render (:content parsed) (:frontmatter parsed))))
+        transformer (->> ls (sci/parse-string cx))
+        lisp (embed (list 'do transformer '(transform page)))]
+    (eval-form cx (inspect lisp))))
 
 (defn -main [& args]
   (case (first args)
@@ -254,20 +234,9 @@
 ;       h/html
 ;       str))
 
-; Test data and compatibility
-(def src "x◊(+ 1 2)")
-
-; Conditional execution for command line
-; (when *command-line-args*
-;   (println *command-line-args* )
-;   (-main))
-  ; (if (= (first *command-line-args*) "build")
-  ;   (apply -main-build (rest *command-line-args*))
-  ;   (apply renderf *command-line-args*)))
-
-; ; https://babashka.org/
-; ; https://github.com/weavejester/hiccup
-; ; for repl
+; https://babashka.org/
+; https://github.com/weavejester/hiccup
+; for repl
 (def src "x◊(+ 1 2)")
 
 ; Tests
