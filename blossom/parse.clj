@@ -18,7 +18,7 @@
 ; helpers
 
 (defmacro fmt [^String string]
-  (let [-re #"#\{(.*?)\}"
+  (let [-re #"#\$\{(.*?)\}"
         fstr (clojure.string/replace string -re "%s")
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
@@ -155,7 +155,7 @@
     "###" parse-edn
     nil))
 
-(defn parse-frontmatter
+(defn split-frontmatter
   [original-body]
   (let [[first-line & rest-lines] (str/split-lines original-body)
         [frontmatter body]        (split-lines rest-lines first-line)]
@@ -182,7 +182,7 @@
   (case (first args)
         ("render-page") (->> *in* slurp render-page print)
         ("postprocess") (->> *in* slurp postprocess print)
-        ("split-frontmatter") (->> *in* slurp parse-frontmatter (json/write *out*))
+        ("split-frontmatter") (-> *in* slurp split-frontmatter (json/write *out*))
         (error (str "unrecognized command: " (first args)))))
 
 ;

@@ -4,7 +4,7 @@
 # https://github.com/watchexec/watchexec/tree/main/crates/cli#features
 watchexec -w src -w lib -w scripts -w build.ninja ninja &
 trap "kill $!" EXIT
-python -m http.server -d public 1112
+python -m http.server -d public 1112 &
 trap "kill $!" EXIT
 # npm install -g yalr
 yalr public &

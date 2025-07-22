@@ -11,15 +11,18 @@
 
 (defn zipper
   "Given an `org.jsoup.nodes.Element`, return a `clojure.zip` zipper structure."
-  [elem]
+  ([doc selector] (zipper (select doc selector)))
+  ([elem]
   (zip/zipper
     #(not (instance? LeafNode %))
-    #(.children %)
-    ; #(seq (.children %))
+    #(.childNodes %)
     #(let [n (.shallowClone %)]
        (.addChildren n %2)
+       (.setParentNode (.parent %))
        n)
-    elem))
+    ; TODO: starts from halfway through a DOM.
+    ; start from the root scrolled to `elem` instead, using https://github.com/igrishaev/zippo#lookups
+    elem)))
 ; after before append prepend attrs set-attr remove-attr remove replace-with
 
 (def d (Jsoup/parse "<div><h1>hiiiii</h1></div>"))
