@@ -5,3 +5,6 @@
 /third-website
 .soupault-cache
 .tup
+.ninja_deps
+.ninja_log
+.ninja_lock
