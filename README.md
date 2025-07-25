@@ -3,6 +3,8 @@
 [pollen]: https://docs.racket-lang.org/pollen
 [hakyll]: https://jaspervdj.be/hakyll/
 
+**NOTE: still in pre-alpha, blog post forthcoming**
+
 ## features
 
 all the basics:
@@ -17,7 +19,7 @@ and some weird ones:
 - support for arbitrary build commands
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary)
 - default templating language is a fully-featured programming environment (clojure). the same language is used in pages and templates, with very few restrictions.
-- post-process generated HTML based on CSS selectors. for example, create a table of contents, or parse the `<title>` tag out of the pages headings.
+- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings.
 - choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates.
 - render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
@@ -35,19 +37,21 @@ flower is for people who just want to build a site with a minimum of fuss, but s
 
 flower is meant to be something you fork and embed in your own repository. you can download pre-built binaries, but you can also just as easily have your own copy of the source. there is no pressure to update unless you need a bug fix.
 ## overview
-- three phases
+- five phases
 	- build dependency graph
-	- preprocessing and template embedding
+	- preprocessing
+	- template embedding
+	- custom commands (including built-in commands)
 	- post processing
 - four kinds of files
 	- pages
 	- templates
-	- preprocessed files
+	- expressions
 	- static files
 ## guide
 the smallest flower site is simply a markdown file with your content:
 ```
-$ cat src/look-ma-new-SSG.md
+$ cat pages/look-ma-new-SSG.md
 # look ma, new SSG!
 
 i built a new SSG, and it works!
@@ -56,21 +60,31 @@ that generates a very basic scaffold with an index of pages and your rendered wr
 
 you probably want to customize your site, though. a simple flower site could look like this:
 ```
-$ tree src/ lib/
-src
-└── look-ma-new-site.md
-lib
-├── macros.clj
-├── index.html.clj
-└── page.html.clj
+$ tree
+.
+├── expressions
+│   └── kbd.clj
+├── pages
+│   ├── look-ma-new-site.md
+│   └── page.html
+├── postprocessors
+│   └── title.clj
+├── sass
+│   └── minima.scss
+├── static
+│   └── favicon.jpg
+└── templates
+    └── index.html
 ```
 
 ### kinds of files
 flower has four kinds of files:
 - pages
 - templates
-- preprocessed files
+- expressions
 - static files
+
+it also comes with some built-in custom commands, such as compiling Sass to CSS and markdown to HTML.
 
 let's look at them one at a time.
 #### pages
@@ -110,7 +124,7 @@ flower embeds a fully-featured clojure interpreter; see [Learn Clojure](https://
 
 note that the first line uses `◊(def)` while the replacements use `◊bb5`, with no parens. as a shortcut, `◊ident` can be used in place of `◊(print-str ident)`, as long as `ident` is a single clojure identifier. `◊(bb5)` won't do what you expect—it tries to evaluate `bb5` as a function.
 
-you may want to write your own libraries for your pages (these are often called "shortcodes" or "macros" in other SSGs). to do so, you write normal clojure. here's an example function that transforms `◊(kbd ctrl+k f)` into `<kbd>ctrl + k</kbd><kbd>f</kbd>`:
+you may want to write your own expressions for your pages (these are often called "shortcodes" or "macros" in other SSGs). to do so, you write normal clojure. here's an example function that transforms `◊(kbd ctrl+k f)` into `<kbd>ctrl + k</kbd><kbd>f</kbd>`:
 <!-- TODO test all these examples -->
 ```clojure
 ◊(def sed clojure.string/replace)
@@ -132,7 +146,7 @@ flower also embeds the [`hiccup`] library, with [`html`] in the default namespac
     (map #(html [:kbd (sed % "+" " + ")])
          (str/split keys #" "))))
 ```
-if you want to reuse this code between pages, place it in `lib/kbd.clj`. the directory and file extension are important, but the file name isn't; all .clj files in `lib/` will be loaded, unless it's a template or preprocessed file as discussed below.
+if you want to reuse this code between pages, place it in `expressions/kbd.clj`. the directory and file extension are important, but the file name isn't; all .clj files in `expressions/` will be loaded.
 ##### index pages
 often, you will want to make an index of pages in your site.
 to do so, first mark your page as an index. then, simply generate your pages using the `pages` local variable.
@@ -146,9 +160,9 @@ index = true
 ```
 other than the `pages` local, index pages are just normal pages, which means you can combine them with templates like normal.
 #### templates
-above, we had a `description` metadata keys in our page. that metadata is *not* interpreted by flower itself, but by your templates. templates are any file in `lib/` ending with `.html.clj`.
+above, we had a `description` metadata keys in our page. that metadata is *not* interpreted by flower itself, but by your templates. templates are any file in `templates/`.
 
-here's a simple example of what `lib/page.html.clj` could look like:
+here's a simple example of what `templates/page.html` could look like:
 ```html
 <!DOCTYPE html><html>
 <head>
@@ -160,7 +174,7 @@ here's a simple example of what `lib/page.html.clj` could look like:
 ```
 note that this is exactly the same syntax as before, we just have a `page` local variable available to us now. see the API reference for a full list of locals injected by flower.
 
-if you want to change which template is used for a single file, add `template = my-template.html.clj` to the frontmatter, with the filename relative to the `lib` dir.
+if you want to change which template is used for a single page, add `template = my-template.html.clj` to the frontmatter, with the filename relative to the `lib` dir.
 
 
 <!--
@@ -169,7 +183,7 @@ to rebuild less frequently, say which files you want to index by defining a `dep
 ```clojure
 ◊(def depends "*") <!-- allows any file glob -->
 <!-- or --
-◊(def depends ["first-page.html", "second-page.html"]) <!-- takes a list of file paths, relative to "src" -->
+◊(def depends ["first-page.html", "second-page.html"]) <!-- takes a list of file paths, relative to "pages" -->
 <!-- or --
 # https://jsoup.org/
 <!-- takes an arbitrary clojure function.
@@ -177,35 +191,41 @@ to rebuild less frequently, say which files you want to index by defining a `dep
 ◊(def depends (fn [page] (contains? (:metadata page) "author")))
 ```
 -->
+<!-- not well motivated; suggest `template = ""` instead?
 #### preprocessed files
 so far we have been working with pages and templates.
 but these are not the only options available to us.
 say you have a 404 page that looks very different than the rest of your site.
-you could create a `lib/404.html.clj` and a corresponding `src/404.md`.
+you could create a `templates/404.html.clj` and a corresponding `pages/404.md`.
 but that's a little silly, right? if would be nice if you could just generate the file directly.
 
-with flower, you can. if you name your file `src/404.md.clj`, it will automatically be preprocessed, but without injecting a template before or after the content.
+with flower, you can. if you name your file `pages/404.md.clj`, it will automatically be preprocessed, but without injecting a template before or after the content.
 then, it will be rendered as markdown to HTML.
 
-if you just want to write raw HTML, no problem. just name your file `src/404.html.clj` instead.
+if you just want to write raw HTML, no problem. just name your file `pages/404.html.clj` instead.
+-->
 
 ### changing preprocessors
 
 say you want to work with handlebars instead of clojure.
-to do so, change your page metadata to name a template that ends with `.hbs` and to name the handlebars preprocessor:
+to do so, change your file metadata to name the handlebars preprocessor:
 ```
-template = "post.hbs"
++++
 preprocessors = ["handlebars"]
++++
 ```
-why two separate options? in case you want to have a template generated with clojure, but a page generated with handlebars, or the other way around.
+
+this works for both pages and templates.
 
 #### advanced: custom preprocessors
 
 TODO
 
+sketch: JSON input on stdin, JSON output on stdout, you can do whatever you like in the middle
+
 ### postprocessors
 say that you want to have some HTML that is common across every generated page, regardless of what template it was generated from. flower allows you to transform generated pages using “post-processors”.
-here is a sample post-processor, in a file named `lib/postprocess-title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
+here is a sample post-processor, in a file named `postprocessors/title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
 just like before, you write clojure, but unlike before, you define a function
 named `transform` instead of embedding clojure in your content.
 ```clojure
@@ -216,17 +236,22 @@ named `transform` instead of embedding clojure in your content.
 ```
 note that post-processors are *not* allowed to have frontmatter.
 they work on each page, one at a time, and cannot be configured.
-any configuration logic goes in your code, not in the meta-build system.
+any configuration logic (such as postprocessor ordering) goes in your code, not in the meta-build system.
 
+<!--
 the only configuration allowed is to tell the build system which files are post-processors.
 by default all files in `lib/postprocess*.clj` are postprocessors.
 you can change this by putting e.g. `postprocessors = "lib/postprocessors/*` in `config.toml` in the root directory.
 the string is a libc-style file glob.
+-->
 
 ### custom build tasks
 say you are building a demo of a Rust program that compiles to WASM and runs in the browser. you want to integrate that build with the build of your site.
 
 rather than running many commands in sequence (and losing live-reload as a result), you can tell flower to build the program for you.
+
+TODO: design and document `build.clj`
+<!--
 you do so by writing a [`lib/rules.ninja` file](https://ninja-build.org/manual.html#_writing_your_own_ninja_files).
 here's an example file that could build that rust program for us:
 ```ninja
@@ -234,7 +259,7 @@ rule wasm
   command = cd my-project && cargo build --release --target wasm32-wasip1
 
 # incomplete dependency list; use https://github.com/declantsien/cargo-ninja for something more accurate
-build my-project/target/release/my-bin: wasm my-project/src/main.rs my-project/Cargo.toml
+build my-project/target/release/my-bin: wasm my-project/pages/main.rs my-project/Cargo.toml
 
 build public/static/my-bin: link my-project/target/release/my-bin
 ```
@@ -243,35 +268,40 @@ build public/static/my-bin: link my-project/target/release/my-bin
 #### advanced: generating `rules.ninja` with a custom command
 
 TODO
+-->
 
 ### importing existing sites
 we now know enough to see how to import an existing static site with an existing build process.
 the basic idea is to write a custom build task that "mounts" the existing site at a specific URL.
 you can mount anywhere (including the site root!) as long as you do not conflict with any other files generated by flower.
 
-this process is common enough that there is a custom wrapper for it.
+<!--this process is common enough that there is a custom wrapper for it.
 the wrapper will automatically check for conflicts and error if it detects any.
 otherwise, it will generate the `rules.ninja` file for you, with dependency tracking.
-to use it, put your code in `lib/rules.py` instead of `lib/rules.ninja`:
-```python
-def rules(writer):
-  writer.custom(command="cd my-zola-site && zola build")
-  writer.mount(directory="my-zola-site/public", where="/zola")
+to use it, put your code in `build.clj` instead of `lib/rules.ninja`:
+-->
+```clojure
+(defn build-graph
+	[writer]
+	(flower.writer/custom writer "cd my-zola-site && zola build")
+	(flower.writer/mount writer "my-zola-site/public" "/zola"))
 ```
 
 ## reference
-pollen operates in three phases. within a phase, ordering is not specified (for example, `rules.py` should not attempt to parse the generated `build.ninja` file).
+pollen operates in four phases. within a phase, ordering is not specified (for example, postprocessing steps should not depend on the output of a previous step).
+if you need detailed ordering constraints, put them in your clojure code.
 1. scan all files to determine their dependencies.
+	- run `build.clj`.
 	- parse frontmatter.
 	- mark pages as depending on their templates, index pages as depending on all other pages, temporary files as depending on their preprocessed files, and so on.
-	- run all `rules.py` files.
-	- generate a build.ninja that includes all generated ninja files as well as `rules.ninja`.
-	- autoloaded files (e.g. `lib/*.clj`) must be static files, not generated by preprocessed files.
+	- generate a build.ninja.
+	- NOTE: autoloaded files (e.g. `expressions/*.clj`) must be static files, not generated by preprocessed files.
 2. run all preprocessing steps recursively.
 	- all "explicit" preprocessing steps (i.e. specified via file extensions) are run
-	- all markdown pages in `src/` are semantically preprocessing files unless they have explicitly opted out with `preprocessors = []`
-	- markdown pages are embedded into templates. this semantically happens after preprocessing the page but before converting the markdown to HTML (so you can e.g. have a markdown list that starts in a template but ends in a page).
-3. run all post-processing steps.
+	- all files in `pages/` are semantically preprocessing files unless they have explicitly opted out with `preprocessors = []`
+3. embed pages into templates. then, run all "static" transforms (e.g. `.md` -> `.html`)
+	- embedding semantically happens after preprocessing the page but before converting the markdown to HTML (so you can e.g. have a markdown list that starts in a template but ends in a page).
+4. run all post-processing steps.
 	- post-processing steps must never depend on a list of all files (since that would prevent us from statically constructing build.ninja).
 	- post-processing steps must not change the filename.
 	- post-processing steps must not depend on the order in which they are run.
