@@ -1,8 +1,8 @@
 ; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
 ; see https://github.com/liquidz/frontmatter
 
-; (ns blossom.core
-(ns blossom
+(ns blossom.core
+  (:use [blossom.utils])
   (:require [instaparse.core :as insta]
             [sci.core :as sci]
             [babashka.fs :as fs]
@@ -13,27 +13,9 @@
             [clojure.edn       :as edn]
             [yaml.core     :as yaml]
             [toml-clj.core :as toml]
+            [blossom.build]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
-
-; helpers
-
-(defmacro fmt [^String string]
-  (let [-re #"#\$\{(.*?)\}"
-        fstr (clojure.string/replace string -re "%s")
-        fargs (map #(read-string (second %)) (re-seq -re string))]
-    `(format ~fstr ~@fargs)))
-
-(defn error [msg] (binding [*out* *err*]
-                    (println (str "blossom: error: " msg))))
-
-; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
-(defn merge-deep [& maps]
-  (if (every? map? maps)
-    (apply merge-with merge-deep maps)
-    (last maps)))
-
-(defn inspect [x] (println x) x)
 
 ; sandboxing
 
@@ -48,6 +30,7 @@
       (let [file (-> ns- name (str/split #"\.") last (str "lib/" ".clj"))]
         (load-sci-file file))))
 
+; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))
 ; (defn copy-macro [sym] (sci/copy-var* sym userns))
 ; (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
@@ -185,27 +168,36 @@
 
 (defn create-fs-cx
   []
-  ; TODO: sandboxing
-  (copy-ns 'babashka.fs) )
+  (let [fs (copy-ns 'babashka.fs)
+        ; build {assoc (copy-ns 'blossom.build) 'out (sci/new-var 'out)}]
+        build (copy-ns 'blossom.build)]
+    (create-sci-cx
+      {:namespaces
+        ; TODO: sandboxing
+        {'babashka.fs fs
+        'fs fs
+        'flower.build build
+        'build build}
+       :bindings
+        {'out (sci/new-dynamic-var 'out)}})))
 
 
 ; meta-build system
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
-  []
-  (let [path "build.ninja"
-        cx (create-sci-cx {:namespaces {:fs (create-fs-cx)}})
-        lisp (sci/parse-string cx (slurp path))
-        embedded `(do ~lisp (-main))
-        ninja (eval-form cx embedded)]
-    (fs/write-bytes path ninja)))
+  [in out]
+  (let [cx (create-fs-cx)
+        embedded (str "(do" (slurp in) "(flower.build/generate))")
+        lisp (sci/parse-string cx embedded)
+        ninja (eval-form cx lisp)]
+    (fs/write-bytes (fs/path out) (.getBytes ninja))))
 
 (defn -main [& args]
   (case (first args)
         ("render-page") (->> *in* slurp render-page print)
         ("postprocess") (->> *in* slurp postprocess print)
         ("split-frontmatter") (-> *in* slurp split-frontmatter (json/write *out*))
-        ("configure") (configure)
+        ("configure") (configure "build.clj" "build.ninja")
         (error (str "unrecognized command: " (first args)))))
 
 ;

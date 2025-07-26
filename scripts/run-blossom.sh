@@ -1,2 +1,2 @@
 #!/bin/sh
-clj -M --main blossom "$@"
+clj -M --main blossom.core "$@"
