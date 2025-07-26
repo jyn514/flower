@@ -2,6 +2,7 @@
     instaparse/instaparse {:mvn/version "1.5.0"}
     hiccup/hiccup {:mvn/version "2.0.0"}
     org.babashka/sci {:mvn/version "0.10.47"}
+    babashka/fs {:mvn/version "0.5.26"}
     org.clojure/data.json {:mvn/version "2.5.1"}
     io.forward/yaml {:mvn/version "1.0.11"}
     io.github.tonsky/toml-clj {:mvn/version "0.1.0"}

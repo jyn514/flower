@@ -1,3 +1,4 @@
+builddir = {<__main__.Path object at 0x7f78d36d08e0>}
 rule tmpdir
   command = mkdir -p .build
   description = create build dir
@@ -5,21 +6,48 @@ build .build: tmpdir
 rule link
   command = ln -f $in $out
   description = link $in into build dir
-rule blossom
+rule page
   command = clj -M --main blossom render-page < $in > $out
-  description = render $in -> $out using clojure
+  description = render $in using clojure
+rule template
+  command = clj -M --main blossom embed-template < $in > $out
+  description = embed $page into $template using clojure
+rule postprocessor
+  command = clj -M --main blossom postprocess < $in > $out
+  description = transform $html with $postprocessor using clojure
+rule frontmatter
+  command = clj -M --main blossom split-frontmatter < $in > $out
 rule markdown
   command = pulldown-cmark -TFSULG $in > $out
   description = render markdown -> HTML: $in -> $out
-rule frontmatter
-  command = clj -M --main blossom split-frontmatter < $in > $out
-build .build/look-ma-new-site.md.json: frontmatter src/look-ma-new-site.md $
-    | blossom.clj
-build .build/look-ma-new-site.md: blossom .build/look-ma-new-site.md.json | $
-    blossom.clj
-build public/look-ma-new-site.html: markdown .build/look-ma-new-site.md
+build .build/you-are-in-a-box.md.json: frontmatter $
+    pages/you-are-in-a-box.md | blossom/core.clj blossom/deps.edn
+build .build/you-are-in-a-box.md: page .build/you-are-in-a-box.md.json | $
+    blossom/core.clj blossom/deps.edn
+build .build/you-are-in-a-box.embed.md: template .build/you-are-in-a-box.md $
+    .build/you-are-in-a-box.md.json
+  page = pages/you-are-in-a-box.md
+  template = FIXME BAD YOU DON'T HAVE DEPENDENCY TRACKING
+build public/you-are-in-a-box.html: markdown .build/you-are-in-a-box.embed.md
+build .build/foo.md.json: frontmatter pages/foo.md | blossom/core.clj $
+    blossom/deps.edn
+build .build/foo.md: page .build/foo.md.json | blossom/core.clj $
+    blossom/deps.edn
+build .build/foo.embed.md: template .build/foo.md .build/foo.md.json
+  page = pages/foo.md
+  template = FIXME BAD YOU DON'T HAVE DEPENDENCY TRACKING
+build public/foo.html: markdown .build/foo.embed.md
+build .build/look-ma-new-site.md.json: frontmatter $
+    pages/look-ma-new-site.md | blossom/core.clj blossom/deps.edn
+build .build/look-ma-new-site.md: page .build/look-ma-new-site.md.json | $
+    blossom/core.clj blossom/deps.edn
+build .build/look-ma-new-site.embed.md: template .build/look-ma-new-site.md $
+    .build/look-ma-new-site.md.json
+  page = pages/look-ma-new-site.md
+  template = FIXME BAD YOU DON'T HAVE DEPENDENCY TRACKING
+build public/look-ma-new-site.html: markdown .build/look-ma-new-site.embed.md
 rule ninja-meta
   command = scripts/gen.py
   description = rebuild build.ninja itself
-build build.ninja: ninja-meta scripts/gen.py src
+build build.ninja: ninja-meta scripts/gen.py pages
   generator = true

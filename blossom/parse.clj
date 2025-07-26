@@ -5,6 +5,7 @@
 (ns blossom
   (:require [instaparse.core :as insta]
             [sci.core :as sci]
+            [babashka.fs :as fs]
             [hiccup2.core :as h]
             [clojure.string :as str]
             [clojure.java.io :as io]
@@ -34,7 +35,7 @@
 
 (defn inspect [x] (println x) x)
 
-; rendering
+; sandboxing
 
 (defn load-sci-file [file] 
   {:file file :source (slurp file)})
@@ -72,6 +73,8 @@
       :bindings {'html (sci/copy-var h/html userns)
                  'str str
                  'fmt (sci/copy-var fmt userns)}}) ))))
+
+; rendering
 
 (defn embed
   "given a quoted form, embeds it in a program that prints out the stringified value"
@@ -166,6 +169,8 @@
 
 ; postprocessing
 (defn postprocess
+  "Given a `{:content x :frontmatter y :transformer z}` map,
+   run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [json]
   (let [parsed (json/read-str json :key-fn keyword)
         locals {'page {:content (:content parsed)
@@ -178,62 +183,32 @@
         lisp (embed (list 'do transformer '(transform page)))]
     (eval-form cx (inspect lisp))))
 
+(defn create-fs-cx
+  []
+  ; TODO: sandboxing
+  (copy-ns 'babashka.fs) )
+
+
+; meta-build system
+(defn configure
+  "Run `build.clj` to generate a build.ninja and save the output to disk."
+  []
+  (let [path "build.ninja"
+        cx (create-sci-cx {:namespaces {:fs (create-fs-cx)}})
+        lisp (sci/parse-string cx (slurp path))
+        embedded `(do ~lisp (-main))
+        ninja (eval-form cx embedded)]
+    (fs/write-bytes path ninja)))
+
 (defn -main [& args]
   (case (first args)
         ("render-page") (->> *in* slurp render-page print)
         ("postprocess") (->> *in* slurp postprocess print)
         ("split-frontmatter") (-> *in* slurp split-frontmatter (json/write *out*))
+        ("configure") (configure)
         (error (str "unrecognized command: " (first args)))))
 
 ;
-; (defn process-template
-;   "Process a template file with page data"
-;   [template-path page-data]
-;   (let [template-content (slurp template-path)
-;         {:keys [metadata content]} (parse-frontmatter template-content)]
-;     (render content {:page page-data})))
-
-; (defn collect-pages
-;   "Collect all pages for index generation"
-;   [src-dir]
-;   (->> (file-seq (io/file src-dir))
-;        (filter #(.isFile %))
-;        (filter #(or (str/ends-with? (.getName %) ".md")
-;                     (str/ends-with? (.getName %) ".html.clj")))
-;        (map (fn [file]
-;               (let [content (slurp file)
-;                     {:keys [metadata]} (parse-frontmatter content)]
-;                 (merge metadata {:path (.getPath file)
-;                                 :title (or (:title metadata) 
-;                                           (str/replace (.getName file) #"\.(md|html\.clj)$" ""))}))))))
-;
-; (defn process-index-page
-;   "Process an index page with access to all pages"
-;   [page-path all-pages]
-;   (let [content (slurp page-path)
-;         {:keys [metadata content]} (parse-frontmatter content)
-;         processed-content (render content {:pages all-pages})
-;         
-;         template-name (or (:template metadata) "index.html.clj")
-;         template-path (str "lib/" template-name)]
-;     
-;     (if (.exists (io/file template-path))
-;       (process-template template-path 
-;                        {:metadata metadata 
-;                         :content processed-content
-;                         :path page-path
-;                         :pages all-pages})
-;       processed-content)))
-;
-; (defn process-markdown
-;   "Process markdown content using nextjournal/markdown"
-;   [content]
-;   (-> content
-;       md/parse
-;       (md.transform/->hiccup)
-;       h/html
-;       str))
-
 ; https://babashka.org/
 ; https://github.com/weavejester/hiccup
 ; for repl
