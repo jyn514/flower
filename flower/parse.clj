@@ -53,6 +53,7 @@
                    'hiccup.compiler (copy-ns 'hiccup.compiler) 
                    'instaparse.core (copy-ns 'instaparse.core) 
                    ; 'clojure.repl (copy-ns 'clojure.repl)
+                   'flower.utils (copy-ns 'flower.utils)
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var h/html userns)
                  'str str

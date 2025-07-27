@@ -1,6 +1,8 @@
 (ns flower.utils)
 
 ; helpers
+; NOTE: these helpers are exposed to all interpreted code,
+; so they must not interact with the filesystem.
 
 (defmacro fmt [^String string]
   (let [-re #"\$\{(.*?)\}"
@@ -8,8 +10,9 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
-(defn error [msg] (binding [*out* *err*]
-                    (println (str "flower: error: " msg))))
+(defn error [& msg] (binding [*out* *err*]
+                    (println (apply str "flower: error: " msg))
+                    (System/exit 1)))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& maps]
@@ -18,4 +21,3 @@
     (last maps)))
 
 (defn inspect [x] (println x) x)
-
