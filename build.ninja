@@ -7,7 +7,7 @@ rule tmpdir
   command = mkdir -p .build
   description = create build dir
 rule link
-  command = ln -f $in out
+  command = ln -f $in $out
   description = link $in into build dir
 rule page
   command = clj -M --main flower.core render-page <$in >$out
@@ -27,17 +27,17 @@ rule markdown
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md build.clj flower/build.clj flower/parse.clj
 build .build: tmpdir 
 build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
-build .build/you-are-in-a-box.md: page .build/you-are-in-a-box.md.json
-build .build/you-are-in-a-box.embed.md: template .build/you-are-in-a-box.md
-  template = default.html
-build .build/you-are-in-a-box.html: markdown .build/you-are-in-a-box.embed.md
+build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json
+build .build/you-are-in-a-box.embed.html: template .build/you-are-in-a-box.md.rendered.json | templates/default.html
+  template = templates/default.html
+build public/you-are-in-a-box.embed.html: link .build/you-are-in-a-box.embed.html
 build .build/foo.md.json: frontmatter pages/foo.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
-build .build/foo.md: page .build/foo.md.json
-build .build/foo.embed.md: template .build/foo.md
-  template = default.html
-build .build/foo.html: markdown .build/foo.embed.md
+build .build/foo.md.rendered.json: page .build/foo.md.json
+build .build/foo.embed.html: template .build/foo.md.rendered.json | templates/default.html
+  template = templates/default.html
+build public/foo.embed.html: link .build/foo.embed.html
 build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
-build .build/look-ma-new-site.md: page .build/look-ma-new-site.md.json
-build .build/look-ma-new-site.embed.md: template .build/look-ma-new-site.md
-  template = default.html
-build .build/look-ma-new-site.html: markdown .build/look-ma-new-site.embed.md
+build .build/look-ma-new-site.md.rendered.json: page .build/look-ma-new-site.md.json
+build .build/look-ma-new-site.embed.html: template .build/look-ma-new-site.md.rendered.json | templates/default.html
+  template = templates/default.html
+build public/look-ma-new-site.embed.html: link .build/look-ma-new-site.embed.html

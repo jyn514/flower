@@ -1,4 +1,6 @@
-(ns flower.utils)
+(ns flower.utils
+  (:require [hiccup2.core :as hiccup]
+            [nextjournal.markdown :as md]))
 
 ; helpers
 ; NOTE: these helpers are exposed to all interpreted code,
@@ -20,4 +22,6 @@
     (apply merge-with merge-deep maps)
     (last maps)))
 
-(defn inspect [x] (println x) x)
+(defn inspect [x] (binding [*out* *err*] (println x) x))
+
+(defn markdown [md] (-> md md/->hiccup hiccup/html str))

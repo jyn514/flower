@@ -58,7 +58,8 @@
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var h/html userns)
                  'str str
-                 'fmt (sci/copy-var fmt userns)}}) ))))
+                 'fmt (sci/copy-var fmt userns)
+                 'markdown markdown}}) ))))
 
 ; rendering
 
@@ -117,8 +118,12 @@
 
 (defn render-page
   "Preprocess and render a JSON blob"
-  [json] (let [parsed (json/read-str json)]
-           (render (get parsed "content") (get parsed "frontmatter"))))
+  [json out]
+  (let [parsed (json/read-str json :key-fn keyword)
+        rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})
+        m {:content rendered
+           :frontmatter (:frontmatter parsed)}]
+    (json/write m out)))
 
 ; postprocessing
 (defn postprocess
@@ -178,9 +183,9 @@
          ; TODO: layering violation, we shouldn't be reading this off disk.
          ; instead we should run `split-frontmatter` on the template too
          ; and then merge the two.
-         template :content} (slurp template-name)
-        frontmatter (merge-deep template-frontmatter (:frontmatter page))
-        locals {'content (:content page)
+         template :content} (-> template-name slurp build/split-frontmatter)
+        frontmatter (merge-deep template-frontmatter (:frontmatter embed))
+        locals {'content (:content embed)
                 'frontmatter frontmatter}]
     (render template locals)))
 
@@ -188,7 +193,7 @@
   (case (first args)
     ("configure") (configure "build.clj" "build.ninja")
     ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
-    ("render-page") (->> *in* slurp render-page print)
+    ("render-page") (-> *in* slurp (render-page *out*))
     ("embed-template") (->> *in* slurp (embed-template (second args)) print)
     ("postprocess") (->> *in* slurp postprocess print)
     ("jq") (-> *in* slurp (jq/execute (second args)) println)

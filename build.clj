@@ -1,4 +1,5 @@
 (require 'flower.build)
+(require '(babashka [fs :as fs]))
 (use 'flower.utils)
 
 (defn / [x & more]
@@ -7,7 +8,9 @@
 (defn ext [path ext]
   (-> path fs/path fs/file-name fs/strip-ext (str "." ext)))
 
+(def public "public")
 (def builddir ".build")
+(def templates "templates")
 (def f "flower")
 (def ff
   "flower files"
@@ -18,29 +21,64 @@
 (def flower_cli "clj -M --main flower.core")
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
-(def all-pages (fs/glob "pages" "**.md"))
 (defn build-page [page]
   ; (let [template (-> page slurp build/split-frontmatter :frontmatter :template)
   (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
+        template_path (/ templates template)
         json_frontmatter (/ builddir (ext page "md.json"))
-        processed_markdown (/ builddir (fs/file-name page))
-        embedded_markdown (/ builddir (ext page "embed.md"))
-        html (/ builddir (ext page "html"))]
-    [{:rule "frontmatter"
-      :inputs (str page)
-      :outputs json_frontmatter
-      :implicit ff}
-     {:rule "page"
-      :inputs json_frontmatter
-      :outputs processed_markdown}
-     {:rule "template"
-      :inputs processed_markdown
-      :outputs embedded_markdown
-      :template template}
-     {:rule "markdown"
-      :inputs embedded_markdown
-      :outputs html}]))
-(def page-builds (mapcat build-page all-pages))
+        processed_markdown (/ builddir (ext page "md.rendered.json"))
+        embedded_markdown (/ builddir (ext page (str "embed." (fs/extension template))))
+        rules [{:rule "frontmatter"
+                :inputs (str page)
+                :outputs json_frontmatter
+                :implicit ff}
+               {:rule "page"
+                :inputs json_frontmatter
+                :outputs processed_markdown}
+               {:rule "template"
+                :inputs processed_markdown
+                :outputs embedded_markdown
+                :implicit template_path
+                :template template_path}]]
+    {:rules rules :out embedded_markdown}))
+     ; {:rule "markdown"
+     ;  :inputs embedded_markdown
+     ;  :outputs html}]))
+
+(defn markdown-page [page]
+  (let [html (/ builddir (ext page "html"))]
+    {:rules [{:rule "markdown"
+              :inputs page
+              :outputs html
+              :implicit ff}]
+     :out html}))
+
+(defn link-page [page]
+  (let [final (/ public (fs/file-name page))]
+    {:rules [{:rule "link"
+              :inputs page
+              :outputs final}]}))
+
+(defmulti dispatch-file fs/extension)
+(defmethod dispatch-file "md" [f] (markdown-page f))
+; (defmethod dispatch-file "html" [f] (link-page f))
+(defmethod dispatch-file :default [f] (link-page f))
+(defn chain-commands [in out]
+  (let [{new-rules :rules
+         new-path :out } (dispatch-file in)
+        all-rules (concat out new-rules)]
+    (if (nil? new-path)
+      all-rules
+      (recur new-path all-rules))))
+
+(def all-pages (fs/glob "pages" "**.md"))
+
+(def page-builds
+  (mapcat
+    #(let [{:keys [rules out]} (build-page %)]
+       (chain-commands out rules))
+    ; #(apply chain-commands (build-page %))
+    all-pages))
 
 (def base
   {:variables {:builddir builddir}
@@ -52,7 +90,7 @@
      :command (str "mkdir -p " builddir)
      :description "create build dir"}
     {:name "link"
-     :command "ln -f $in out"
+     :command "ln -f $in $out"
      :description "link $in into build dir"}
     {:name "page"
      :command (flow "render-page")
