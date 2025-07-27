@@ -15,29 +15,35 @@ rule page
 rule template
   command = clj -M --main flower.core embed-template $template < $in > $out
   description = embed $in into $template using clojure
-rule postprocessor
-  command = clj -M --main flower.core postprocess <$in >$out
-  description = transform $html with $postprocessor using clojure
 rule frontmatter
   command = clj -M --main flower.core split-frontmatter <$in >$out
 rule markdown
   command = pulldown-cmark -TFSULG $in -> $out
   description = render markdown -> HTML: $in -> $out
+rule postprocess
+  command = < $in clj -M --main flower.core postprocess postprocessors/title.clj | clj -M --main flower.core jq .content > $out
+  description = run all postprocessors on $in
 
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md build.clj flower/build.clj flower/parse.clj
 build .build: tmpdir 
 build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
 build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json
-build .build/you-are-in-a-box.html: template .build/you-are-in-a-box.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+build .build/you-are-in-a-box.embed.html: template .build/you-are-in-a-box.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
   template = templates/default.html
-build public/you-are-in-a-box.html: link .build/you-are-in-a-box.html
+build .build/you-are-in-a-box.html: postprocess .build/you-are-in-a-box.embed.html | postprocessors/title.clj
+  html = .build/you-are-in-a-box.embed.html
+build public/you-are-in-a-box.embed.html: link .build/you-are-in-a-box.embed.html
 build .build/foo.md.json: frontmatter pages/foo.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
 build .build/foo.md.rendered.json: page .build/foo.md.json
-build .build/foo.html: template .build/foo.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+build .build/foo.embed.html: template .build/foo.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
   template = templates/default.html
-build public/foo.html: link .build/foo.html
+build .build/foo.html: postprocess .build/foo.embed.html | postprocessors/title.clj
+  html = .build/foo.embed.html
+build public/foo.embed.html: link .build/foo.embed.html
 build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
 build .build/look-ma-new-site.md.rendered.json: page .build/look-ma-new-site.md.json
-build .build/look-ma-new-site.html: template .build/look-ma-new-site.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+build .build/look-ma-new-site.embed.html: template .build/look-ma-new-site.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
   template = templates/default.html
-build public/look-ma-new-site.html: link .build/look-ma-new-site.html
+build .build/look-ma-new-site.html: postprocess .build/look-ma-new-site.embed.html | postprocessors/title.clj
+  html = .build/look-ma-new-site.embed.html
+build public/look-ma-new-site.embed.html: link .build/look-ma-new-site.embed.html

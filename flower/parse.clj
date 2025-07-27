@@ -118,12 +118,11 @@
 
 (defn render-page
   "Preprocess and render a JSON blob"
-  [json out]
+  [json]
   (let [parsed (json/read-str json :key-fn keyword)
-        rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})
-        m {:content rendered
-           :frontmatter (:frontmatter parsed)}]
-    (json/write m out)))
+        rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})]
+    {:content rendered
+     :frontmatter (:frontmatter parsed)}))
 
 ; postprocessing
 (defn postprocess
@@ -186,15 +185,28 @@
          template :content} (-> template-name slurp build/split-frontmatter)
         frontmatter (merge-deep template-frontmatter (:frontmatter embed))
         locals {'content (:content embed)
-                'frontmatter frontmatter}]
-    (render template locals)))
+                'frontmatter frontmatter}
+        embedded (render template locals)]
+    {:content embedded
+     :frontmatter frontmatter}))
+
+; IO
+(defn map-json
+  "Given a function `f` that transforms a clojure map to a clojure map,
+   read the map as JSON from stdin and write it to stdout.
+   If any `args` are present, they will be passed after the map."
+  [f & args]
+  (-> *in* slurp
+      (json/read-str :key-fn keyword)
+      (apply f args)
+      (json/write *out*))
 
 (defn -main [& args]
   (case (first args)
     ("configure") (configure "build.clj" "build.ninja")
     ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
     ("render-page") (-> *in* slurp (render-page *out*))
-    ("embed-template") (->> *in* slurp (embed-template (second args)) print)
+    ("embed-template") (->> *in* slurp (embed-template (second args)) (json/write *out*))
     ("postprocess") (->> *in* slurp postprocess print)
     ("jq") (-> *in* slurp (jq/execute (second args)) println)
     (error (str "unrecognized command: " (first args)))))

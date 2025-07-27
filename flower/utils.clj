@@ -17,10 +17,11 @@
                     (System/exit 1)))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
-(defn merge-deep [& maps]
-  (if (every? map? maps)
-    (apply merge-with merge-deep maps)
-    (last maps)))
+(defn merge-deep [& xs]
+  (cond
+    (every? map? xs) (apply merge-with merge-deep xs)
+    (every? vector? xs) (apply concat xs)
+    :else (last xs)))
 
 (defn inspect [x] (binding [*out* *err*] (println x) x))
 

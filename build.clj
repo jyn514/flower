@@ -1,5 +1,6 @@
-(require 'flower.build)
-(require '(babashka [fs :as fs]))
+(require 'flower.build
+         '(babashka [fs :as fs])
+         '(clojure [string :as str]))
 (use 'flower.utils)
 
 (defn / [x & more]
@@ -22,12 +23,14 @@
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
 (defn build-page [page]
-  ; (let [template (-> page slurp build/split-frontmatter :frontmatter :template)
   (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
         template_path (/ templates template)
         json_frontmatter (/ builddir (ext page "md.json"))
         processed_markdown (/ builddir (ext page "md.rendered.json"))
-        embedded_markdown (/ builddir (ext page (fs/extension template)))
+        ; can be different than embedded_html if e.g. the template ends in .md
+        embedded_markdown (/ builddir (ext page (str "embed." (fs/extension template))))
+        embedded_html (/ builddir (ext page "embed.html"))
+        final_html (/ builddir (ext page "html"))
         rules [{:rule "frontmatter"
                 :inputs (str page)
                 :outputs json_frontmatter
@@ -39,11 +42,13 @@
                 :inputs processed_markdown
                 :outputs embedded_markdown
                 :implicit (conj ff template_path)
-                :template template_path}]]
+                :template template_path}
+               {:rule "postprocess"
+                :inputs embedded_html
+                :outputs final_html
+                :implicit (fs/glob "postprocessors" "*")
+                :html embedded_html}]]
     {:rules rules :out embedded_markdown}))
-     ; {:rule "markdown"
-     ;  :inputs embedded_markdown
-     ;  :outputs html}]))
 
 (defn markdown-page [page]
   (let [html (/ builddir (ext page "html"))]
@@ -99,9 +104,9 @@
      ; NOTE: this means that all templates must depend on all other templates
      :command (fmt "${flower_cli} embed-template $template < $in > $out")
      :description "embed $in into $template using clojure"}
-    {:name "postprocessor"
-     :command (flow "postprocess")
-     :description "transform $html with $postprocessor using clojure"}
+    ; {:name "postprocess"
+    ;  :command (flow "postprocess")
+    ;  :description "transform $html with $postprocessor using clojure"}
     {:name "frontmatter"
      :command (flow "split-frontmatter")}
     {:name "markdown"
@@ -115,5 +120,17 @@
     {:rule "tmpdir"
      :outputs builddir}]})
 
+(defn postprocess [{runners :all-postprocessors}]
+  (let [pps (fs/glob "postprocessors" "*")
+        cmds (map #(str (get runners (fs/extension %)) " " %) pps)
+        pipe (str/join " | " cmds)
+        cmd (fmt "< $in ${pipe} | ${flower_cli} jq .content > $out")]
+  {:rules [{:name "postprocess"
+            :command cmd
+            :description "run all postprocessors on $in"}]}))
+
+(flower.build/register-postprocessor-runners
+  {"clj" (str flower_cli " postprocess")})
 (flower.build/generate
-  (update-in base [:builds] #(concat % page-builds)))
+  (update-in base [:builds] #(concat % page-builds))
+  postprocess)

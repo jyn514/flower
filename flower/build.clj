@@ -12,6 +12,12 @@
 ; bound by 'configure
 (def ^:dynamic *ninja* "not for public use" nil)
 (def ^:dynamic *frontmatter* "not for public use" nil)
+(def ^:dynamic *postprocessors*
+  "a mapping from postprocessor file extension to how to run it.
+  postprocessor runners must read {html, frontmatter} JSON on stdin
+  and write the same to stdout. they should not read or write to the filesystem.
+  doing so will cause build caching to break."
+  {})
 (def ^:private nl "\n")
 
 ; frontmatter
@@ -100,11 +106,22 @@
                     (dissoc opts :outputs :inputs :implicit :order :rule)))
          )))
 
-(defn generate [ninja]
-  (let [mapper (fn [[k v]]
-          (case k
-            :rules (conj (map gen-rule v) nl)
-            :builds (conj (map gen-build v) nl)
-            :variables (map-vars #(format "%s = %s\n" %1 %2) v)))
-        contents (->> ninja (map mapper) flatten str/join)]
-    (.write flower.build/*ninja* contents)))
+(defn register-postprocessor-runners [m]
+  (alter-var-root #'*postprocessors* #(merge-deep % m)))
+
+(defn generate
+  ([ninja & late-bound]
+   (let [all-maps (map #(% {:all-frontmatter *frontmatter*
+                            :all-postprocessors *postprocessors*}) late-bound)
+         merged (apply merge-deep ninja all-maps)]
+     (generate merged)))
+  ([ninja]
+   (let [mapper (fn [[k v]]
+                  (case k
+                    :rules (conj (map gen-rule v) nl)
+                    :builds (conj (map gen-build v) nl)
+                    :variables (map-vars #(format "%s = %s\n" %1 %2) v)
+                    ))
+         ; :postprocessors (error "TODO")))
+         contents (->> ninja (map mapper) flatten str/join)]
+  (.write flower.build/*ninja* contents))))
