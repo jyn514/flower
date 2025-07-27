@@ -1,4 +1,4 @@
-(ns blossom.utils)
+(ns flower.utils)
 
 ; helpers
 
@@ -9,7 +9,7 @@
     `(format ~fstr ~@fargs)))
 
 (defn error [msg] (binding [*out* *err*]
-                    (println (str "blossom: error: " msg))))
+                    (println (str "flower: error: " msg))))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& maps]

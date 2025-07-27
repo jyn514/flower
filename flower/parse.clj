@@ -1,8 +1,8 @@
 ; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
 ; see https://github.com/liquidz/frontmatter
 
-(ns blossom.core
-  (:use [blossom.utils])
+(ns flower.core
+  (:use [flower.utils])
   (:require [instaparse.core :as insta]
             [sci.core :as sci]
             [babashka.fs :as fs]
@@ -13,7 +13,7 @@
             [clojure.edn       :as edn]
             [yaml.core     :as yaml]
             [toml-clj.core :as toml]
-            [blossom.build]
+            [flower.build]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
 
@@ -52,6 +52,7 @@
                    'hiccup.util (copy-ns 'hiccup.util) 
                    'hiccup.compiler (copy-ns 'hiccup.compiler) 
                    'instaparse.core (copy-ns 'instaparse.core) 
+                   ; 'clojure.repl (copy-ns 'clojure.repl)
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var h/html userns)
                  'str str
@@ -167,30 +168,35 @@
     (eval-form cx (inspect lisp))))
 
 (defn create-fs-cx
-  []
+  [ninja]
   (let [fs (copy-ns 'babashka.fs)
-        ; build {assoc (copy-ns 'blossom.build) 'out (sci/new-var 'out)}]
-        build (copy-ns 'blossom.build)]
+        ; build (inspect (assoc (copy-ns 'flower.build) '*ninja* ninja))]
+        build (copy-ns 'flower.build)]
     (create-sci-cx
       {:namespaces
         ; TODO: sandboxing
         {'babashka.fs fs
         'fs fs
         'flower.build build
-        'build build}
-       :bindings
-        {'out (sci/new-dynamic-var 'out)}})))
+        'build build
+        'flower.internal {'*ninja* ninja}}
+        })))
 
 
 ; meta-build system
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [in out]
-  (let [cx (create-fs-cx)
-        embedded (str "(do" (slurp in) "(flower.build/generate))")
-        lisp (sci/parse-string cx embedded)
-        ninja (eval-form cx lisp)]
-    (fs/write-bytes (fs/path out) (.getBytes ninja))))
+  (let [ninja-writer (new java.io.StringWriter)
+        dst (fs/path out)]
+    (binding [flower.build/*ninja* ninja-writer]
+      (let [
+            cx (create-fs-cx (sci/copy-var flower.build/*ninja* 'flower.internal))
+            embedded (str "(do" (slurp in) ")")
+            lisp (sci/parse-string cx embedded)
+            ]
+        (eval-form cx lisp)))
+    (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
 (defn -main [& args]
   (case (first args)
@@ -205,56 +211,3 @@
 ; https://github.com/weavejester/hiccup
 ; for repl
 (def src "x◊(+ 1 2)")
-
-; Tests
-; (ns blossom-test 
-;   (:require [clojure.test :as t]
-;             [clojure.string :as str]
-;             [blossom]))
-;
-; (t/deftest parser
-;   (t/testing "accepts valid"
-;     (t/is (= "x3" (blossom/render blossom/src))))
-;   (t/testing "any start"
-;     (t/is (= "3x" (blossom/render "◊(+ 1 2)x"))))
-;   (t/testing "ident shortcut"
-;     (t/is (= "x3" (blossom/render "x◊test" {'test 3}))))
-;   (t/testing "errors handled gracefully"
-;     (t/is (str/includes? (blossom/render "◊(") "Parse error"))))
-;
-; (t/deftest frontmatter-parsing
-;   (t/testing "parses frontmatter"
-;     (let [content "---\ntitle = Hello World\ntemplate = custom.html.clj\n---\n# Hello\n\nContent here"
-;           result (blossom/parse-frontmatter content)]
-;       (t/is (= "Hello World" (get-in result [:metadata :title])))
-;       (t/is (= "custom.html.clj" (get-in result [:metadata :template])))
-;       (t/is (= "# Hello\n\nContent here" (:content result)))))
-;   
-;   (t/testing "handles missing frontmatter"
-;     (let [content "# Hello\n\nContent here"
-;           result (blossom/parse-frontmatter content)]
-;       (t/is (= {} (:metadata result)))
-;       (t/is (= content (:content result))))))
-;
-; (t/deftest markdown-processing
-;   (t/testing "processes markdown correctly"
-;     (let [md-content "# Hello\n\nThis is **bold** text."
-;           result (blossom/process-markdown md-content)]
-;       (t/is (str/includes? result "<h1>"))
-;       (t/is (str/includes? result "<strong>bold</strong>")))))
-;
-; (ns blossom-test (:require [clojure.test :as t])
-;   (:require [blossom]))
-; ; (defmacro desc t/testing)
-; (t/deftest parser
-;   (t/testing "accepts valid"
-;     (t/is (= "x3" (blossom/render blossom/src))))
-;   (t/testing "any start"
-;     (t/is (= "3x" (blossom/render "◊(+ 1 2)x"))))
-;   (t/testing "errors"
-;     (t/is (= instaparse.gll.Failure (type (blossom/render "◊("))))))
-; (t/deftest eval-values
-;   (t/testing "lazy collections ok"
-;     (t/is (= "(2 3 4)" (blossom/render "◊(map inc [1 2 3])")))))
-;
-; ; (t/run-tests)

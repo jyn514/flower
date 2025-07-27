@@ -1,4 +1,4 @@
-(ns blossom.select
+(ns flower.select
   (:require [clojure.zip :as zip])
   (:import (org.jsoup.nodes LeafNode Node Document Element)
            (org.jsoup Jsoup)))

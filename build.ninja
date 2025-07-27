@@ -1,2 +1,2 @@
 rule tmpdir
-  command = mkdir -p ..build
+  command = mkdir -p ..buildbuild : tmpdir 

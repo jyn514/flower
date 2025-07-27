@@ -11,10 +11,10 @@
   :paths ["."]
   :aliases {
     ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
-    :extra-paths ["parse.clj"]
+    ; :extra-paths ["parse.clj"]
     :test
-      {:extra-paths ["parse.clj"]
-      :extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
+      ; {:extra-paths ["parse.clj"]
+      {:extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
       :exec-fn     kaocha.runner/exec-fn
       :exec-args   {:skip-meta :slow}}
 
