@@ -13,7 +13,8 @@
             [clojure.edn       :as edn]
             [yaml.core     :as yaml]
             [toml-clj.core :as toml]
-            [flower.build]
+            [flower.build :as build]
+            [jq.api :as jq]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
 
@@ -119,39 +120,6 @@
   [json] (let [parsed (json/read-str json)]
            (render (get parsed "content") (get parsed "frontmatter"))))
 
-; frontmatter
-
-; https://github.com/liquidz/frontmatter/blob/34a86ed3c6524f63cb457079c1316d9707be061a/src/frontmatter/core.clj
-(defn- split-lines
-  [lines delim]
-  (let [x (take-while #(not= delim %) lines)]
-    (list x (drop (+ 1 (count x)) lines))))
-
-(defn- parse-json [s]
-  (json/read-str (str "{" s "}")
-                 :key-fn keyword))
-
-(defn- parse-edn [s]
-  (edn/read-string (str "{" s "}")))
-
-(defn- select-parse-fn
-  [first-line]
-  (case first-line
-    "---" yaml/parse-string
-    "+++" toml/read-string
-    ";;;" parse-json ; TODO: just use {} like hugo
-    "###" parse-edn
-    nil))
-
-(defn split-frontmatter
-  [original-body]
-  (let [[first-line & rest-lines] (str/split-lines original-body)
-        [frontmatter body]        (split-lines rest-lines first-line)]
-    (if-let [parser (select-parse-fn first-line)]
-      {:content (str/join "\n" body)
-       :frontmatter (parser (str/join "\n" frontmatter))}
-      {:frontmatter {} :content original-body})))
-
 ; postprocessing
 (defn postprocess
   "Given a `{:content x :frontmatter y :transformer z}` map,
@@ -168,45 +136,63 @@
         lisp (embed (list 'do transformer '(transform page)))]
     (eval-form cx (inspect lisp))))
 
+; meta-build system
+
 (defn create-fs-cx
-  [ninja]
+  []
   (let [fs (copy-ns 'babashka.fs)
-        ; build (inspect (assoc (copy-ns 'flower.build) '*ninja* ninja))]
         build (copy-ns 'flower.build)]
     (create-sci-cx
       {:namespaces
-        ; TODO: sandboxing
-        {'babashka.fs fs
+       ; TODO: sandboxing
+       {'babashka.fs fs
         'fs fs
         'flower.build build
-        'build build
-        ; 'flower.internal {'*ninja* ninja}}
-        }
-        })))
+        'build build}})))
 
 
-; meta-build system
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [in out]
   (let [ninja-writer (new java.io.StringWriter)
+        frontmatter (map #(-> slurp build/split-frontmatter :frontmatter)
+                         (fs/glob "pages" "**.md"))
         dst (fs/path out)]
-    (binding [flower.build/*ninja* ninja-writer]
+    (binding [flower.build/*ninja* ninja-writer
+              flower.build/*frontmatter* frontmatter]
       (let [
-            cx (create-fs-cx (sci/copy-var flower.build/*ninja* 'flower.internal))
+            cx (create-fs-cx)
             embedded (str "(do" (slurp in) ")")
             lisp (sci/parse-string cx embedded)
             ]
         (eval-form cx lisp)))
     (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
+; template embedding
+(defn embed-template
+  "Given a {:content :frontmatter} page and the name of a template file,
+  render `template` in context."
+  [template-name page]
+  (let [embed (json/read-str page :key-fn keyword)
+        {template-frontmatter :frontmatter
+         ; TODO: layering violation, we shouldn't be reading this off disk.
+         ; instead we should run `split-frontmatter` on the template too
+         ; and then merge the two.
+         template :content} (slurp template-name)
+        frontmatter (merge-deep template-frontmatter (:frontmatter page))
+        locals {'content (:content page)
+                'frontmatter frontmatter}]
+    (render template locals)))
+
 (defn -main [& args]
   (case (first args)
-        ("render-page") (->> *in* slurp render-page print)
-        ("postprocess") (->> *in* slurp postprocess print)
-        ("split-frontmatter") (-> *in* slurp split-frontmatter (json/write *out*))
-        ("configure") (configure "build.clj" "build.ninja")
-        (error (str "unrecognized command: " (first args)))))
+    ("configure") (configure "build.clj" "build.ninja")
+    ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
+    ("render-page") (->> *in* slurp render-page print)
+    ("embed-template") (->> *in* slurp (embed-template (second args)) print)
+    ("postprocess") (->> *in* slurp postprocess print)
+    ("jq") (-> *in* slurp (jq/execute (second args)) println)
+    (error (str "unrecognized command: " (first args)))))
 
 ;
 ; https://babashka.org/

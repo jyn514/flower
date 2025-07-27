@@ -1,3 +1,4 @@
+(require 'flower.build)
 (use 'flower.utils)
 
 (defn / [x & more]
@@ -19,7 +20,9 @@
 
 (def all-pages (fs/glob "pages" "**.md"))
 (defn build-page [page]
-  (let [json_frontmatter (/ builddir (ext page "md.json"))
+  ; (let [template (-> page slurp build/split-frontmatter :frontmatter :template)
+  (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
+        json_frontmatter (/ builddir (ext page "md.json"))
         processed_markdown (/ builddir (fs/file-name page))
         embedded_markdown (/ builddir (ext page "embed.md"))
         html (/ builddir (ext page "html"))]
@@ -32,7 +35,8 @@
       :outputs processed_markdown}
      {:rule "template"
       :inputs processed_markdown
-      :outputs embedded_markdown}
+      :outputs embedded_markdown
+      :template template}
      {:rule "markdown"
       :inputs embedded_markdown
       :outputs html}]))
@@ -54,8 +58,9 @@
      :command (flow "render-page")
      :description "render $in using clojure"}
     {:name "template"
-     :command (flow "embed-template")
-     :description "embed $page into $template using clojure"}
+     ; NOTE: this means that all templates must depend on all other templates
+     :command (fmt "${flower_cli} embed-template $template < $in > $out")
+     :description "embed $in into $template using clojure"}
     {:name "postprocessor"
      :command (flow "postprocess")
      :description "transform $html with $postprocessor using clojure"}
@@ -68,7 +73,7 @@
    ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
    [{:rule "ninja-meta"
      :outputs "build.ninja"
-     :inputs ["build.clj" (/ f "build.clj") (/ f "parse.clj")]}
+     :inputs (concat all-pages ["build.clj" (/ f "build.clj") (/ f "parse.clj")])}
     {:rule "tmpdir"
      :outputs builddir}]})
 
