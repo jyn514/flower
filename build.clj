@@ -27,7 +27,7 @@
         template_path (/ templates template)
         json_frontmatter (/ builddir (ext page "md.json"))
         processed_markdown (/ builddir (ext page "md.rendered.json"))
-        embedded_markdown (/ builddir (ext page (str "embed." (fs/extension template))))
+        embedded_markdown (/ builddir (ext page (fs/extension template)))
         rules [{:rule "frontmatter"
                 :inputs (str page)
                 :outputs json_frontmatter
@@ -38,7 +38,7 @@
                {:rule "template"
                 :inputs processed_markdown
                 :outputs embedded_markdown
-                :implicit template_path
+                :implicit (conj ff template_path)
                 :template template_path}]]
     {:rules rules :out embedded_markdown}))
      ; {:rule "markdown"

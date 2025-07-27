@@ -24,4 +24,10 @@
 
 (defn inspect [x] (binding [*out* *err*] (println x) x))
 
-(defn markdown [md] (-> md md/->hiccup hiccup/html str))
+(defn markdown [md]
+  ; https://github.com/nextjournal/markdown?tab=readme-ov-file#html-blocks-and-html-inlines
+  (let [renderers (assoc md/default-hiccup-renderers
+                         :html-inline (comp hiccup/raw md/node->text)
+                         :html-block (comp hiccup/raw md/node->text))]
+  (->> md (md/->hiccup renderers) hiccup/html str)))
+

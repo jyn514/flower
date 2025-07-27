@@ -139,7 +139,7 @@
         ls (str "(do " f ")")
         transformer (->> ls (sci/parse-string cx))
         lisp (embed (list 'do transformer '(transform page)))]
-    (eval-form cx (inspect lisp))))
+    (eval-form cx lisp)))
 
 ; meta-build system
 
