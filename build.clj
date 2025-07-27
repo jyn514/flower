@@ -2,11 +2,11 @@
 (def builddir ".build")
 (def ninja
   {:rules
-     [{:name "tmpdir"
-       :command "mkdir -p ..build"}]
+   [{:name "tmpdir"
+     :command "mkdir -p ..build"
+     :description "create build dir"}]
    :builds
-     [{:rule "tmpdir"
-       :command (fmt "mkdir -p ${builddir}")
-       :description "create build dir"}]})
+   [{:rule "tmpdir"
+     :outputs builddir}]})
 
 (flower.build/generate ninja)

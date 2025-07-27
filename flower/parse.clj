@@ -179,7 +179,8 @@
         'fs fs
         'flower.build build
         'build build
-        'flower.internal {'*ninja* ninja}}
+        ; 'flower.internal {'*ninja* ninja}}
+        }
         })))
 
 

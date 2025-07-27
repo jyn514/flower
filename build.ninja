@@ -1,2 +1,6 @@
+
 rule tmpdir
-  command = mkdir -p ..buildbuild : tmpdir 
+  command = mkdir -p ..build
+  description = create build dir
+
+build .build: tmpdir 
