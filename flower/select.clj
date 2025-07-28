@@ -23,7 +23,11 @@
     ; TODO: starts from halfway through a DOM.
     ; start from the root scrolled to `elem` instead, using https://github.com/igrishaev/zippo#lookups
     elem)))
+
 ; after before append prepend attrs set-attr remove-attr remove replace-with
+; these have to be explicitly bound because SCI sandboxes java by default
+; (defn append [& rest] (apply #(.append %&) rest))
+(defn append [n c] (.append n (str c)))
 
 (def d (Jsoup/parse "<div><h1>hiiiii</h1></div>"))
 (def z (zipper d))

@@ -3,10 +3,15 @@
 
 (ns flower.core
   (:use [flower.utils])
+  (:import (net.thisptr.jackson.jq JsonQuery Scope Versions Output)
+           (com.fasterxml.jackson.databind ObjectMapper JsonNode))
+  ; net.thisptr.jackson.jq/Output
+           ; (com.fasterxml.jackson.databind.node Array))
   (:require [instaparse.core :as insta]
             [sci.core :as sci]
             [babashka.fs :as fs]
             [hiccup2.core :as h]
+            [hiccup.util]
             [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.data.json :as json]
@@ -14,6 +19,7 @@
             [yaml.core     :as yaml]
             [toml-clj.core :as toml]
             [flower.build :as build]
+            [flower.select]
             [jq.api :as jq]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
@@ -40,6 +46,26 @@
         publics (ns-publics ns)]
     (update-vals publics #(sci/copy-var* % binding))))
 
+(defn pprint [x]
+  (cond (var? x) ""
+        (hiccup.util/raw-string? x) (str x)
+        (instance? org.jsoup.select.Nodes x) (.outerHtml x)
+        :else (print-str x)))
+
+(defn embed
+  "given a quoted form, embeds it in a program that prints out the stringified value"
+  [lisp]
+      ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
+    ; it won't be evaluated eagerly and we will get a resolution error from `let`.
+    ; use `eval` to delay resolution.
+    `(flower.internal/pprint (eval '~lisp)))
+    ; (list 'flower.internal/pprint ('do lisp)))
+    ; `(let [user-code# (eval '~lisp)] ; sci.lang.Var means this was a `def`
+    ;     (cond (var? user-code#) ""
+    ;           (hiccup.util/raw-string? user-code#) (str user-code#)
+    ;           (instance? org.jsoup.select.Nodes user-code#) (.outerHtml user-code#)
+    ;           true (print-str user-code#))))
+
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
   ([] (create-sci-cx {}))
@@ -55,25 +81,18 @@
                    'instaparse.core (copy-ns 'instaparse.core) 
                    ; 'clojure.repl (copy-ns 'clojure.repl)
                    'flower.utils (copy-ns 'flower.utils)
+                   'flower.select (copy-ns 'flower.select)
+                   'flower.internal {'pprint pprint}
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var h/html userns)
                  'str str
                  'fmt (sci/copy-var fmt userns)
-                 'markdown markdown}}) ))))
+                 'markdown markdown}
+      ; TODO: this has implications for Graal
+      ; https://www.graalvm.org/latest/reference-manual/native-image/metadata/
+      :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) ))))
 
 ; rendering
-
-(defn embed
-  "given a quoted form, embeds it in a program that prints out the stringified value"
-  [lisp]
-  ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
-  ; it won't be evaluated eagerly and we will get a resolution error from `let`.
-  ; use `eval` to delay resolution.
-    `(let [user-code# (eval '~lisp)]
-        ; sci.lang.Var means this was a `def`
-        (cond (var? user-code#) ""
-              (hiccup.util/raw-string? user-code#) (str user-code#)
-              true (print-str user-code#))))
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
@@ -118,9 +137,8 @@
 
 (defn render-page
   "Preprocess and render a JSON blob"
-  [json]
-  (let [parsed (json/read-str json :key-fn keyword)
-        rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})]
+  [parsed]
+  (let [rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})]
     {:content rendered
      :frontmatter (:frontmatter parsed)}))
 
@@ -128,17 +146,19 @@
 (defn postprocess
   "Given a `{:content x :frontmatter y :transformer z}` map,
    run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [json]
-  (let [parsed (json/read-str json :key-fn keyword)
-        locals {'page {:content (:content parsed)
-                       :frontmatter (:frontmatter parsed)}}
+  [parsed transformer]
+  (let [locals {'page parsed}
+  ; (let [locals {'page {:content (:content parsed)
+  ;                      :frontmatter (:frontmatter parsed)}}
         cx (create-sci-cx {:bindings locals #_:load-fn #_load})
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
-        f (-> parsed :transformer slurp)
+        f (slurp transformer)
         ls (str "(do " f ")")
         transformer (->> ls (sci/parse-string cx))
-        lisp (embed (list 'do transformer '(transform page)))]
-    (eval-form cx lisp)))
+        lisp (embed (list 'do transformer '(transform page)))
+        html (eval-form cx lisp)]
+    (merge parsed {:content html})
+    ))
 
 ; meta-build system
 
@@ -154,13 +174,18 @@
         'flower.build build
         'build build}})))
 
+(defn load-meta [dir]
+  (map #(-> slurp build/split-frontmatter :frontmatter)
+       (fs/glob dir "**.md")))
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [in out]
   (let [ninja-writer (new java.io.StringWriter)
-        frontmatter (map #(-> slurp build/split-frontmatter :frontmatter)
-                         (fs/glob "pages" "**.md"))
+        page-meta (load-meta "pages")
+        template-meta (load-meta "templates")
+        ; frontmatter {:pages page-meta :templates template-meta}
+        frontmatter page-meta
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
               flower.build/*frontmatter* frontmatter]
@@ -176,9 +201,8 @@
 (defn embed-template
   "Given a {:content :frontmatter} page and the name of a template file,
   render `template` in context."
-  [template-name page]
-  (let [embed (json/read-str page :key-fn keyword)
-        {template-frontmatter :frontmatter
+  [embed template-name]
+  (let [{template-frontmatter :frontmatter
          ; TODO: layering violation, we shouldn't be reading this off disk.
          ; instead we should run `split-frontmatter` on the template too
          ; and then merge the two.
@@ -190,25 +214,58 @@
     {:content embedded
      :frontmatter frontmatter}))
 
+; jq emulator
+
+; the clojure wrapper sucks and is poorly documented, so just use the Java one
+; Helper interface that specifies a method to get a string value.
+#_(definterface IContainer
+  ; net.thisptr.jackson.jq/Output
+  (^java.lang.Iterable getValue []))
+
+; (deftype give-me-the-damn-data [JsonNode the-data]
+;   Output
+;   (emit [this json-node] (set! (. this the-data) json-node)))
+;
+; (defn jq [data query]
+;   (let [scope (Scope/newEmptyScope)
+;         compiled (JsonQuery/compile query Versions/JQ_1_6)
+;         tree (.readTree (ObjectMapper.) data)
+;         ; s (java.io.StringWriter.)
+;         s (give-me-the-damn-data. nil)
+;         out (.apply compiled scope tree s)]
+;     s))
+
+; the clojure library is buggy and the underlying java library is hideously complicated.
+; rather than try to figure out their api, just parse and reserialize the string.
+(defn jq
+  ([data query] (jq data query false))
+  ([data query raw]
+   (let [res (jq/execute data query)]
+     (if raw (json/read-str res) res))))
+
 ; IO
+
 (defn map-json
   "Given a function `f` that transforms a clojure map to a clojure map,
    read the map as JSON from stdin and write it to stdout.
    If any `args` are present, they will be passed after the map."
   [f & args]
-  (-> *in* slurp
-      (json/read-str :key-fn keyword)
-      (apply f args)
-      (json/write *out*))
+  ; TODO: https://clojure.atlassian.net/browse/DJSON-43
+  (let [before (-> *in* (java.io.PushbackReader. 64)
+                   (json/read :key-fn keyword))
+        after (apply f before args)]
+    (json/write after *out*)))
 
 (defn -main [& args]
   (case (first args)
     ("configure") (configure "build.clj" "build.ninja")
     ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
-    ("render-page") (-> *in* slurp (render-page *out*))
-    ("embed-template") (->> *in* slurp (embed-template (second args)) (json/write *out*))
-    ("postprocess") (->> *in* slurp postprocess print)
-    ("jq") (-> *in* slurp (jq/execute (second args)) println)
+    ("render-page") (map-json render-page)
+    ("embed-template") (map-json embed-template (second args))
+    ("postprocess") (map-json postprocess (second args))
+    ("jq") (-> *in* slurp
+               (jq (second args) (= (nth args 2 "") "-r"))
+               println)
     (error (str "unrecognized command: " (first args)))))
 
 ;

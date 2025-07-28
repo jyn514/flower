@@ -116,7 +116,7 @@
    ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
    [{:rule "ninja-meta"
      :outputs "build.ninja"
-     :inputs (concat all-pages ["build.clj" (/ f "build.clj") (/ f "parse.clj")])}
+     :inputs (concat all-pages ["build.clj"] ff)}
     {:rule "tmpdir"
      :outputs builddir}]})
 
@@ -124,7 +124,7 @@
   (let [pps (fs/glob "postprocessors" "*")
         cmds (map #(str (get runners (fs/extension %)) " " %) pps)
         pipe (str/join " | " cmds)
-        cmd (fmt "< $in ${pipe} | ${flower_cli} jq .content > $out")]
+        cmd (fmt "< $in ${pipe} | ${flower_cli} jq .content -r > $out")]
   {:rules [{:name "postprocess"
             :command cmd
             :description "run all postprocessors on $in"}]}))

@@ -1,6 +1,7 @@
-(require '(hiccup2 [core :as h]))
-; (defn transform [page] (println "hiiii") (h/html [:h1 "TITLE"]))
-(defn transform [page]
+(use 'flower.select 'hiccup2.core 'flower.utils)
+(defn transform [{page :content}]
+  (println page)
   (let [title (:content (select page "h1"))]
-    (append (html [:title title])
-      (select "head"))))
+    (append (select page "head")
+            (html [:title title]))
+    page))

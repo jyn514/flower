@@ -10,8 +10,8 @@
             ))
 
 ; bound by 'configure
-(def ^:dynamic *ninja* "not for public use" nil)
-(def ^:dynamic *frontmatter* "not for public use" nil)
+(def ^:dynamic *ninja* "not for public use" *err*)
+(def ^:dynamic *frontmatter* "not for public use" [])
 (def ^:dynamic *postprocessors*
   "a mapping from postprocessor file extension to how to run it.
   postprocessor runners must read {html, frontmatter} JSON on stdin
