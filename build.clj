@@ -1,3 +1,4 @@
+; TODO: expose this as flower.defaults.build
 (require 'flower.build
          '(babashka [fs :as fs])
          '(clojure [string :as str]))
@@ -25,33 +26,44 @@
 ; TODO: take a `rule` parameter (defaults to "page")
 ; TODO: take an "implicitsS" parameters (defaults to [])
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
-(defn build-page [rule page]
-  (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
-        template_path (/ templates template)
-        json_frontmatter (/ builddir (ext page "md.json"))
-        processed_markdown (/ builddir (ext page "md.rendered.json"))
-        ; can be different than embedded_html if e.g. the template ends in .md
-        embedded_markdown (/ builddir (ext page (str "embed." (fs/extension template))))
-        embedded_html (/ builddir (ext page "embed.html"))
-        final_html (/ builddir (ext page "html"))
-        rules [{:rule "frontmatter"
-                :inputs (str page)
-                :outputs json_frontmatter
-                :implicit ff}
-               {:rule rule
-                :inputs json_frontmatter
-                :outputs processed_markdown}
-               {:rule "template"
-                :inputs processed_markdown
-                :outputs embedded_markdown
-                :implicit (conj ff template_path)
-                :template template_path}
-               {:rule "postprocess"
-                :inputs embedded_html
-                :outputs final_html
-                :implicit (fs/glob "postprocessors" "*")
-                :html embedded_html}]]
-    {:rules rules :out embedded_markdown}))
+(defn build-page
+  ([rule page] (build-page rule page []))
+  ([rule page implicits]
+   (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
+         template_path (/ templates template)
+         json_frontmatter (/ builddir (ext page "md.json"))
+         processed_markdown (/ builddir (ext page "md.rendered.json"))
+         ; can be different than embedded_html if e.g. the template ends in .md
+         embedded_markdown (/ builddir (ext page (str (fs/extension template) ".embed")))
+         ; TODO: needs a different name, this setup causes the embed to be copied into the final dir
+         embedded_html (/ builddir (ext page "html.embed"))
+         final_html (/ public (ext page "html"))
+         rules [{:rule "frontmatter"
+                 :inputs (str page)
+                 :outputs json_frontmatter
+                 :implicit ff}
+                {:rule rule
+                 :inputs json_frontmatter
+                 :outputs processed_markdown
+                 :implicit implicits}
+                {:rule "template"
+                 :inputs processed_markdown
+                 :outputs embedded_markdown
+                 :implicit (conj ff template_path)
+                 :template template_path}
+                ; TODO: wrong, should run on all html files, not just pages
+                ; maybe we can make postprocess a dispatch-file rule, output `.processed`,
+                ; and add a dispatch-file rule for .processed?
+                ; wait no dispatch-file only runs on pages
+                ; ok never mind, if you have a custom build command you have to add a :build yourself
+                {:rule "postprocess"
+                 :inputs embedded_html
+                 :outputs final_html
+                 :implicit (fs/glob "postprocessors" "*")
+                 :html embedded_html}]]
+     ; TODO: this will break for md->html generation because it will also copy .embed to public/
+     (if (= embedded_markdown embedded_html) {:rules rules}  {:rules rules :out embedded_markdown})
+     ) ))
 
 (defn markdown-page [page]
   (let [html (/ builddir (ext page "html"))]
@@ -86,16 +98,15 @@
 (defn chain-page [pages build-func]
   (mapcat
     #(let [{:keys [rules out]} (build-func %)]
-       (chain-commands out rules))
+       (if out (chain-commands out rules) rules))
     ; #(apply chain-commands (build-page %))
     pages))
 (def page-builds (chain-page all-pages #(build-page "page" %)))
 
 (defn index [{frontmatter :all-frontmatter}]
-  ; TODO: filter index -> map path
   (let [index-meta (filter #(get % "index") (:templates frontmatter))
         index-paths (map :file index-meta)
-        index-builds (chain-page index-paths #(build-page "index" %))]
+        index-builds (chain-page index-paths #(build-page "index" % "build.ninja"))]
     {:builds index-builds}))
 
 (def base
