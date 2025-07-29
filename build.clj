@@ -22,7 +22,10 @@
 (def flower_cli "clj -M --main flower.core")
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
-(defn build-page [page]
+; TODO: take a `rule` parameter (defaults to "page")
+; TODO: take an "implicitsS" parameters (defaults to [])
+; TODO: allow pages to have a `--- include: file.ext ---` metadata
+(defn build-page [rule page]
   (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
         template_path (/ templates template)
         json_frontmatter (/ builddir (ext page "md.json"))
@@ -35,7 +38,7 @@
                 :inputs (str page)
                 :outputs json_frontmatter
                 :implicit ff}
-               {:rule "page"
+               {:rule rule
                 :inputs json_frontmatter
                 :outputs processed_markdown}
                {:rule "template"
@@ -78,12 +81,22 @@
 
 (def all-pages (fs/glob "pages" "**.md"))
 
-(def page-builds
+; TODO: rename to chain-page
+; TODO: take build func as an arg (defaults to build-page) so we can pass in build-index
+(defn chain-page [pages build-func]
   (mapcat
-    #(let [{:keys [rules out]} (build-page %)]
+    #(let [{:keys [rules out]} (build-func %)]
        (chain-commands out rules))
     ; #(apply chain-commands (build-page %))
-    all-pages))
+    pages))
+(def page-builds (chain-page all-pages #(build-page "page" %)))
+
+(defn index [{frontmatter :all-frontmatter}]
+  ; TODO: filter index -> map path
+  (let [index-meta (filter #(get % "index") (:templates frontmatter))
+        index-paths (map :file index-meta)
+        index-builds (chain-page index-paths #(build-page "index" %))]
+    {:builds index-builds}))
 
 (def base
   {:variables {:builddir builddir}
@@ -99,14 +112,14 @@
      :description "link $in into build dir"}
     {:name "page"
      :command (flow "render-page")
-     :description "render $in using clojure"}
+     :description "render page $in using clojure"}
+    {:name "index"
+     :command (flow "render-index")
+     :description "render index page $in using clojure"}
     {:name "template"
      ; NOTE: this means that all templates must depend on all other templates
      :command (fmt "${flower_cli} embed-template $template < $in > $out")
      :description "embed $in into $template using clojure"}
-    ; {:name "postprocess"
-    ;  :command (flow "postprocess")
-    ;  :description "transform $html with $postprocessor using clojure"}
     {:name "frontmatter"
      :command (flow "split-frontmatter")}
     {:name "markdown"
@@ -116,7 +129,7 @@
    ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
    [{:rule "ninja-meta"
      :outputs "build.ninja"
-     :inputs (concat all-pages ["build.clj"] ff)}
+     :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
     {:rule "tmpdir"
      :outputs builddir}]})
 
@@ -133,4 +146,4 @@
   {"clj" (str flower_cli " postprocess")})
 (flower.build/generate
   (update-in base [:builds] #(concat % page-builds))
-  postprocess)
+  index postprocess)

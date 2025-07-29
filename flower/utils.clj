@@ -20,10 +20,10 @@
 (defn merge-deep [& xs]
   (cond
     (every? map? xs) (apply merge-with merge-deep xs)
-    (every? vector? xs) (apply concat xs)
+    (every? sequential? xs) (apply concat xs)
     :else (last xs)))
 
-(defn inspect [x] (binding [*out* *err*] (println x) x))
+(defn inspect [x] (binding [*out* *err*] (println (pr-str x)) x))
 
 (defn markdown [md]
   ; https://github.com/nextjournal/markdown?tab=readme-ov-file#html-blocks-and-html-inlines

@@ -44,6 +44,7 @@
     "###" parse-edn
     nil))
 
+; NOTE: maps use strings as keys, not keywords
 (defn split-frontmatter
   [original-body]
   (let [[first-line & rest-lines] (str/split-lines original-body)
@@ -53,7 +54,10 @@
        :frontmatter (parser (str/join "\n" frontmatter))}
       {:frontmatter {} :content original-body})))
 
-(defn all-frontmatter [] *frontmatter*)
+(defn all-frontmatter
+  "Returns a {:templates Frontmatter  :pages Frontmatter} map,
+  where Frontmatter is a {\"path\" metadata-map}"
+  [] *frontmatter*)
 
 ; ninja utils
 
@@ -113,6 +117,7 @@
   ([ninja & late-bound]
    (let [all-maps (map #(% {:all-frontmatter *frontmatter*
                             :all-postprocessors *postprocessors*}) late-bound)
+         ; TODO: breaks when all-maps has more than one arg ??
          merged (apply merge-deep ninja all-maps)]
      (generate merged)))
   ([ninja]
@@ -122,6 +127,5 @@
                     :builds (conj (map gen-build v) nl)
                     :variables (map-vars #(format "%s = %s\n" %1 %2) v)
                     ))
-         ; :postprocessors (error "TODO")))
          contents (->> ninja (map mapper) flatten str/join)]
   (.write flower.build/*ninja* contents))))

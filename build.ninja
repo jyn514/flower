@@ -11,7 +11,10 @@ rule link
   description = link $in into build dir
 rule page
   command = clj -M --main flower.core render-page <$in >$out
-  description = render $in using clojure
+  description = render page $in using clojure
+rule index
+  command = clj -M --main flower.core render-index <$in >$out
+  description = render index page $in using clojure
 rule template
   command = clj -M --main flower.core embed-template $template < $in > $out
   description = embed $in into $template using clojure
@@ -24,7 +27,7 @@ rule postprocess
   command = < $in clj -M --main flower.core postprocess postprocessors/title.clj | clj -M --main flower.core jq .content -r > $out
   description = run all postprocessors on $in
 
-build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md build.clj deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/main.html build.clj deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
 build .build: tmpdir 
 build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
 build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json
@@ -47,3 +50,10 @@ build .build/look-ma-new-site.embed.html: template .build/look-ma-new-site.md.re
 build .build/look-ma-new-site.html: postprocess .build/look-ma-new-site.embed.html | postprocessors/title.clj
   html = .build/look-ma-new-site.embed.html
 build public/look-ma-new-site.embed.html: link .build/look-ma-new-site.embed.html
+build .build/index.md.json: frontmatter templates/index.html | deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+build .build/index.md.rendered.json: index .build/index.md.json
+build .build/index.embed.html: template .build/index.md.rendered.json | templates/default.html deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj
+  template = templates/default.html
+build .build/index.html: postprocess .build/index.embed.html | postprocessors/title.clj
+  html = .build/index.embed.html
+build public/index.embed.html: link .build/index.embed.html

@@ -99,6 +99,7 @@
   [cx form]
   (sci/binding [sci/out *err*
                 sci/err *err*]
+    ; TODO: render tracebacks nicely
     (sci/eval-form cx form)))
 
 (defn seval "string eval" [cx s]
@@ -130,17 +131,42 @@
   "Render content with local variables available"
   ([src] (render src {}))
   ([src locals]
+   ; TODO: also bind locals in `flower.locals`
    (let [cx (create-sci-cx {:bindings locals})]
     (teval (parse src) src cx))))
 
+; TODO: include :file path
+; allow configuring :url
+(defn load-meta [dir]
+  (let [paths (fs/glob dir "**")
+        files (filter #(not (fs/directory? %)) paths)
+        load #(-> % fs/file slurp
+                  build/split-frontmatter :frontmatter
+                  (assoc :file %))]
+    (map load files)))
+
 ; preprocessing
 
+; TODO: take a `locals` variable
 (defn render-page
   "Preprocess and render a JSON blob"
+  ([parsed] (render-page parsed {}))
+  ([parsed locals]
+   (let [locals (merge-deep {'frontmatter (:frontmatter parsed)} locals)
+         rendered (render (:content parsed) locals)]
+     {:content rendered
+      :frontmatter (:frontmatter parsed)})))
+
+; index preprocessing
+
+(defn render-index
+  "Preprocess and render a JSON blob as an index page (i.e. with access to `pages` local)"
   [parsed]
-  (let [rendered (render (:content parsed) {'frontmatter (:frontmatter parsed)})]
-    {:content rendered
-     :frontmatter (:frontmatter parsed)}))
+  ; TODO: use `ninja -t targets rule link` instead of hard-coding pages
+  ; TODO: put this on disk and feed it on stdin so we don't have to trust template renderers about dependency tracking.
+  ; then we can move this to flower.build
+  (let [pages (load-meta "pages")]
+    (render-page parsed {'pages pages})))
 
 ; postprocessing
 (defn postprocess
@@ -174,18 +200,13 @@
         'flower.build build
         'build build}})))
 
-(defn load-meta [dir]
-  (map #(-> slurp build/split-frontmatter :frontmatter)
-       (fs/glob dir "**.md")))
-
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [in out]
   (let [ninja-writer (new java.io.StringWriter)
         page-meta (load-meta "pages")
         template-meta (load-meta "templates")
-        ; frontmatter {:pages page-meta :templates template-meta}
-        frontmatter page-meta
+        frontmatter {:pages page-meta :templates template-meta}
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
               flower.build/*frontmatter* frontmatter]
@@ -261,6 +282,7 @@
     ("configure") (configure "build.clj" "build.ninja")
     ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
     ("render-page") (map-json render-page)
+    ("render-index") (map-json render-index)
     ("embed-template") (map-json embed-template (second args))
     ("postprocess") (map-json postprocess (second args))
     ("jq") (-> *in* slurp
