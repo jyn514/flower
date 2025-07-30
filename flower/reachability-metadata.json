@@ -1,0 +1,8 @@
+{
+  "reflection": [
+		{
+			"type": "org.yaml.snakeyaml.Yaml",
+			"allPublicConstructors": true
+		}
+	]
+}

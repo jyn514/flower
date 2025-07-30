@@ -341,4 +341,6 @@ because if i'm going to be insane enough to write my own SSG, i want it to be on
 # security
 it's an SSG. it's running arbitrary code because you (or i) wrote all the code. don't treat it as a security boundary and you'll be fine.
 
-the built-in web server is probably not resilient to any kind of malicious use. only use it for dev when you want live-reload. use a real web server (e.g. Caddy) to serve things in prod and you'll be fine.
+the built-in web server is probably not resilient to any kind of malicious use. only use it for dev. use a real web server (e.g. Caddy) to serve things in prod.
+
+note that unlike SSGs, flower supports live-reload when used with external servers (TODO docs).

@@ -6,6 +6,7 @@
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file "target/flower.jar")
+(def reachable "reachability-metadata.json")
 (defn clean [_]
   (b/delete {:path class-dir})
   (b/delete {:path "target/flower"})
@@ -18,6 +19,8 @@
                   :src-dirs ["src"]
                   :ns-compile '[flower.core]
                   :class-dir class-dir})
+  (b/copy-file {:src (str "flower/" reachable)
+                :target (str class-dir "/META-INF/native-image/flower/core/" reachable)})
   (b/uber {:class-dir class-dir
            :uber-file jar-file
            :basis basis
@@ -37,18 +40,16 @@
   ["scripts/install-graal.sh -jar" jar-file "target/flower"
    "--no-fallback --gc=G1"
    (if dev "-Ob")
-   "--link-at-build-time=org.yaml.snakeyaml.Yaml"
+   "--exact-reachability-metadata"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])
 
 (defn graal [dev] (str/join " " (args dev)))
 
-(defn native [_]
+(defn -native-helper [dev]
   (println (graal false))
-  ; (uberjar nil)
+  (uberjar nil)
   (ps/shell (graal false)))
 
-(defn native-dev [_]
-  (println (graal true))
-  ; (uberjar nil)
-  (ps/shell (graal true)))
+(defn native [_] (-native-helper false))
+(defn native-dev [_] (-native-helper true))

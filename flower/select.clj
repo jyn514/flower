@@ -1,6 +1,7 @@
 (ns flower.select
   (:require [clojure.zip :as zip])
   (:import (org.jsoup.nodes LeafNode Node Document Element)
+           (org.jsoup.select Elements)
            (org.jsoup Jsoup)))
 
 (defn select
@@ -27,7 +28,7 @@
 ; after before append prepend attrs set-attr remove-attr remove replace-with
 ; these have to be explicitly bound because SCI sandboxes java by default
 ; (defn append [& rest] (apply #(.append %&) rest))
-(defn append [n c] (Element/.append n (str c)))
+(defn append [n c] (Elements/.append n (str c)))
 
 (def d (Jsoup/parse "<div><h1>hiiiii</h1></div>"))
 ; (def z (zipper d))

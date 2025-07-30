@@ -1,6 +1,6 @@
 ; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
 ; see https://github.com/liquidz/frontmatter
-(set! *warn-on-reflection* true)
+; (set! *warn-on-reflection* true)
 
 (ns flower.core
   (:gen-class)
@@ -25,6 +25,7 @@
             [toml-clj.core :as toml]
             [flower.build :as build]
             [flower.select]
+            [flower.hiccup]
             [jq.api :as jq]
             [nextjournal.markdown :as md]
             [nextjournal.markdown.transform :as md.transform]))
@@ -48,8 +49,9 @@
 ; (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
 (defn copy-ns [ns]
   (let [binding (sci/create-ns ns)
-        publics (ns-publics ns)]
-    (update-vals publics #(sci/copy-var* % binding))))
+        publics (ns-publics ns)
+        bindings (update-vals publics #(sci/copy-var* % binding))]
+    (with-meta bindings {:ns binding})))
 
 (defn pprint [x]
   (cond (var? x) ""
@@ -71,6 +73,16 @@
     ;           (instance? org.jsoup.select.Nodes user-code#) (.outerHtml user-code#)
     ;           true (print-str user-code#))))
 
+; don't bind compile-html{,-with-bindings}, they'll crash at runtime
+(def hiccup-compiler
+  (dissoc (copy-ns 'hiccup.compiler)
+          'compile-html 'compile-html-with-bindings))
+; hiccup/html emits calls to compile-html. change them to render-html.
+(def hiccup-core
+  (let [ns (copy-ns 'hiccup2.core)
+        html (sci/copy-var flower.hiccup/html-2 (-> ns meta :ns))]
+  (assoc ns 'html html)))
+
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
   ([] (create-sci-cx {}))
@@ -80,16 +92,16 @@
       ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
       ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
       ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them…
-      :namespaces {'hiccup2.core (copy-ns 'hiccup2.core) 
+      :namespaces {'hiccup2.core hiccup-core
                    'hiccup.util (copy-ns 'hiccup.util) 
-                   'hiccup.compiler (copy-ns 'hiccup.compiler) 
+                   'hiccup.compiler hiccup-compiler
                    'instaparse.core (copy-ns 'instaparse.core) 
                    ; 'clojure.repl (copy-ns 'clojure.repl)
                    'flower.utils (copy-ns 'flower.utils)
                    'flower.select (copy-ns 'flower.select)
                    'flower.internal {'pprint pprint}
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
-      :bindings {'html (sci/copy-var h/html userns)
+      :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
                  'str str
                  'fmt (sci/copy-var fmt userns)
                  'markdown markdown}
@@ -105,6 +117,7 @@
   (sci/binding [sci/out *err*
                 sci/err *err*]
     ; TODO: render tracebacks nicely
+    ; TODO: give a better error message for native libs that use eval
     (sci/eval-form cx form)))
 
 (defn seval "string eval" [cx s]
@@ -311,7 +324,8 @@
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))
                println)
-    (error (str "unrecognized command: " (first args)))))
+    (error (str "unrecognized command: " (first args))))
+  (flush))
 
 ;
 ; https://babashka.org/

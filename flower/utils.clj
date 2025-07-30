@@ -23,7 +23,7 @@
     (every? sequential? xs) (apply concat xs)
     :else (last xs)))
 
-(defn inspect [x] (binding [*out* *err*] (println (pr-str x)) x))
+(defn inspect [x] (binding [*out* *err*] (prn x) x))
 
 (defn markdown [md]
   ; https://github.com/nextjournal/markdown?tab=readme-ov-file#html-blocks-and-html-inlines
