@@ -1,7 +1,7 @@
 builddir = .build
 
 rule ninja-meta
-  command = clj -M --main flower.core configure
+  command = target/flower configure
   description = rebuild build.ninja itself
 rule tmpdir
   command = mkdir -p .build
@@ -10,21 +10,21 @@ rule link
   command = ln -f $in $out
   description = link $in into build dir
 rule page
-  command = clj -M --main flower.core render-page <$in >$out
+  command = target/flower render-page <$in >$out
   description = render page $in using clojure
 rule index
-  command = clj -M --main flower.core render-index <$in >$out
+  command = target/flower render-index <$in >$out
   description = render index page $in using clojure
 rule template
-  command = clj -M --main flower.core embed-template $template < $in > $out
+  command = target/flower embed-template $template < $in > $out
   description = embed $in into $template using clojure
 rule frontmatter
-  command = clj -M --main flower.core split-frontmatter <$in >$out
+  command = target/flower split-frontmatter <$in >$out
 rule markdown
   command = pulldown-cmark -TFSULG $in -> $out
   description = render markdown -> HTML: $in -> $out
 rule postprocess
-  command = < $in clj -M --main flower.core postprocess postprocessors/title.clj | clj -M --main flower.core jq .content -r > $out
+  command = < $in target/flower postprocess postprocessors/title.clj | target/flower jq .content -r > $out
   description = run all postprocessors on $in
 
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/main.html build.clj deps.edn flower/parse.clj flower/select.clj flower/utils.clj flower/build.clj

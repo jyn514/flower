@@ -20,7 +20,8 @@
     (map #(/ f (ext % "clj"))
          ["parse" "select" "utils" "build"])
     "deps.edn"))
-(def flower_cli "clj -M --main flower.core")
+; (def flower_cli "clj -M --main flower.core")
+(def flower_cli "target/flower")
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
 ; TODO: take a `rule` parameter (defaults to "page")

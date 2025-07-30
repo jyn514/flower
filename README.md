@@ -327,6 +327,10 @@ several reasons:
 well, let's start with:
 ### why LISP?
 and the answer there is very simple: LISPs syntax makes it very easy to embed inline. the only alternative i know in this space is handlebars/jinja, which could have been *actively* designed to discourage abstraction and code reuse.
+
+there are some alternatives that are meant for embedding, at the cost of being harder to parse, like Lua/Rhai/TCL.
+but they basically aren't possible to compile to static binaries, which means that the SSG itself has to be written in a different language.
+flower is intentionally one language all the way through, to make it easier to modify the core without needing to learn new tools.
 ### ok but really why clojure
 clojure runs on the JVM, which means:
 - you get any dependencies you want,

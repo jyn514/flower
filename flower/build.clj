@@ -1,6 +1,7 @@
 ; NOTE: everything here must be possible to run in a sandbox with read-only access to the filesystem
 
 (ns flower.build
+  (:import (java.io Writer))
   (:use [flower.utils])
   (:require [clojure.string :as str]
             [clojure.data.json :as json]
@@ -128,4 +129,4 @@
                     :variables (map-vars #(format "%s = %s\n" %1 %2) v)
                     ))
          contents (->> ninja (map mapper) flatten str/join)]
-  (.write flower.build/*ninja* contents))))
+  (Writer/.write flower.build/*ninja* contents))))

@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Created-By: Leiningen 2.11.2
+Built-By: jim
+Build-Jdk: 21.0.7
+Leiningen-Project-ArtifactId: hiccup
+Leiningen-Project-GroupId: hiccup
+Leiningen-Project-Version: 2.0.0
+Main-Class: clojure.main
+

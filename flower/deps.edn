@@ -1,4 +1,7 @@
  {:deps {
+    ; native builds
+    com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}
+
     instaparse/instaparse {:mvn/version "1.5.0"}
     hiccup/hiccup {:mvn/version "2.0.0"}
     org.babashka/sci {:mvn/version "0.10.47"}
@@ -10,10 +13,15 @@
     org.jsoup/jsoup {:mvn/version "1.21.1"}
     lt.jocas/clj-jq {:mvn/version "2.4.0"}
     io.github.nextjournal/markdown {:mvn/version "0.7.186"}}
-  :paths ["."]
+  :paths ["src"]
   :aliases {
     ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
     ; :extra-paths ["parse.clj"]
+    :build
+    {:deps
+     {io.github.clojure/tools.build {:mvn/version "0.10.9"}
+      babashka/process {:mvn/version "0.6.23"}}
+     :ns-default native}
     :test
       ; {:extra-paths ["parse.clj"]
       {:extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
@@ -24,3 +32,4 @@
       {:exec-args   {:watch?     true
                     :skip-meta  :slow
                     :fail-fast? true}}}}
+ ; :deps {org.clojure/clojure {:mvn/version "1.12.0"}}

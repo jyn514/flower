@@ -1,10 +1,14 @@
 ; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
 ; see https://github.com/liquidz/frontmatter
+(set! *warn-on-reflection* true)
 
 (ns flower.core
+  (:gen-class)
   (:use [flower.utils])
   (:import (net.thisptr.jackson.jq JsonQuery Scope Versions Output)
-           (com.fasterxml.jackson.databind ObjectMapper JsonNode))
+           ; (com.fasterxml.jackson.databind ObjectMapper JsonNode)
+           (java.io Writer StringWriter)
+           (org.jsoup.select Nodes))
   ; net.thisptr.jackson.jq/Output
            ; (com.fasterxml.jackson.databind.node Array))
   (:require [instaparse.core :as insta]
@@ -50,7 +54,7 @@
 (defn pprint [x]
   (cond (var? x) ""
         (hiccup.util/raw-string? x) (str x)
-        (instance? org.jsoup.select.Nodes x) (.outerHtml x)
+        (instance? Nodes x) (Nodes/.outerHtml x)
         :else (print-str x)))
 
 (defn embed
@@ -221,7 +225,7 @@
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [in out]
-  (let [ninja-writer (new java.io.StringWriter)
+  (let [ninja-writer (new StringWriter)
         page-meta (load-meta "pages")
         ; TODO: every time we hard-code a dir it makes things unconfigurable, figure out what to do
         template-meta (load-meta "templates")
