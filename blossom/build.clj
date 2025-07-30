@@ -108,7 +108,10 @@
 (def base
   {:variables {:builddir builddir}
    :rules
-   [{:name "ninja-meta"
+   [{:name "flower-meta"
+     :command "cd .. && clojure -T:build native"
+     :description "rebuild flower itself"}
+    {:name "ninja-meta"
      :command (fmt "${flower_cli} configure")
      :description "rebuild build.ninja itself"}
     {:name "tmpdir"
@@ -137,6 +140,9 @@
    [{:rule "ninja-meta"
      :outputs "build.ninja"
      :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
+    {:rule "flower-meta"
+     :outputs "../target/flower"
+     :inputs (fs/glob "../flower" "**")}
     {:rule "tmpdir"
      :outputs builddir}]})
 
