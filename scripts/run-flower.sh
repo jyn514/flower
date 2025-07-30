@@ -1,2 +1,2 @@
 #!/bin/sh
-clj -M --main flower.core "$@"
+exec clojure -M --main flower.core "$@"

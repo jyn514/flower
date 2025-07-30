@@ -5,30 +5,28 @@
 (ns flower.core
   (:gen-class)
   (:use [flower.utils])
-  (:import (net.thisptr.jackson.jq JsonQuery Scope Versions Output)
-           ; (com.fasterxml.jackson.databind ObjectMapper JsonNode)
-           (java.io Writer StringWriter)
-           (org.jsoup.select Nodes))
-  ; net.thisptr.jackson.jq/Output
-           ; (com.fasterxml.jackson.databind.node Array))
-  (:require [instaparse.core :as insta]
-            [sci.core :as sci]
-            [babashka.fs :as fs]
-            [babashka.process :as ps]
-            [hiccup2.core :as h]
-            [hiccup.util]
-            [clojure.string :as str]
-            [clojure.java.io :as io]
-            [clojure.data.json :as json]
-            [clojure.edn       :as edn]
-            [yaml.core     :as yaml]
-            [toml-clj.core :as toml]
-            [flower.build :as build]
-            [flower.select]
-            [flower.hiccup]
-            [jq.api :as jq]
-            [nextjournal.markdown :as md]
-            [nextjournal.markdown.transform :as md.transform]))
+  (:import
+    (java.io StringWriter)
+    (org.jsoup.select Nodes))
+(:require
+  [instaparse.core :as insta]
+  [sci.core :as sci]
+  [babashka.fs :as fs]
+  [babashka.process :as ps]
+  [hiccup2.core :as h]
+  [hiccup.util]
+  [clojure.string :as str]
+  [clojure.java.io :as io]
+  [clojure.data.json :as json]
+  [clojure.edn       :as edn]
+  [yaml.core     :as yaml]
+  [toml-clj.core :as toml]
+  [flower.build :as build]
+  [flower.select]
+  [flower.hiccup]
+  [jq.api :as jq]
+  [nextjournal.markdown :as md]
+  [nextjournal.markdown.transform :as md.transform]))
 
 ; sandboxing
 
@@ -325,10 +323,5 @@
                (jq (second args) (= (nth args 2 "") "-r"))
                println)
     (error (str "unrecognized command: " (first args))))
+  (shutdown-agents)
   (flush))
-
-;
-; https://babashka.org/
-; https://github.com/weavejester/hiccup
-; for repl
-(def src "x◊(+ 1 2)")
