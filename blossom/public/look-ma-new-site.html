@@ -57,7 +57,10 @@
 
     <main class="page-content" aria-label="Content">
       <div class="wrapper">
-        <div><p>#define TITLE the website of jyn</p><p>(html [:h2 &quot;TITLE&quot;])</p><span class="message red"><strong>Unknown type: &apos;:html-block&apos;.</strong><code>{:type :html-block, :content [{:type :text, :text &quot;&lt;h2&gt;TITLE&lt;/h2&gt;&quot;}]}</code></span><p>this post has a bunch of languages:</p><ul><li>toml frontmatter</li><li>c preprocessor</li><li>clojure</li><li>regular markdown</li></ul><span class="message red"><strong>Unknown type: &apos;:html-block&apos;.</strong><code>{:type :html-block, :content [{:type :text, :text &quot;&lt;script&gt;document.write(&apos;&lt;script src=\&quot;http://&apos;\n (location.host || &apos;localhost&apos;).split(&apos;:&apos;)[0]\n &apos;:35729/livereload.js\&quot;&gt;&lt;/&apos;\n &apos;script&gt;&apos;)&lt;/script&gt;&quot;}]}</code></span></div>
+        <div><p>#define TITLE the website of jyn</p><p>(html [:h2 &quot;TITLE&quot;])</p><h2>TITLE</h2><p>this post has a bunch of languages:</p><ul><li>toml frontmatter</li><li>c preprocessor</li><li>clojure</li><li>regular markdown</li></ul><script>document.write('<script src="http://'
+ (location.host || 'localhost').split(':')[0]
+ ':35729/livereload.js"></'
+ 'script>')</script></div>
         <!-- {% block content %}{% endblock content %} -->
       </div>
     </main>
@@ -65,3 +68,4 @@
     <!-- {% include "footer.html" %} -->
 </body>
 </html>
+

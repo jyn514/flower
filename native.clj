@@ -47,9 +47,9 @@
 (defn graal [dev] (str/join " " (args dev)))
 
 (defn -native-helper [dev]
-  (println (graal false))
+  (println (graal dev))
   (uberjar nil)
-  (ps/shell (graal false)))
+  (ps/shell (graal dev)))
 
 (defn native [_] (-native-helper false))
 (defn native-dev [_] (-native-helper true))
