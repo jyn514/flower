@@ -7,6 +7,9 @@
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file "target/flower.jar")
 (def reachable "reachability-metadata.json")
+; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
+; keep this in sync with live-reload.clj
+(def live-reload "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
 (defn clean [_]
   (b/delete {:path class-dir})
   (b/delete {:path "target/flower"})
@@ -21,6 +24,8 @@
                   :class-dir class-dir})
   (b/copy-file {:src (str "flower/" reachable)
                 :target (str class-dir "/META-INF/native-image/flower/core/" reachable)})
+  (b/copy-file {:src live-reload
+                :target (str class-dir "/" live-reload)})
   (b/uber {:class-dir class-dir
            :uber-file jar-file
            :basis basis

@@ -4,6 +4,7 @@
   (:import (java.io Writer))
   (:use [flower.utils])
   (:require [clojure.string :as str]
+            [babashka.fs :as fs]
             [clojure.data.json :as json]
             [clojure.edn       :as edn]
             [yaml.core     :as yaml]
@@ -20,6 +21,12 @@
   doing so will cause build caching to break."
   {})
 (def ^:private nl "\n")
+
+; fs utils
+
+(defn remove-parent
+  ([path] (remove-parent path 1))
+  ([path n] (->> path fs/components (drop n) (apply fs/path))))
 
 ; frontmatter
 

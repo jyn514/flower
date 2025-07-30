@@ -4,5 +4,9 @@
 			"type": "org.yaml.snakeyaml.Yaml",
 			"allPublicConstructors": true
 		}
+	],
+	"resources": [
+		{"glob": "META-INF/resources/flower/live-reload/**"},
+		{"glob": "org/slf4j/impl/StaticLoggerBinder.class"}
 	]
 }

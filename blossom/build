@@ -8,4 +8,4 @@ fi
 if ! [ -e build.ninja ]; then
 	$f configure
 fi
-ninja
+exec ninja

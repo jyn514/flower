@@ -24,6 +24,7 @@
   [flower.build :as build]
   [flower.select]
   [flower.hiccup]
+  [flower.live-reload]
   [jq.api :as jq]
   [nextjournal.markdown :as md]
   [nextjournal.markdown.transform :as md.transform]))
@@ -55,6 +56,7 @@
   (cond (var? x) ""
         (hiccup.util/raw-string? x) (str x)
         (instance? Nodes x) (Nodes/.outerHtml x)
+        (sequential? x) (apply str (map pprint x))
         :else (print-str x)))
 
 (defn embed
@@ -178,14 +180,13 @@
 
 (defn get-meta
   [out all-meta]
-  (let [orig_path (->> out fs/components rest (apply fs/path "pages"))
+  (let [orig_path (fs/path "pages" (build/remove-parent out))
         frontmatter (get all-meta orig_path {})]
     {:frontmatter frontmatter :path out}))
 
 (defn render-index
   "Preprocess and render a JSON blob as an index page (i.e. with access to `pages` local)"
   [parsed]
-  ; TODO: use `ninja -t targets rule link` instead of hard-coding pages
   ; TODO: put this on disk and feed it on stdin so we don't have to trust template renderers about dependency tracking.
   ; then we can move this to flower.build
   ; TODO: pass the name of the current index as a CLI arg so we can filter it out from locals
@@ -197,7 +198,8 @@
         out (:out (ps/shell {:out :string} "ninja -t targets rule postprocess"))
         ; handle empty string
         pages (if (seq out)
-                (map #(get-meta % meta) (str/split out #"\n"))
+                (map #(update (get-meta % meta) :path build/remove-parent)
+                     (str/split out #"\n"))
                 {})]
     (render-page parsed {'pages pages})))
 
@@ -311,7 +313,8 @@
         after (apply f before args)]
     (json/write after *out*)))
 
-(defn -main [& args]
+(defn main [args]
+  ; TODO: actual arg parser
   (case (first args)
     ("configure") (configure "build.clj" "build.ninja")
     ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
@@ -319,9 +322,16 @@
     ("render-index") (map-json render-index)
     ("embed-template") (map-json embed-template (second args))
     ("postprocess") (map-json postprocess (second args))
+    ("serve") (flower.live-reload/listen
+                (if (< 1 (count args)) {:dir (second args)}))
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))
                println)
-    (error (str "unrecognized command: " (first args))))
-  (shutdown-agents)
-  (flush))
+    (error (str "unrecognized command: " (first args)))))
+
+(defn -main [& args]
+  (try
+    (main args)
+    (finally
+      (shutdown-agents)
+      (flush))))
