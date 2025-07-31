@@ -13,6 +13,8 @@
   [sci.core :as sci]
   [babashka.fs :as fs]
   [babashka.process :as ps]
+  [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+  [babashka.cli :as cli]
   [hiccup2.core :as h]
   [hiccup.util]
   [clojure.string :as str]
@@ -26,6 +28,7 @@
   [flower.hiccup]
   [flower.defaults]
   [flower.live-reload]
+  [flower.internal-utils]
   [jq.api :as jq]
   [nextjournal.markdown :as md]
   [nextjournal.markdown.transform :as md.transform]))
@@ -63,16 +66,10 @@
 (defn embed
   "given a quoted form, embeds it in a program that prints out the stringified value"
   [lisp]
-      ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
-    ; it won't be evaluated eagerly and we will get a resolution error from `let`.
-    ; use `eval` to delay resolution.
-    `(flower.internal/pprint (eval '~lisp)))
-    ; (list 'flower.internal/pprint ('do lisp)))
-    ; `(let [user-code# (eval '~lisp)] ; sci.lang.Var means this was a `def`
-    ;     (cond (var? user-code#) ""
-    ;           (hiccup.util/raw-string? user-code#) (str user-code#)
-    ;           (instance? org.jsoup.select.Nodes user-code#) (.outerHtml user-code#)
-    ;           true (print-str user-code#))))
+  ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
+  ; it won't be evaluated eagerly and we will get a resolution error.
+  ; use `eval` to delay resolution.
+  `(flower.internal/pprint (eval '~lisp)))
 
 ; don't bind compile-html{,-with-bindings}, they'll crash at runtime
 (def hiccup-compiler
@@ -106,8 +103,6 @@
                  'str str
                  'fmt (sci/copy-var fmt userns)
                  'markdown markdown}
-      ; TODO: this has implications for Graal
-      ; https://www.graalvm.org/latest/reference-manual/native-image/metadata/
       :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) ))))
 
 ; rendering
@@ -156,8 +151,7 @@
    (let [cx (create-sci-cx {:bindings locals})]
     (teval (parse src) src cx))))
 
-; TODO: include :file path
-; allow configuring :url
+; TODO: allow configuring :url
 (defn load-meta [dir]
   (let [paths (fs/glob dir "**")
         files (filter #(not (fs/directory? %)) paths)
@@ -196,6 +190,7 @@
   ; TODO: document that custom commands cannot generate the same output file as a page
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
   (let [meta (load-meta "pages")
+        ; TODO: use parse-ninja here
         out (:out (ps/shell {:out :string} "ninja -t targets rule postprocess"))
         ; handle empty string
         pages (if (seq out)
@@ -314,6 +309,16 @@
         after (apply f before args)]
     (json/write after *out*)))
 
+(defn watch [args]
+  (flower.live-reload/watch
+    (cli/parse-opts args {:coerce {;:out-dir :string
+                                   ;:build-dir :string
+                                   :change-dir :string}
+                          :alias {:C :change-dir}})))
+  ; (flower.live-reload/listen
+  ;   (if (< 1 (count args)) {:dir (second args)})))
+
+
 (defn main [args]
   ; TODO: actual arg parser
   (case (first args)
@@ -323,8 +328,7 @@
     ("render-index") (map-json render-index)
     ("embed-template") (map-json embed-template (second args))
     ("postprocess") (map-json postprocess (second args))
-    ("serve") (flower.live-reload/listen
-                (if (< 1 (count args)) {:dir (second args)}))
+    ("watch") (watch (rest args))
     ("init") (flower.defaults/materialize-all (second args))
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))

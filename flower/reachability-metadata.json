@@ -7,6 +7,7 @@
 	],
 	"resources": [
 		{"glob": "META-INF/resources/flower/live-reload/**"},
-		{"glob": "org/slf4j/impl/StaticLoggerBinder.class"}
+		{"glob": "org/slf4j/impl/StaticLoggerBinder.class"},
+		{"glob": "simplelogger.properties"}
 	]
 }

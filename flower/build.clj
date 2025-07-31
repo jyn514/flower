@@ -101,8 +101,6 @@
      (if (contains? opts :description)
        (variable "description" (:description opts)))))
 
-; TODO: support variables
-; `(apply dissoc)` probably gets halfway there
 (defn- gen-build [opts]
   (let [out (join (:outputs opts))
         in (join (:inputs opts))
@@ -125,7 +123,6 @@
   ([ninja & late-bound]
    (let [all-maps (map #(% {:all-frontmatter *frontmatter*
                             :all-postprocessors *postprocessors*}) late-bound)
-         ; TODO: breaks when all-maps has more than one arg ??
          merged (apply merge-deep ninja all-maps)]
      (generate merged)))
   ([ninja]

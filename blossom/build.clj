@@ -19,9 +19,8 @@
 (def flower_cli "../target/flower")
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
-; TODO: take a `rule` parameter (defaults to "page")
-; TODO: take an "implicitsS" parameters (defaults to [])
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
+; actually wait no, emit a `depfile` instead
 (defn build-page
   ([rule page] (build-page rule page []))
   ([rule page implicits]
@@ -89,13 +88,10 @@
 
 (def all-pages (fs/glob "pages" "**.md"))
 
-; TODO: rename to chain-page
-; TODO: take build func as an arg (defaults to build-page) so we can pass in build-index
 (defn chain-page [pages build-func]
   (mapcat
     #(let [{:keys [rules out]} (build-func %)]
        (if out (chain-commands out rules) rules))
-    ; #(apply chain-commands (build-page %))
     pages))
 (def page-builds (chain-page all-pages #(build-page "page" %)))
 

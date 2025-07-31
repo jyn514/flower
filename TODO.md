@@ -1,4 +1,15 @@
 # TODO
 
-- figure out how to embed content inside a clojure call
-	- hannah mentions that JSX uses `<MyClass>content here</MyClass>`. doesn't work with markdown but would work with html if we found a syntax?
+- `flower watch`
+- template embedding
+- RSS feed
+- syntax highlighting
+- Sass compiler
+- add the rest of the HTML selector apis lol
+- allow configuring build dirs in `flower.toml`
+- sandbox fs APIs for build.clj
+
+## goodies
+
+- SVG with embedded text for code blocks
+  - https://wheybags.com/blog/macroblog.html#better_code_snippets
