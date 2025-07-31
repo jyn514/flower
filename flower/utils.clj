@@ -12,9 +12,14 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
-(defn error [& msg] (binding [*out* *err*]
-                    (println (apply str "flower: error: " msg))
-                    (System/exit 1)))
+(defn eprintln [& msg]
+  (binding [*out* *err*]
+    (apply println msg)))
+(defn error [& msg]
+  (apply eprintln "flower: error:" msg)
+  (System/exit 1))
+(defn warn [& msg]
+  (apply eprintln "flower: warning:" msg))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& xs]

@@ -24,6 +24,7 @@
   [flower.build :as build]
   [flower.select]
   [flower.hiccup]
+  [flower.defaults]
   [flower.live-reload]
   [jq.api :as jq]
   [nextjournal.markdown :as md]
@@ -324,6 +325,7 @@
     ("postprocess") (map-json postprocess (second args))
     ("serve") (flower.live-reload/listen
                 (if (< 1 (count args)) {:dir (second args)}))
+    ("init") (flower.defaults/materialize-all (second args))
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))
                println)

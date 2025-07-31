@@ -100,6 +100,7 @@
 (def page-builds (chain-page all-pages #(build-page "page" %)))
 
 (defn index [{frontmatter :all-frontmatter}]
+  ; TODO: this is wrong, index pages should be pages, not templates
   (let [index-meta (filter #(get % "index") (:templates frontmatter))
         index-paths (map :file index-meta)
         index-builds (chain-page index-paths #(build-page "index" % "build.ninja"))]
@@ -109,7 +110,7 @@
   {:variables {:builddir builddir}
    :rules
    [{:name "flower-meta"
-     :command "cd .. && clojure -T:build native"
+     :command "cd .. && clojure -T:build native-dev"
      :description "rebuild flower itself"}
     {:name "ninja-meta"
      :command (fmt "${flower_cli} configure")
@@ -142,7 +143,7 @@
      :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
     {:rule "flower-meta"
      :outputs "../target/flower"
-     :inputs (fs/glob "../flower" "**")}
+     :inputs (conj (fs/glob "../flower" "**") "../flower")}
     {:rule "tmpdir"
      :outputs builddir}]})
 
