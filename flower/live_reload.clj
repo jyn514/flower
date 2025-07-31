@@ -7,6 +7,7 @@
             [nextjournal.beholder :as behold]
             [babashka.http-server :as http-server]
             [babashka.process :as ps]
+            [babashka.fs :as fs]
             [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.data.json :as json]))
@@ -63,11 +64,13 @@
 
 ; NOTE: does *not* run on changes to metadata (e.g. modification time)
 (defn- on-file-change
-  [{:keys [type path]}]
-  (if-not (contains? [:delete :overflow] type)
+  [{:keys [type path build-dir] :as m}]
+  (when-not (contains? [:delete :overflow] type)
+    ; TODO: strip-prefix
     (doseq [ch @channels]
+      ; TODO: only send this message if the :url matches the changed path
       (if (wss/open? ch)
-        (wss/send! ch (json/write-str (reload-msg path)))
+        (->> (fs/relativize build-dir path) fs/file-name reload-msg json/write-str (wss/send! ch))
         (on-close ch "(unknown reason)")))))
 
 ; live-reload listener
@@ -76,7 +79,7 @@
 
 (defn live-reload
   [& {:keys [dir port]}]
-  (behold/watch on-file-change dir)
+  (behold/watch #(on-file-change (assoc % :build-dir dir)) (fs/file-name dir))
   (wss/run-server handler {:port port}))
 
 ; static file server
@@ -86,7 +89,11 @@
 
 ; ninja file watcher
 
-(defn help [] (println "Aaaa"))
+; TODO: tracebacks here aren't printed? lol???
+(defn help [{:keys [type path]}] (println "Aaaa"))
+(defn rerun-ninja [{:keys [type path]}]
+  (println "rerun ninja")
+  (ps/shell "ninja"))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes
@@ -94,13 +101,14 @@
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
   (let [all-inputs (parse-ninja "ninja -t inputs")
-        temp-file? #(str/starts-with? (str build-dir "/") %)
+        temp-file? #(str/starts-with? % (str build-dir "/"))
         important-inputs (filter #(not (temp-file? %)) all-inputs)
-        rerun-ninja #(do (println "rerun ninja") (ps/shell "ninja"))
-        dirs ["pages" "templates"]
-        watcher (behold/watch help "pages")]
+        ; watch is really annoying and silently does nothing on files.
+        ; we might depend on a top-level file, so we're forced to watch the
+        ; whole directory.
+        watcher (behold/watch rerun-ninja ".")]
         ; watcher (apply behold/watch rerun-ninja important-inputs)]
-    (println "watching" important-inputs)
+    (println "watching .")
     watcher))
 
 ; api
@@ -115,6 +123,6 @@
   (watch-ninja build-dir)
   (println "Starting live reload watcher")
   ; TODO: this needs to be async oops
-  (live-reload {:dir out-dir :port live-reload-port})
+  (live-reload {:dir (fs/real-path out-dir) :port live-reload-port})
   (println "Starting web server")
   (http-server/exec {:dir out-dir :port static-port}))

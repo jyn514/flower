@@ -8,6 +8,7 @@
 - add the rest of the HTML selector apis lol
 - allow configuring build dirs in `flower.toml`
 - sandbox fs APIs for build.clj
+- file watcher should give a nice error if dir doesn't exist
 
 ## goodies
 
