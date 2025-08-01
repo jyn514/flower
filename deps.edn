@@ -23,7 +23,7 @@
     hiccup/hiccup {:mvn/version "2.0.0"}
     org.jsoup/jsoup {:mvn/version "1.21.1"}
     io.github.nextjournal/markdown {:mvn/version "0.7.186"}}
-  :paths ["/home/jyn/src/flower"]
+  :paths ["."]
   :aliases {
     ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
     ; :extra-paths ["parse.clj"]
