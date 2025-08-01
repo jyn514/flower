@@ -244,11 +244,9 @@
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
               flower.build/*frontmatter* frontmatter]
-      (let [
-            cx (create-fs-cx)
+      (let [cx (create-fs-cx)
             embedded (str "(do" (slurp in) ")")
-            lisp (sci/parse-string cx embedded)
-            ]
+            lisp (sci/parse-string cx embedded)]
         (eval-form cx lisp)))
     (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
