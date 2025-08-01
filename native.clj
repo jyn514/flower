@@ -5,6 +5,7 @@
             [babashka.process.pprint]))
 
 (def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
+(def is-linux (= (System/getProperty "os.name") "Linux"))
 
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
@@ -49,7 +50,8 @@
 
 (defn args [dev]
   ["native-image" "-jar" jar-file exe
-   "--no-fallback --gc=G1"
+   "--no-fallback"
+   (when is-linux "--gc=G1")
    (when dev "-Ob")
    "--exact-reachability-metadata"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
