@@ -48,12 +48,12 @@ jobs:
 
     - name: Test native binary
       run: |
-        ls -la target/${{exe}}
-        ./target/${{exe}}* --version || echo "Version check failed, but binary was created"
+        ls -la target/${{matrix.exe}}
+        ./target/${{matrix.exe}}* --version || echo "Version check failed, but binary was created"
 
     - name: Upload platform-specific binary
       uses: actions/upload-artifact@v4
       with:
         name: native-binary-${{ runner.os }}
         path: |
-          target/${{exe}}
+          target/${{matrix.exe}}
