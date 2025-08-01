@@ -39,6 +39,13 @@ and some weird ones:
 
 ### install the flower binary
 
+two options:
+#### download a static binary
+1. go to https://github.com/jyn514/flower/actions?query=event%3Apush+branch%3Adev+is%3Asuccess
+2. click on the latest successful action
+3. scroll down to "Artifacts"
+
+#### build from source
 1. [install clojure](https://clojure.org/guides/install_clojure)
 2. [install GraalVM](https://www.graalvm.org/downloads/)
 3. `git clone https://github.com/jyn514/flower`
@@ -48,8 +55,6 @@ and some weird ones:
 this will output a binary into `target/flower`.
 put it somewhere in PATH.
 make sure to use the binary, not the jar file - the jar is slow to start and will make your site rebuilds very slow.
-
-TODO: static binaries on github releases
 
 ### create your site
 
@@ -62,10 +67,10 @@ feel free to edit any files it generates.
 
 ## overview
 four phases:
-	1. build dependency graph
-	1. preprocessing
-	1. custom commands (including built-in commands)
-	1. post processing (including template embedding)
+1. build dependency graph
+1. preprocessing
+1. custom commands (including built-in commands)
+1. post processing (including template embedding)
 ## guide
 the smallest flower site is simply a markdown file with your content:
 ```
