@@ -85,9 +85,9 @@
 
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
-  ([] (create-sci-cx {}))
-  ([opts]
-    (sci/init (-> opts (merge-deep {
+  ([filename] (create-sci-cx filename {}))
+  ([filename opts]
+    (with-meta (sci/init (-> opts (merge-deep {
       ; :load-fn load-fn
       ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
       ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
@@ -105,9 +105,34 @@
                  'str str
                  'fmt (sci/copy-var fmt userns)
                  'markdown markdown}
-      :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) ))))
+      :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) )) {:filename filename})))
 
 ; rendering
+
+(defn print-sci-frame [f default-file]
+  (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
+        file (or (:file f)
+                 (if (:sci/built-in f)
+                   "<host code>"
+                   default-file)) 
+        line (:line f)
+        column (:column f)
+        span (cond
+               (and line column) (str " " line ":" column)
+               line (str " " line)
+               :else "")]
+        (fmt "[${var} ${file}${span}]\n")))
+
+(defn print-sci-trace [e default-file]
+  (let [useful? #(or (:name %) (:line %) (not= (:ns %) 'user))
+        ; TODO: don't print anything starting from host eval
+        ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
+        useful-frames (dedupe (filter useful? (sci/stacktrace e)))]
+    (apply error
+          "failed to run interpreted clojure:"
+          (ex-message e)
+          "\n"
+          (map #(print-sci-frame % default-file) useful-frames))))
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
@@ -116,7 +141,9 @@
                 sci/err *err*]
     ; TODO: render tracebacks nicely
     ; TODO: give a better error message for native libs that use eval
-    (sci/eval-form cx form)))
+    (try (sci/eval-form cx form)
+         (catch clojure.lang.ExceptionInfo e
+           (print-sci-trace e (-> cx meta :filename))))))
 
 (defn seval "string eval" [cx s]
   (->> s (sci/parse-string cx) embed (eval-form cx)))
@@ -134,7 +161,7 @@
       Atom = #'[^()]+' "))
 
 (defn teval
-  ([tree src] (teval tree src (create-sci-cx)))
+  ([tree src] (teval tree src (create-sci-cx (-> src meta :filename))))
   ([tree src cx]
       (insta/transform {
         :Start str
@@ -147,10 +174,10 @@
 
 (defn render
   "Render content with local variables available"
-  ([src] (render src {}))
-  ([src locals]
+  ([src filename] (render src filename {}))
+  ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
-   (let [cx (create-sci-cx {:bindings locals})]
+   (let [cx (create-sci-cx filename {:bindings locals})]
     (teval (parse src) src cx))))
 
 ; TODO: allow configuring :url
@@ -209,7 +236,7 @@
   (let [locals {'page parsed}
   ; (let [locals {'page {:content (:content parsed)
   ;                      :frontmatter (:frontmatter parsed)}}
-        cx (create-sci-cx {:bindings locals #_:load-fn #_load})
+        cx (create-sci-cx transformer {:bindings locals #_:load-fn #_load})
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         f (slurp transformer)
         ls (str "(do " f ")")
@@ -222,10 +249,10 @@
 ; meta-build system
 
 (defn create-fs-cx
-  []
+  [filename]
   (let [fs (copy-ns 'babashka.fs)
         build (copy-ns 'flower.build)]
-    (create-sci-cx
+    (create-sci-cx filename
       {:namespaces
        ; TODO: sandboxing
        {'babashka.fs fs
@@ -244,7 +271,7 @@
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
               flower.build/*frontmatter* frontmatter]
-      (let [cx (create-fs-cx)
+      (let [cx (create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
             lisp (sci/parse-string cx embedded)]
         (eval-form cx lisp)))
@@ -293,7 +320,9 @@
 (defn jq
   ([data query] (jq data query false))
   ([data query raw]
-   (let [res (jq/execute data query)]
+   (let [res (try (jq/execute data query)
+                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
+                    (error "failed to run jq query:" (ex-message e))))]
      (if raw (json/read-str res) res))))
 
 ; IO
@@ -304,8 +333,10 @@
    If any `args` are present, they will be passed after the map."
   [f & args]
   ; TODO: https://clojure.atlassian.net/browse/DJSON-43
-  (let [before (-> *in* (java.io.PushbackReader. 64)
-                   (json/read :key-fn keyword))
+  (let [reader (java.io.PushbackReader. *in* 64)
+        before (try (json/read reader :key-fn keyword)
+                    (catch java.io.EOFException e
+                      (error "failed to parse JSON:" (ex-message e))))
         after (apply f before args)]
     (json/write after *out*)))
 
