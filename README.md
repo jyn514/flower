@@ -2,41 +2,66 @@
 
 [pollen]: https://docs.racket-lang.org/pollen
 [soupault]: https://soupault.app/
-[hakyll]: https://jaspervdj.be/hakyll/
 
 **NOTE: still in pre-alpha, blog post forthcoming**
+
+`flower` is currently EXTREMELY ROUGH. this is mostly on github so i can show it to people and as a tech demo.
+
+## testimonials
+
+folks the reviews for my new ssg are in
+
+> I hate that this is exciting to me. This makes me want to write software.
+—burned out professional programmer
+
+> you have made a tool i might actually use.
+—girl who rolls her own crypto
 
 ## features
 
 all the basics:
 
 - static binaries
-- syntax highlighting
+- syntax highlighting -- TODO
 - live-reload
-- RSS feed support
+- RSS feed support -- TODO
 
 and some weird ones:
 
 - support for arbitrary build commands
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary)
 - default templating language is a fully-featured programming environment (clojure). the same language is used in pages and templates, with very few restrictions.
-- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings.
-- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates.
+- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
+- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- NOT DOCUMENTED
 - render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
-## why a new static site generator?
+## quick start
 
-because all the others are a pain to use.
-- jekyll requires fumbling through the ruby dependency ecosystem
-- hakyll requires you to learn haskell, and requires fumbling through the haskell dependency ecosystem
-- zola sharply restricts what you can do with templates (the whole phase system is weird and requires lots of workarounds)
-- hugo requires you to learn the weird Go templating system
-- pollen is mostly unmaintained
-- "just hack something together yourself" distracts you from actually writing your blog posts, and doesn't get you nice things like hot-reload and an RSS feed
+### install the flower binary
 
-flower is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
+1. [install clojure](https://clojure.org/guides/install_clojure)
+2. [install GraalVM](https://www.graalvm.org/downloads/)
+3. `git clone https://github.com/jyn514/flower`
+4. `cd flower`
+5. `clojure -T:build native`
+
+this will output a binary into `target/flower`.
+put it somewhere in PATH.
+make sure to use the binary, not the jar file - the jar is slow to start and will make your site rebuilds very slow.
+
+TODO: static binaries on github releases
+
+### create your site
+
+1. `mkdir my-site`
+2. `flower new`
+3. `flower watch`
+
+`flower new` generates the skeleton of a site in the current directory.
+feel free to edit any files it generates.
+
 ## overview
-- four phases
+four phases:
 	1. build dependency graph
 	1. preprocessing
 	1. custom commands (including built-in commands)
@@ -49,17 +74,18 @@ $ cat pages/look-ma-new-SSG.md
 
 i built a new SSG, and it works!
 ```
-that generates a very basic scaffold with an index of pages and your rendered writing.
+together with the other files `flower new` generates,
+that generates a very basic scaffold with an index of pages and your rendered page.
 
 you probably want to customize your site, though. a simple flower site could look like this:
 ```
 $ tree
 .
+├── build.clj
 ├── expressions
 │   └── kbd.clj
 ├── pages
-│   ├── look-ma-new-site.md
-│   └── page.html
+│   └── look-ma-new-site.md
 ├── postprocessors
 │   └── title.clj
 ├── sass
@@ -67,7 +93,8 @@ $ tree
 ├── static
 │   └── favicon.jpg
 └── templates
-    └── index.html
+    ├── index.html
+    └── page.html
 ```
 
 ### kinds of files
@@ -77,7 +104,7 @@ flower has four kinds of files:
 - expressions
 - static files
 
-it also comes with some built-in custom commands, such as compiling Sass to CSS and markdown to HTML.
+it also comes with some default custom commands, such as compiling Sass to CSS (TODO) and markdown to HTML.
 
 let's look at them one at a time.
 #### pages
@@ -90,6 +117,9 @@ description: how i built a new site using flower
 
 flower is cool because it lets me choose my own syntax highlighter!
 ```
+metadata delimited with `---` is YAML. `+++` is TOML. `;;;` is JSON (SUBJECT TO CHANGE). `###` is [EDN].
+
+[EDN]: https://clojuredocs.org/clojure.edn
 
 ##### preprocessing pages
 preprocessors are hot-swappable. you can use any you like, such as handlebars, Hugo, or even the C preprocessor.
@@ -293,11 +323,11 @@ preprocessors: ["handlebars"]
 ---
 ```
 
-this works for both pages and templates.
+this works for both pages and templates. TODO
 
 #### advanced: custom preprocessors
 
-TODO
+TODO docs
 
 sketch: JSON input on stdin, JSON output on stdout, you can do whatever you like in the middle. record your file dependencies in the JSON output.
 
@@ -316,6 +346,8 @@ named `transform` instead of embedding clojure in your content.
 note that post-processors are *not* allowed to have frontmatter.
 they work on each page, one at a time, and cannot be configured.
 any configuration logic (such as postprocessor ordering) goes in your code, not in the meta-build system.
+
+TODO: this example works but API for even slightly more complicated things is not implemented
 
 <!--
 the only configuration allowed is to tell the build system which files are post-processors.
@@ -425,6 +457,22 @@ this sounds more restrictive than it is; in practice you get all the info you ne
 
 ---
 # FAQ
+
+## why a new static site generator?
+
+because all the others are a pain to use.
+- jekyll requires fumbling through the ruby dependency ecosystem
+- hakyll requires you to learn haskell, and requires fumbling through the haskell dependency ecosystem
+- zola sharply restricts what you can do with templates (the whole phase system is weird and requires lots of workarounds)
+- hugo requires you to learn the weird Go templating system
+- pollen is mostly unmaintained
+- "just hack something together yourself" distracts you from actually writing your blog posts, and doesn't get you nice things like hot-reload and an RSS feed
+
+flower is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
+
+additionally, flower is meant to be a demonstration of what it looks like to build [software that unifies users and programmers][operators].
+
+[operators]: https://jyn.dev/operators-not-users-and-programmers/
 
 ## why ninja?
 

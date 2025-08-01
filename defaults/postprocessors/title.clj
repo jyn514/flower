@@ -1,6 +1,6 @@
 (use 'flower.select 'hiccup2.core 'flower.utils)
 (defn transform [{page :content}]
   (let [title (:content (select page "h1"))]
-    (append (select page "head")
+    (append! (select page "head")
             (html [:title title]))
     page))

@@ -109,6 +109,8 @@
         watcher (behold/watch rerun-ninja ".")]
         ; watcher (apply behold/watch rerun-ninja important-inputs)]
     (println "watching .")
+    ; run once at startup
+    (rerun-ninja {:type :created :path "."})
     watcher))
 
 ; api

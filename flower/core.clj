@@ -329,7 +329,7 @@
     ("embed-template") (map-json embed-template (second args))
     ("postprocess") (map-json postprocess (second args))
     ("watch") (watch (rest args))
-    ("init") (flower.defaults/materialize-all (second args))
+    ("new") (flower.defaults/materialize-all (second args))
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))
                println)

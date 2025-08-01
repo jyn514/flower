@@ -1,3 +1,3 @@
-/blossom/public
-/blossom/.build
-/blossom/build.ninja
+/defaults/.build
+/defaults/deps.edn
+/defaults/public
