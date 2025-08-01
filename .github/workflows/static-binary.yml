@@ -20,13 +20,9 @@ jobs:
     - name: Setup GraalVM
       uses: graalvm/setup-graalvm@v1
       with:
-        java-version: '21'
-        distribution: 'graalvm-community'
+        java-version: '24'
+        distribution: 'graalvm'
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        native-image-job-reports: 'true'
-
-    - name: Install native-image
-      run: gu install native-image
 
     - name: Cache Clojure dependencies
       uses: actions/cache@v4
