@@ -9,8 +9,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         exe: [flower]
         include:
-          os: windows-latest
-          exe: flower.exe
+          - os: windows-latest
+            exe: flower.exe
     runs-on: ${{ matrix.os }}
 
     steps:
