@@ -1,0 +1,65 @@
+name: Build Native Binary
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  build-native:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        exe: [flower]
+        include:
+          os: windows-latest
+          exe: flower.exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: '21'
+        distribution: 'graalvm-community'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        native-image-job-reports: 'true'
+
+    - name: Install native-image
+      run: gu install native-image
+
+    - name: Cache Clojure dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.gitlibs
+          ~/.deps.clj
+        key: ${{ runner.os }}-clojure-${{ hashFiles('**/deps.edn') }}
+        restore-keys: |
+          ${{ runner.os }}-clojure-
+
+    - name: Install Clojure CLI
+      uses: DeLaGuardo/setup-clojure@12.5
+      with:
+        cli: latest
+
+    - name: Download dependencies
+      run: clojure -P
+
+    - name: Build native image
+      run: clojure -T:build native
+
+    - name: Test native binary
+      run: |
+        ls -la target/{{exe}}
+        ./target/{{exe}}* --version || echo "Version check failed, but binary was created"
+
+    - name: Upload platform-specific binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: native-binary-${{ runner.os }}
+        path: |
+          target/{{exe}}

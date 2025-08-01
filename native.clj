@@ -1,19 +1,25 @@
 (ns native
   (:require [clojure.tools.build.api :as b]
             [clojure.string :as str]
-            [babashka.process :as ps]))
+            [babashka.process :as ps]
+            [babashka.process.pprint]))
+
+(def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
 
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file "target/flower.jar")
+(def exe (str "target/flower" (when is-win ".exe")))
 (def reachable "reachability-metadata.json")
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with live-reload.clj
 (def live-reload "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
+
 (defn clean [_]
   (b/delete {:path class-dir})
-  (b/delete {:path "target/flower"})
+  (b/delete {:path exe})
   (b/delete {:path jar-file}))
+
 (defn uberjar [_]
   (clean nil)
   (b/copy-dir {:src-dirs ["src"]
@@ -42,9 +48,9 @@
    "com.fasterxml.jackson"])
 
 (defn args [dev]
-  ["scripts/install-graal.sh -jar" jar-file "target/flower"
+  ["native-image" "-jar" jar-file exe
    "--no-fallback --gc=G1"
-   (if dev "-Ob")
+   (when dev "-Ob")
    "--exact-reachability-metadata"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])
