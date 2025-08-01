@@ -11,10 +11,10 @@
 
 folks the reviews for my new ssg are in
 
-> I hate that this is exciting to me. This makes me want to write software.
+> I hate that this is exciting to me. This makes me want to write software.  
 —burned out professional programmer
 
-> you have made a tool i might actually use.
+> you have made a tool i might actually use.  
 —girl who rolls her own crypto
 
 ## features
