@@ -33,6 +33,8 @@
   [nextjournal.markdown :as md]
   [nextjournal.markdown.transform :as md.transform]))
 
+(def VERSION "0.0.1")
+
 ; sandboxing
 
 (defn load-sci-file [file] 
@@ -315,9 +317,8 @@
                                    ;:build-dir :string
                                    :change-dir :string}
                           :alias {:C :change-dir}})))
-  ; (flower.live-reload/listen
-  ;   (if (< 1 (count args)) {:dir (second args)})))
-
+(defn help []
+  (error "help is not yet implemented, sorry"))
 
 (defn main [args]
   ; TODO: actual arg parser
@@ -333,6 +334,8 @@
     ("jq") (-> *in* slurp
                (jq (second args) (= (nth args 2 "") "-r"))
                println)
+    ("version" "--version") (println VERSION)
+    ("help" "--help" "-h") (help)
     (error (str "unrecognized command: " (first args)))))
 
 (defn -main [& args]
