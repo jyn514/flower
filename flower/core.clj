@@ -4,7 +4,7 @@
 
 (ns flower.core
   (:gen-class)
-  (:use [flower.utils])
+  (:use flower.utils flower.internal-utils)
   (:import
     (java.io StringWriter)
     (org.jsoup.select Nodes))
@@ -110,11 +110,13 @@
 ; rendering
 
 (defn print-sci-frame [f default-file]
+  (eprintln f)
   (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
         file (or (:file f)
                  (if (:sci/built-in f)
                    "<host code>"
                    default-file)) 
+        ; TODO: translate these to be relative to the template file, not the form start
         line (:line f)
         column (:column f)
         span (cond
@@ -143,19 +145,26 @@
     ; TODO: give a better error message for native libs that use eval
     (try (sci/eval-form cx form)
          (catch clojure.lang.ExceptionInfo e
-           (print-sci-trace e (-> cx meta :filename))))))
+           ; TODO: env variables suck lmao, do something else
+           (if (System/getenv "FLOWER_HOST_TRACE")
+             (throw e)
+             (print-sci-trace e (-> cx meta :filename)))))))
 
 (defn seval "string eval" [cx s]
   (->> s (sci/parse-string cx) embed (eval-form cx)))
 
-; TODO: this crashes with "don't know how to write JSON" if it fails to parse
 ; TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
+; https://clojure.org/reference/reader
+; this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
+; maybe add a Syntax rule:
+; Syntax = #\"[\\[\\;@^#`~']\"
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
       Text = #'[^◊]+'
       Lisp = <'◊'> Form
-      Form = (Ident | List | Atom List)
+      Form = (Ident | Syntax* List)
+      Syntax = #\"[\\[\\;@^#`~']\"
       Ident = #'[a-zA-Z0-9_/.-]+'
       List = <'('> (Atom | List)* <')'>
       Atom = #'[^()]+' "))
@@ -220,7 +229,7 @@
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
   (let [meta (load-meta "pages")
         ; TODO: use parse-ninja here
-        out (:out (ps/shell {:out :string} "ninja -t targets rule postprocess"))
+        out (:out (run {:out :string} "ninja -t targets rule postprocess"))
         ; handle empty string
         pages (if (seq out)
                 (map #(update (get-meta % meta) :path build/remove-parent)
@@ -340,36 +349,85 @@
         after (apply f before args)]
     (json/write after *out*)))
 
-(defn watch [args]
-  (flower.live-reload/watch
-    (cli/parse-opts args {:coerce {;:out-dir :string
-                                   ;:build-dir :string
-                                   :change-dir :string}
-                          :alias {:C :change-dir}})))
+(def watch flower.live-reload/watch)
+; (defn watch [args]
+  ; (flower.live-reload/watch
+  ;   (cli/parse-opts args {:coerce {;:out-dir :string
+  ;                                  ;:build-dir :string
+  ;                                  :change-dir :string}
+  ;                         :alias {:C :change-dir}})))
 (defn help []
   (error "help is not yet implemented, sorry"))
 
-(defn main [args]
-  ; TODO: actual arg parser
-  (case (first args)
-    ("configure") (configure "build.clj" "build.ninja")
-    ("split-frontmatter") (-> *in* slurp build/split-frontmatter (json/write *out*))
-    ("render-page") (map-json render-page)
-    ("render-index") (map-json render-index)
-    ("embed-template") (map-json embed-template (second args))
-    ("postprocess") (map-json postprocess (second args))
-    ("watch") (watch (rest args))
-    ("new") (flower.defaults/materialize-all (second args))
-    ("jq") (-> *in* slurp
-               (jq (second args) (= (nth args 2 "") "-r"))
-               println)
-    ("version" "--version") (println VERSION)
-    ("help" "--help" "-h") (help)
-    (error (str "unrecognized command: " (first args)))))
+; (def dispatch-cmd
+;   [{:cmds ["configure"] :fn configure}
+;    {:cmds ["split-frontmatter"] :fn (-> *in* slurp build/split-frontmatter (json/write *out*))}
+
+;   (map
+;     (fn [[cmds my-fn]]
+;       (
+  ; {:fn #(assoc % :fn 'my-fn)})
+
+(defn unknown-command [{:keys [args] :as m}]
+  (error (str "unrecognized command: '"
+              (str/join " " args)
+              "' (-h for help, or 'watch' to build your site)")))
+
+(def dispatch-table
+  {"configure" #(configure "build.clj" "build.ninja")
+   "split-frontmatter" #(-> *in* slurp build/split-frontmatter (json/write *out*))
+   "render-page" (comp render-page map-json)
+   "render-index" (comp render-index map-json)
+   "embed-template" (comp embed-template map-json)
+   "postprocess" (comp postprocess map-json)
+   "watch" watch
+   "new" flower.defaults/materialize-all
+   "jq" {:fn jq :coerce {:r :boolean}}
+   ["version" "--version"]  #(println VERSION)
+   ["help" "--help" "-h"] help
+   [] unknown-command})
+
+(defn ->bb [init key val]
+  (if (and (vector? key) (seq key))
+    (for [cmd key] (->bb init cmd val))
+    (let [cmds (if (string? key) [key] key)
+          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])]
+      (assoc opts :cmds (inspect cmds) :fn #(init my-fn %)))))
+
+(defn dispatch-cmd [args]
+  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")] (%1 %2))
+        ; NOTE: [] default must come last
+        table (map #(apply ->bb init %) dispatch-table)]
+        ; big-table (concat table (->bb init [] unknown-command))]
+      (def *table table)
+      (cli/dispatch table args {:coerce {:C :string}})
+    ))
+        ; table-list (concat table nil)
+    ;     out (cli/dispatch table args {:coerce {:C :boolean}})
+    ;     {:keys [fn opts]} out]
+    ; (inspect out)
+    ; (binding [*site* (or (:C opts) ".")]
+    ;   (fn opts))))
+
+; (defn main [args]
+  ; (let [args (cli/parse-args args)
+  ;       cmd (first (:args args))
+  ;       no-cmd (rest (:args args))
+  ;       opts (:opts args)]
+  ;   (binding [*site* (or (:C opts) ".")]
+  ;     (dispatch-cmd cmd no-cmd (:opts args)))))
 
 (defn -main [& args]
   (try
-    (main args)
+    (dispatch-cmd args)
+    (catch clojure.lang.ExceptionInfo e
+      (if (and (-> e ex-data :flower/exit)
+               (not (System/getenv "FLOWER_HOST_TRACE")))
+        (do
+          (eprintln "oop")
+          (eprintln (ex-message e))
+          (System/exit 1))
+        (throw e)))
     (finally
       (shutdown-agents)
       (flush))))

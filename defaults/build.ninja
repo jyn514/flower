@@ -1,11 +1,11 @@
 builddir = .build
 
-rule flower-meta
-  command = cd .. && clojure -T:build native-dev
-  description = rebuild flower itself
 rule ninja-meta
   command = ../target/flower configure
   description = rebuild build.ninja itself
+rule flower-meta
+  command = cd .. && clojure -T:build native-dev
+  description = rebuild flower itself
 rule tmpdir
   command = mkdir -p .build
   description = create build dir

@@ -93,7 +93,7 @@
 (defn help [{:keys [type path]}] (println "Aaaa"))
 (defn rerun-ninja [{:keys [type path]}]
   (println "rerun ninja")
-  (ps/shell "ninja"))
+  (run "ninja"))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes
@@ -106,11 +106,11 @@
         ; watch is really annoying and silently does nothing on files.
         ; we might depend on a top-level file, so we're forced to watch the
         ; whole directory.
-        watcher (behold/watch rerun-ninja ".")]
+        watcher (behold/watch rerun-ninja *site*)]
         ; watcher (apply behold/watch rerun-ninja important-inputs)]
-    (println "watching .")
+    (println "watching" *site*)
     ; run once at startup
-    (rerun-ninja {:type :created :path "."})
+    (rerun-ninja {:type :created :path *site*})
     watcher))
 
 ; api
@@ -121,7 +121,7 @@
            static-port default-http-port
            out-dir "public"
            build-dir ".build"}}]
-  (println "Starting ninja watcher")
+  (println "Starting ninja watcher for" *site*)
   (watch-ninja build-dir)
   (println "Starting live reload watcher")
   ; TODO: this needs to be async oops

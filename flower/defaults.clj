@@ -1,5 +1,5 @@
 (ns flower.defaults
-  (:use [flower.utils])
+  (:use [flower utils internal-utils])
   (:require [babashka.fs :as fs]
             [flower.build :as build]))
 

@@ -157,7 +157,8 @@ as a shortcut, `◊ident` can be used in place of `◊(print-str ident)`, as lon
 you can hide a template expression from the output with a normal HTML comment: `<!-- -->`.
 but sometimes you may want to avoid evaluating it at all (e.g. if it gives an error you don't want to fix right now).
 to avoid evaluating an expression, prefix it with `#_`, like a [normal clojure ignore](https://clojure.org/reference/reader#_dispatch):
-`◊#_(this-function-does-not-exist)`
+`◊#_(this-function-does-not-exist)`.
+TODO: this currently only works for lists, not idents, i.e. `◊#_ident` will give a syntax error.
 
 you may want to write reusable expressions for your pages (these are often called "shortcodes" or "macros" in other SSGs).
 to do so, you write normal clojure.
