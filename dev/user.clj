@@ -14,6 +14,7 @@
          '(flower [core :as flower])
          '(sci [core :as sci])
          '(instaparse [core :as insta])
+         '(jq [api :as jq])
          '(babashka [process :as ps])
          '(babashka [cli :as cli])
          '(babashka [fs :as fs]))

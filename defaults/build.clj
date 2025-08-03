@@ -128,10 +128,12 @@
      :description "render index page $in using clojure"}
     {:name "template"
      ; NOTE: this means that all templates must depend on all other templates
+     ; TODO: `flow` should take arbitrary number of args
      :command (fmt "${flower_cli} embed-template $template < $in > $out")
      :description "embed $in into $template using clojure"}
     {:name "frontmatter"
-     :command (flow "split-frontmatter")}
+     ; TODO: maybe add an `--arg` equivalent idk
+     :command (fmt "${flower_cli} jq -R \"{filename: \\\"$in\\\", content: .}\" < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "markdown"
      :command "pulldown-cmark -TFSULG $in -> $out"
      :description "render markdown -> HTML: $in -> $out"}]
