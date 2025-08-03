@@ -32,7 +32,7 @@ rule postprocess
 
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/main.html build.clj ../target/flower.jar
   restat = true
-build ../target/flower.jar: flower-meta ../flower/internal_utils.clj ../flower/build.clj ../flower/defaults.clj ../flower/utils.clj ../flower/hiccup.clj ../flower/select.clj ../flower/live_reload.clj ../flower/core.clj ../flower/reachability-metadata.json ../flower
+build ../target/flower.jar: flower-meta ../flower/internal_utils.clj ../flower/build.clj ../flower/reflect.clj ../flower/defaults.clj ../flower/utils.clj ../flower/hiccup.clj ../flower/select.clj ../flower/live_reload.clj ../flower/core.clj ../flower/reachability-metadata.json ../flower
 build .build: tmpdir 
 build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | ../target/flower.jar
 build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json

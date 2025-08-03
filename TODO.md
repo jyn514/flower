@@ -10,6 +10,7 @@
 - file watcher should give a nice error if dir doesn't exist
 - nice syntax over ninja phony targets so you have some equivalent of `--drafts`
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
+- rename `flower.internal-utils` to `flower.internals.utils`
 
 ## goodies
 

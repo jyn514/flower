@@ -91,9 +91,15 @@
 
 ; TODO: tracebacks here aren't printed? lol???
 (defn help [{:keys [type path]}] (println "Aaaa"))
+
+(def ^:dynamic *running* false)
 (defn rerun-ninja [{:keys [type path]}]
-  (println "rerun ninja")
-  (run "ninja"))
+  (when-not *running*
+    (println *running*)
+    (alter-var-root (var *running*) (constantly true))
+      (println "rerun ninja" *running*)
+      (run "ninja")
+    (alter-var-root (var *running*) (constantly false))))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes

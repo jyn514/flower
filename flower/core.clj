@@ -26,6 +26,7 @@
   [flower.build :as build]
   [flower.select]
   [flower.hiccup]
+  [flower.reflect]
   [flower.defaults]
   [flower.live-reload]
   [flower.internal-utils]
@@ -112,6 +113,8 @@
 (defn print-sci-frame [f default-file]
   (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
         file (or (:file f)
+                 ; TODO: this only catches the clojure runtime,
+                 ; not bound flower functions
                  (if (:sci/built-in f)
                    "<host code>"
                    default-file)) 
@@ -202,10 +205,9 @@
 
 (defn render-page
   "Preprocess and render a JSON blob"
-  ; ([parsed filename] (render-page parsed filename {}))
-  ([{:keys [parsed filename locals] :or {locals {}}}]
+  ([parsed {:keys [locals] :or {locals {}}}]
    (let [locals (merge-deep {'frontmatter (:frontmatter parsed)} locals)
-         rendered (render (:content parsed) filename locals)]
+         rendered (render (:content parsed) (:filename parsed) locals)]
      {:content rendered
       :frontmatter (:frontmatter parsed)})))
 
@@ -235,7 +237,7 @@
                 (map #(update (get-meta % meta) :path build/remove-parent)
                      (str/split out #"\n"))
                 {})]
-    (render-page parsed {'pages pages})))
+    (render-page parsed {:locals {'pages pages}})))
 
 ; postprocessing
 (defn postprocess
@@ -243,14 +245,20 @@
    run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
   (let [locals {'page parsed}
-        cx (create-sci-cx transformer {:bindings locals #_:load-fn #_load})
+        ; TODO: this is a mess lmao, straighten out my dependencies so i can just
+        ; put `(def render flower.render/render)` in reflect.clj
+        reflect (assoc (copy-ns 'flower.reflect) 'render render)
+        cx-opts {:bindings locals #_:load-fn #_load
+                 :namespaces {'flower.reflect reflect}}
+        cx (create-sci-cx transformer cx-opts)
         f (slurp transformer)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ls (str "(do " f ")")
         transformer (sci/parse-string cx ls)
-        lisp (embed (list 'do transformer '(transform page)))
-        html (eval-form cx lisp)]
-    (merge parsed {:content html})))
+        lisp (embed (list 'do transformer '(transform page)))]
+    (binding [flower.reflect/*dependencies* #{}]
+      (let [html (eval-form cx lisp)]
+        (inspect (merge parsed {:content html :dependencies flower.reflect/*dependencies*}) )))))
 
 ; meta-build system
 
@@ -364,7 +372,7 @@
 (def dispatch-table
   {"configure" (no-args configure)
    "split-frontmatter" (no-args #(map-json build/split-frontmatter))
-   "render-page" (no-args #(map-json render-page))
+   "render-page" (no-args #(map-json render-page {}))
    "render-index" (no-args #( map-json render-index ))
    "embed-template" {:fn #( map-json embed-template %)
                      :coerce {:template-name :string}

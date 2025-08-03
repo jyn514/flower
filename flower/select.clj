@@ -7,6 +7,9 @@
 
 (declare after!)
 
+; TODO: a bunch of these functions make sense on Elements, not just Element
+; — maybe allow that?
+
 (defn select
   "Given an HTML document and a CSS selector, return a `org.jsoup.nodes.Elements` of matching elements"
   [doc ^String selector]

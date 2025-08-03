@@ -1,12 +1,10 @@
-(use 'flower.select 'hiccup2.core 'flower.utils)
+(use 'flower.select 'hiccup2.core 'flower.utils 'flower.reflect)
 (defn transform [{page :content}]
-  (let [tag (select page "flower-embed")
-        embedded (flower.select/html tag)
-        attrs (flower.select/attrs tag)
-        template (-> attrs :template flower.reflect/template)
-        locals {(symbol (:name attrs)) page}
-        rendered (flower.reflect/render template locals)]
-    ; (append (select page "head")
-    ;         (html [:title title]))
-    (flower.select/replace-with! tag rendered)
-    page) #_page)
+  (doseq [tag (select page "flower-embed")]
+    (let [embedded (flower.select/html tag)
+          attrs (flower.select/attrs tag)
+          template (-> attrs :template flower.reflect/template)
+          locals {(symbol (:name attrs)) embedded}
+          rendered (flower.reflect/render template locals)]
+      (flower.select/replace-with! tag rendered)))
+    page)

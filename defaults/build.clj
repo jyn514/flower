@@ -135,6 +135,7 @@
      ; TODO: maybe add an `--arg` equivalent idk
      :command (fmt "${flower_cli} jq -R \"{filename: \\\"$in\\\", content: .}\" < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "markdown"
+     ; TODO: use flower builtins
      :command "pulldown-cmark -TFSULG $in -> $out"
      :description "render markdown -> HTML: $in -> $out"}]
    :builds
@@ -149,6 +150,8 @@
     {:rule "tmpdir"
      :outputs builddir}]})
 
+; TODO: needs to register `depfile`
+; see /home/jyn/src/example/example-edbf02f84e934656.d for example
 (defn postprocess [{runners :all-postprocessors}]
   (let [pps (fs/glob "postprocessors" "*")
         cmds (map #(str (get runners (fs/extension %)) " " %) pps)
