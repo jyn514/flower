@@ -4,6 +4,10 @@
          '(clojure [string :as str]))
 (use 'flower.utils)
 
+; TODO: configuration mechanism using ninja phony targets
+; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
+(def use-jar true)
+
 (defn / [x & more]
   (apply fs/path x more))
 
@@ -14,9 +18,8 @@
 (def builddir ".build")
 (def templates "templates")
 (def f "flower")
-(def ff ["../target/flower"])
-; (def flower_cli "../scripts/run-flower.sh")
-(def flower_cli "../target/flower")
+(def ff [(if use-jar "../target/flower.jar" "../target/flower")])
+(def flower_cli (if use-jar "../scripts/run-jar.sh" "../target/flower"))
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
@@ -109,7 +112,7 @@
      :command (fmt "${flower_cli} configure")
      :description "rebuild build.ninja itself"}
     {:name "flower-meta"
-     :command "cd .. && clojure -T:build native-dev"
+     :command (if use-jar "cd .. && clojure -T:build uberjar" "cd .. && clojure -T:build native-dev")
      :description "rebuild flower itself"}
     {:name "tmpdir"
      :command (str "mkdir -p " builddir)
@@ -139,7 +142,7 @@
      :outputs "build.ninja"
      :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
     {:rule "flower-meta"
-     :outputs "../target/flower"
+     :outputs ff
      :inputs (conj (fs/glob "../flower" "**") "../flower")}
     {:rule "tmpdir"
      :outputs builddir}]})
