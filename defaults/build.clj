@@ -135,6 +135,7 @@
    :builds
    ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
    [{:rule "ninja-meta"
+     :restat true
      :outputs "build.ninja"
      :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
     {:rule "flower-meta"
