@@ -15,6 +15,10 @@
 (defn eprintln [& msg]
   (binding [*out* *err*]
     (apply println msg)))
+(defn eprn [& msg]
+  (binding [*out* *err*]
+    (apply prn msg)))
+(defn inspect [x] (eprn x) x)
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& xs]
@@ -22,8 +26,6 @@
     (every? map? xs) (apply merge-with merge-deep xs)
     (every? sequential? xs) (apply concat xs)
     :else (last xs)))
-
-(defn inspect [x] (binding [*out* *err*] (prn x) x))
 
 (defn markdown [md]
   ; https://github.com/nextjournal/markdown?tab=readme-ov-file#html-blocks-and-html-inlines

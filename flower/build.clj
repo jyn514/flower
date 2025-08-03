@@ -54,13 +54,14 @@
 
 ; NOTE: maps use strings as keys, not keywords
 (defn split-frontmatter
-  [original-body]
-  (let [[first-line & rest-lines] (str/split-lines original-body)
+  [{:keys [filename content]}]
+  (let [[first-line & rest-lines] (str/split-lines content)
         [frontmatter body]        (split-lines rest-lines first-line)]
     (if-let [parser (select-parse-fn first-line)]
       {:content (str/join "\n" body)
+       :file filename
        :frontmatter (parser (str/join "\n" frontmatter))}
-      {:frontmatter {} :content original-body})))
+      {:frontmatter {} :file filename :content content})))
 
 (defn all-frontmatter
   "Returns a {:templates Frontmatter  :pages Frontmatter} map,

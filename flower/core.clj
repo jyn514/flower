@@ -110,7 +110,6 @@
 ; rendering
 
 (defn print-sci-frame [f default-file]
-  (eprintln f)
   (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
         file (or (:file f)
                  (if (:sci/built-in f)
@@ -189,23 +188,24 @@
    (let [cx (create-sci-cx filename {:bindings locals})]
     (teval (parse src) src cx))))
 
+(defn load-meta [f]
+  (let [content (-> f fs/file slurp)]
+    (build/split-frontmatter {:filename f :content content}) :frontmatter))
+
 ; TODO: allow configuring :url
-(defn load-meta [dir]
+(defn load-all-meta [dir]
   (let [paths (fs/glob dir "**")
-        files (filter #(not (fs/directory? %)) paths)
-        load #(-> % fs/file slurp
-                  build/split-frontmatter :frontmatter
-                  (assoc :file %))]
-    (map load files)))
+        files (filter #(not (fs/directory? %)) paths)]
+    (map load-meta files)))
 
 ; preprocessing
 
 (defn render-page
   "Preprocess and render a JSON blob"
-  ([parsed] (render-page parsed {}))
-  ([parsed locals]
+  ; ([parsed filename] (render-page parsed filename {}))
+  ([{:keys [parsed filename locals] :or {locals {}}}]
    (let [locals (merge-deep {'frontmatter (:frontmatter parsed)} locals)
-         rendered (render (:content parsed) locals)]
+         rendered (render (:content parsed) filename locals)]
      {:content rendered
       :frontmatter (:frontmatter parsed)})))
 
@@ -227,7 +227,7 @@
   ; document that you should use `include` if you want that.
   ; TODO: document that custom commands cannot generate the same output file as a page
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
-  (let [meta (load-meta "pages")
+  (let [meta (load-all-meta "pages")
         ; TODO: use parse-ninja here
         out (:out (run {:out :string} "ninja -t targets rule postprocess"))
         ; handle empty string
@@ -241,19 +241,16 @@
 (defn postprocess
   "Given a `{:content x :frontmatter y :transformer z}` map,
    run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [parsed transformer]
+  [parsed {:keys [transformer]}]
   (let [locals {'page parsed}
-  ; (let [locals {'page {:content (:content parsed)
-  ;                      :frontmatter (:frontmatter parsed)}}
         cx (create-sci-cx transformer {:bindings locals #_:load-fn #_load})
-        ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         f (slurp transformer)
+        ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ls (str "(do " f ")")
-        transformer (->> ls (sci/parse-string cx))
+        transformer (sci/parse-string cx ls)
         lisp (embed (list 'do transformer '(transform page)))
         html (eval-form cx lisp)]
-    (merge parsed {:content html})
-    ))
+    (merge parsed {:content html})))
 
 ; meta-build system
 
@@ -271,11 +268,13 @@
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
-  [in out]
-  (let [ninja-writer (new StringWriter)
-        page-meta (load-meta "pages")
+  []
+  (let [in (str *site* "/" "build.clj")
+        out (str *site* "/" "build.ninja")
+        ninja-writer (new StringWriter)
+        page-meta (load-all-meta "pages")
         ; TODO: every time we hard-code a dir it makes things unconfigurable, figure out what to do
-        template-meta (load-meta "templates")
+        template-meta (load-all-meta "templates")
         frontmatter {:pages page-meta :templates template-meta}
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
@@ -290,16 +289,17 @@
 (defn embed-template
   "Given a {:content :frontmatter} page and the name of a template file,
   render `template` in context."
-  [embed template-name]
-  (let [{template-frontmatter :frontmatter
-         ; TODO: layering violation, we shouldn't be reading this off disk.
-         ; instead we should run `split-frontmatter` on the template too
-         ; and then merge the two.
-         template :content} (-> template-name slurp build/split-frontmatter)
+  [embed {:keys [template-name]}]
+        ; TODO: layering violation, we shouldn't be reading this off disk.
+        ; instead we should run `split-frontmatter` on the template too
+        ; and then merge the two.
+  (let [template-contents (-> template-name slurp)
+        {template-frontmatter :frontmatter template :content}
+          (build/split-frontmatter {:filename template-name :content template-contents})
         frontmatter (merge-deep template-frontmatter (:frontmatter embed))
         locals {'content (:content embed)
                 'frontmatter frontmatter}
-        embedded (render template locals)]
+        embedded (render template template-name locals)]
     {:content embedded
      :frontmatter frontmatter}))
 
@@ -327,14 +327,15 @@
 ; the clojure library is buggy and the underlying java library is hideously complicated.
 ; rather than try to figure out their api, just parse and reserialize the string.
 (defn jq
-  ([data query] (jq data query false))
-  ([data query raw]
-   (let [res (try (jq/execute data query)
-                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
-                    (error "failed to run jq query:" (ex-message e))))]
-     (if raw (json/read-str res) res))))
+  [{:keys [data query raw-input raw-output] :as m}]
+  ; (eprn m)
+  (let [in (if raw-input (json/write-str data) data)
+        res (try (jq/execute in query)
+                 (catch net.thisptr.jackson.jq.exception.JsonQueryException e
+                   (error "failed to run jq query:" (ex-message e))))]
+    (if raw-output (json/read-str res) res)))
 
-; IO
+; CLI and IO
 
 (defn map-json
   "Given a function `f` that transforms a clojure map to a clojure map,
@@ -349,24 +350,11 @@
         after (apply f before args)]
     (json/write after *out*)))
 
-(def watch flower.live-reload/watch)
-; (defn watch [args]
-  ; (flower.live-reload/watch
-  ;   (cli/parse-opts args {:coerce {;:out-dir :string
-  ;                                  ;:build-dir :string
-  ;                                  :change-dir :string}
-  ;                         :alias {:C :change-dir}})))
 (defn help []
   (error "help is not yet implemented, sorry"))
 
-; (def dispatch-cmd
-;   [{:cmds ["configure"] :fn configure}
-;    {:cmds ["split-frontmatter"] :fn (-> *in* slurp build/split-frontmatter (json/write *out*))}
-
-;   (map
-;     (fn [[cmds my-fn]]
-;       (
-  ; {:fn #(assoc % :fn 'my-fn)})
+(defn no-args [f]
+  (fn [& _] (f)))
 
 (defn unknown-command [{:keys [args] :as m}]
   (error (str "unrecognized command: '"
@@ -374,17 +362,26 @@
               "' (-h for help, or 'watch' to build your site)")))
 
 (def dispatch-table
-  {"configure" #(configure "build.clj" "build.ninja")
-   "split-frontmatter" #(-> *in* slurp build/split-frontmatter (json/write *out*))
-   "render-page" (comp render-page map-json)
-   "render-index" (comp render-index map-json)
-   "embed-template" (comp embed-template map-json)
-   "postprocess" (comp postprocess map-json)
-   "watch" watch
+  {"configure" (no-args configure)
+   "split-frontmatter" (no-args #(map-json build/split-frontmatter))
+   "render-page" (no-args #(map-json render-page))
+   "render-index" (no-args #( map-json render-index ))
+   "embed-template" {:fn #( map-json embed-template %)
+                     :coerce {:template-name :string}
+                     :args->opts [:template-name]}
+   "postprocess" {:fn #( map-json postprocess %)
+                     :coerce {:transformer :string}
+                     :args->opts [:transformer]}
+   "watch" flower.live-reload/watch
    "new" flower.defaults/materialize-all
-   "jq" {:fn jq :coerce {:r :boolean}}
-   ["version" "--version"]  #(println VERSION)
-   ["help" "--help" "-h"] help
+   ; TODO: this overrides --data
+   "jq" {:fn #(println (jq (assoc % :data (slurp *in*))))
+         :coerce {:raw-input :boolean :raw-output :boolean
+                  :data :string :query :string}
+         :aliases {:R :raw-input :r :raw-output}
+         :args->opts [:query]}
+   ["version" "--version"] (no-args #(println VERSION))
+   ["help" "--help" "-h"] (no-args help)
    [] unknown-command})
 
 (defn ->bb [init key val]
@@ -392,30 +389,13 @@
     (for [cmd key] (->bb init cmd val))
     (let [cmds (if (string? key) [key] key)
           [my-fn opts] (if (map? val) [(:fn val) val] [val {}])]
-      (assoc opts :cmds (inspect cmds) :fn #(init my-fn %)))))
+      (assoc opts :cmds cmds :fn #(init my-fn %)))))
 
 (defn dispatch-cmd [args]
-  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")] (%1 %2))
-        ; NOTE: [] default must come last
+  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")]
+                (%1 (:opts %2)))
         table (map #(apply ->bb init %) dispatch-table)]
-        ; big-table (concat table (->bb init [] unknown-command))]
-      (def *table table)
-      (cli/dispatch table args {:coerce {:C :string}})
-    ))
-        ; table-list (concat table nil)
-    ;     out (cli/dispatch table args {:coerce {:C :boolean}})
-    ;     {:keys [fn opts]} out]
-    ; (inspect out)
-    ; (binding [*site* (or (:C opts) ".")]
-    ;   (fn opts))))
-
-; (defn main [args]
-  ; (let [args (cli/parse-args args)
-  ;       cmd (first (:args args))
-  ;       no-cmd (rest (:args args))
-  ;       opts (:opts args)]
-  ;   (binding [*site* (or (:C opts) ".")]
-  ;     (dispatch-cmd cmd no-cmd (:opts args)))))
+    (cli/dispatch table args {:coerce {:C :string}})))
 
 (defn -main [& args]
   (try
@@ -424,7 +404,6 @@
       (if (and (-> e ex-data :flower/exit)
                (not (System/getenv "FLOWER_HOST_TRACE")))
         (do
-          (eprintln "oop")
           (eprintln (ex-message e))
           (System/exit 1))
         (throw e)))

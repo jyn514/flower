@@ -14,13 +14,13 @@
 
 (defn run [opts & rest]
     (println rest)
-  (let [defaults {:dir *site}
-        [opts rest]
-        (cond
-          (map? opts) [(merge defaults opts) rest]
-          (string? opts) [defaults (if (string? (concat opts rest)])]
+  (let [[opts rest] (if (map? opts)
+                      [(assoc opts :dir *site*) rest]
+                      [{:dir *site*} (into opts rest)])]
     (println rest)
-    (apply ps/shell opts rest)))
+    (if (sequential? rest)
+      (apply ps/shell opts rest)
+      (ps/shell opts rest))))
 
 (defn parse-ninja [args]
   (let [out (:out (run {:out :string} args))]
