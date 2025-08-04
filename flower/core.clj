@@ -258,7 +258,22 @@
         lisp (embed (list 'do transformer '(transform page)))]
     (binding [flower.reflect/*dependencies* #{}]
       (let [html (eval-form cx lisp)]
-        (inspect (merge parsed {:content html :dependencies flower.reflect/*dependencies*}) )))))
+        ; TODO: should be keyed by output file so we can minimize rebuilds
+        (merge parsed {:content html :dependencies flower.reflect/*dependencies*})))))
+
+; (defn write-deps!
+;   [depfile out-file deps]
+  
+
+(defn split-dependencies
+  [parsed {:keys [depfile out-file]}]
+  (let [[parsed deps] (split-map parsed :dependencies)
+        joined (build/join (:dependencies deps))
+        formatted (fmt "${out-file}: ${joined}")]
+    (spit depfile formatted)
+    ; (write-deps! depfile out-file deps)
+    ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
+    parsed))
 
 ; meta-build system
 
@@ -380,6 +395,9 @@
    "postprocess" {:fn #( map-json postprocess %)
                      :coerce {:transformer :string}
                      :args->opts [:transformer]}
+   "split-dependencies" {:fn #(map-json split-dependencies %)
+                         :coerce {:depfile :string :out-file :string}
+                         :args->opts [:depfile :out-file]}
    "watch" flower.live-reload/watch
    "new" flower.defaults/materialize-all
    ; TODO: this overrides --data
@@ -390,18 +408,29 @@
          :args->opts [:query]}
    ["version" "--version"] (no-args #(println VERSION))
    ["help" "--help" "-h"] (no-args help)
-   [] unknown-command})
+   [] {:fn unknown-command :needs-metadata true}})
 
-(defn ->bb [init key val]
+(defn ->bb
+  "Convert our `dispatch-table` DSL to babashka/dispatch syntax.
+
+  `init` is a function that will run before the dispatched command
+  to set up global options. It takes two arguments:
+  the function to run inside globals and the parsed options.
+  It should pass the options as an argument to the function."
+  [init key val]
   (if (and (vector? key) (seq key))
     (for [cmd key] (->bb init cmd val))
     (let [cmds (if (string? key) [key] key)
-          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])]
-      (assoc opts :cmds cmds :fn #(init my-fn %)))))
+          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
+          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))]
+      (assoc opts :cmds cmds :fn #(init wrapped-fn %)))))
 
-(defn dispatch-cmd [args]
+(defn dispatch-cmd
+  "Parse the CLI args and dispatch to the appropriate clojure funciton.
+  Also registers global options."
+  [args]
   (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")]
-                (%1 (:opts %2)))
+                (%1 %2))
         table (map #(apply ->bb init %) dispatch-table)]
     (cli/dispatch table args {:coerce {:C :string}})))
 

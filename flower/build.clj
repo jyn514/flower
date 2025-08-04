@@ -81,7 +81,7 @@
       (str/replace "$" "$$")))
 
 (defn- variable [key val] (fmt "  ${key} = ${val}\n"))
-(defn- join [xs]
+(defn join [xs]
   (let [xs (if (or (nil? xs) (sequential? xs))
              xs
              [xs])]

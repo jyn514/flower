@@ -2,7 +2,6 @@
   (:require [hiccup2.core :as hiccup]
             [nextjournal.markdown :as md]))
 
-; helpers
 ; NOTE: these helpers are exposed to all interpreted code,
 ; so they must not interact with the filesystem.
 
@@ -26,6 +25,11 @@
     (every? map? xs) (apply merge-with merge-deep xs)
     (every? sequential? xs) (apply concat xs)
     :else (last xs)))
+
+; https://gist.github.com/erez-rabih/038844d6c67ee85401d9c074ea5bfa71
+(defn split-map [m & ks]
+  [(apply dissoc m ks)
+   (select-keys m ks)])
 
 (defn markdown [md]
   ; https://github.com/nextjournal/markdown?tab=readme-ov-file#html-blocks-and-html-inlines

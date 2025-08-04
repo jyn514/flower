@@ -35,6 +35,7 @@
          embedded_markdown (/ builddir (ext page (str (fs/extension template) ".embed")))
          ; TODO: needs a different name, this setup causes the embed to be copied into the final dir
          embedded_html (/ builddir (ext page "html.embed"))
+         depfile (/ builddir (ext page "html.embed.d"))
          final_html (/ public (ext page "html"))
          rules [{:rule "frontmatter"
                  :inputs (str page)
@@ -58,6 +59,7 @@
                  :inputs embedded_html
                  :outputs final_html
                  :implicit (fs/glob "postprocessors" "*")
+                 :depfile depfile
                  :html embedded_html}]]
      ; TODO: this will break for md->html generation because it will also copy .embed to public/
      (if (= embedded_markdown embedded_html) {:rules rules}  {:rules rules :out embedded_markdown})
@@ -156,7 +158,7 @@
   (let [pps (fs/glob "postprocessors" "*")
         cmds (map #(str (get runners (fs/extension %)) " " %) pps)
         pipe (str/join " | " cmds)
-        cmd (fmt "< $in ${pipe} | ${flower_cli} jq .content -r > $out")]
+        cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $depfile $out | ${flower_cli} jq .content -r > $out")]
   {:rules [{:name "postprocess"
             :command cmd
             :description "run all postprocessors on $in"}]}))

@@ -8,6 +8,7 @@
 (def ^:dynamic *dependencies* "not for public use" #{})
 
 (defn read-file [path]
+  ; TODO: should be keyed by output file so we can minimize rebuilds
   (alter-var-root #'*dependencies* #(union % #{path}))
   (fs/read-all-bytes path))
 

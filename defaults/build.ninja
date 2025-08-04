@@ -27,7 +27,7 @@ rule markdown
   command = pulldown-cmark -TFSULG $in -> $out
   description = render markdown -> HTML: $in -> $out
 rule postprocess
-  command = < $in ../scripts/run-jar.sh postprocess postprocessors/embed.clj | ../scripts/run-jar.sh postprocess postprocessors/title.clj | ../scripts/run-jar.sh jq .content -r > $out
+  command = < $in ../scripts/run-jar.sh postprocess postprocessors/embed.clj | ../scripts/run-jar.sh postprocess postprocessors/title.clj | ../scripts/run-jar.sh split-dependencies $depfile $out | ../scripts/run-jar.sh jq .content -r > $out
   description = run all postprocessors on $in
 
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/main.html build.clj ../target/flower.jar
@@ -39,16 +39,19 @@ build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.
 build .build/you-are-in-a-box.html.embed: template .build/you-are-in-a-box.md.rendered.json | ../target/flower.jar templates/default.html
   template = templates/default.html
 build public/you-are-in-a-box.html: postprocess .build/you-are-in-a-box.html.embed | postprocessors/embed.clj postprocessors/title.clj
+  depfile = .build/you-are-in-a-box.html.embed.d
   html = .build/you-are-in-a-box.html.embed
 build .build/foo.md.json: frontmatter pages/foo.md | ../target/flower.jar
 build .build/foo.md.rendered.json: page .build/foo.md.json
 build .build/foo.html.embed: template .build/foo.md.rendered.json | ../target/flower.jar templates/default.html
   template = templates/default.html
 build public/foo.html: postprocess .build/foo.html.embed | postprocessors/embed.clj postprocessors/title.clj
+  depfile = .build/foo.html.embed.d
   html = .build/foo.html.embed
 build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | ../target/flower.jar
 build .build/look-ma-new-site.md.rendered.json: page .build/look-ma-new-site.md.json
 build .build/look-ma-new-site.html.embed: template .build/look-ma-new-site.md.rendered.json | ../target/flower.jar templates/default.html
   template = templates/default.html
 build public/look-ma-new-site.html: postprocess .build/look-ma-new-site.html.embed | postprocessors/embed.clj postprocessors/title.clj
+  depfile = .build/look-ma-new-site.html.embed.d
   html = .build/look-ma-new-site.html.embed
