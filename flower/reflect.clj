@@ -8,9 +8,10 @@
 (def ^:dynamic *dependencies* "not for public use" #{})
 
 (defn read-file [path]
-  ; TODO: should be keyed by output file so we can minimize rebuilds
   (alter-var-root #'*dependencies* #(union % #{path}))
   (fs/read-all-bytes path))
 
 (defn template [relative-path]
+  (if-not relative-path
+    (throw (AssertionError. "did not get a template name")))
   (read-file (str "templates/" relative-path)))

@@ -129,8 +129,8 @@
   ([ninja]
    (let [mapper (fn [[k v]]
                   (case k
-                    :rules (conj (map gen-rule v) nl)
-                    :builds (conj (map gen-build v) nl)
+                    :rules (conj (map gen-rule (filter some? v)) nl)
+                    :builds (conj (map gen-build (filter some? v)) nl)
                     :variables (map-vars #(format "%s = %s\n" %1 %2) v)
                     ))
          contents (->> ninja (map mapper) flatten str/join)]

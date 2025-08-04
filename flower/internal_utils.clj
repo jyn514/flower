@@ -13,11 +13,9 @@
 (def ^:dynamic *site* ".")
 
 (defn run [opts & rest]
-    (println rest)
   (let [[opts rest] (if (map? opts)
                       [(assoc opts :dir *site*) rest]
                       [{:dir *site*} (into opts rest)])]
-    (println rest)
     (if (sequential? rest)
       (apply ps/shell opts rest)
       (ps/shell opts rest))))

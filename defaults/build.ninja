@@ -1,10 +1,10 @@
 builddir = .build
 
 rule ninja-meta
-  command = ../scripts/run-jar.sh configure
+  command = flower configure
   description = rebuild build.ninja itself
 rule flower-meta
-  command = cd .. && clojure -T:build uberjar
+  command = cd .. && clojure -T:build native-dev
   description = rebuild flower itself
 rule tmpdir
   command = mkdir -p .build
@@ -13,44 +13,43 @@ rule link
   command = ln -f $in $out
   description = link $in into build dir
 rule page
-  command = ../scripts/run-jar.sh render-page <$in >$out
+  command = flower render-page <$in >$out
   description = render page $in using clojure
 rule index
-  command = ../scripts/run-jar.sh render-index <$in >$out
+  command = flower render-index <$in >$out
   description = render index page $in using clojure
 rule template
-  command = ../scripts/run-jar.sh embed-template $template < $in > $out
+  command = flower embed-template $template < $in > $out
   description = embed $in into $template using clojure
 rule frontmatter
-  command = ../scripts/run-jar.sh jq -R "{filename: \"$in\", content: .}" < $in | ../scripts/run-jar.sh split-frontmatter > $out
+  command = flower jq -R "{filename: \"$in\", content: .}" < $in | flower split-frontmatter > $out
 rule markdown
   command = pulldown-cmark -TFSULG $in -> $out
   description = render markdown -> HTML: $in -> $out
 rule postprocess
-  command = < $in ../scripts/run-jar.sh postprocess postprocessors/embed.clj | ../scripts/run-jar.sh postprocess postprocessors/title.clj | ../scripts/run-jar.sh split-dependencies $depfile $out | ../scripts/run-jar.sh jq .content -r > $out
+  command = < $in flower postprocess postprocessors/embed.clj | flower postprocess postprocessors/title.clj | flower split-dependencies $depfile $out | flower jq .content -r > $out
   description = run all postprocessors on $in
 
-build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/main.html build.clj ../target/flower.jar
+build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/skeleton.html templates/main.html build.clj
   restat = true
-build ../target/flower.jar: flower-meta ../flower/internal_utils.clj ../flower/build.clj ../flower/reflect.clj ../flower/defaults.clj ../flower/utils.clj ../flower/hiccup.clj ../flower/select.clj ../flower/live_reload.clj ../flower/core.clj ../flower/reachability-metadata.json ../flower
 build .build: tmpdir 
-build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | ../target/flower.jar
+build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md
 build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json
-build .build/you-are-in-a-box.html.embed: template .build/you-are-in-a-box.md.rendered.json | ../target/flower.jar templates/default.html
+build .build/you-are-in-a-box.html.embed: template .build/you-are-in-a-box.md.rendered.json | templates/default.html
   template = templates/default.html
 build public/you-are-in-a-box.html: postprocess .build/you-are-in-a-box.html.embed | postprocessors/embed.clj postprocessors/title.clj
   depfile = .build/you-are-in-a-box.html.embed.d
   html = .build/you-are-in-a-box.html.embed
-build .build/foo.md.json: frontmatter pages/foo.md | ../target/flower.jar
+build .build/foo.md.json: frontmatter pages/foo.md
 build .build/foo.md.rendered.json: page .build/foo.md.json
-build .build/foo.html.embed: template .build/foo.md.rendered.json | ../target/flower.jar templates/default.html
+build .build/foo.html.embed: template .build/foo.md.rendered.json | templates/default.html
   template = templates/default.html
 build public/foo.html: postprocess .build/foo.html.embed | postprocessors/embed.clj postprocessors/title.clj
   depfile = .build/foo.html.embed.d
   html = .build/foo.html.embed
-build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | ../target/flower.jar
+build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md
 build .build/look-ma-new-site.md.rendered.json: page .build/look-ma-new-site.md.json
-build .build/look-ma-new-site.html.embed: template .build/look-ma-new-site.md.rendered.json | ../target/flower.jar templates/default.html
+build .build/look-ma-new-site.html.embed: template .build/look-ma-new-site.md.rendered.json | templates/default.html
   template = templates/default.html
 build public/look-ma-new-site.html: postprocess .build/look-ma-new-site.html.embed | postprocessors/embed.clj postprocessors/title.clj
   depfile = .build/look-ma-new-site.html.embed.d

@@ -3,8 +3,8 @@
   (doseq [tag (select page "flower-embed")]
     (let [embedded (flower.select/html tag)
           attrs (flower.select/attrs tag)
-          template (-> attrs :template flower.reflect/template)
-          locals {(symbol (:name attrs)) embedded}
+          template (-> attrs inspect (get "template") flower.reflect/template)
+          locals {(symbol (get attrs "name")) embedded}
           rendered (flower.reflect/render template locals)]
       (flower.select/replace-with! tag rendered)))
     page)

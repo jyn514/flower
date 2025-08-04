@@ -1,6 +1,5 @@
 ---
 languages: ["cpp", "clj"]
-template: "post.clj"
 ---
 
 #define TITLE the website of jyn
@@ -18,8 +17,3 @@ this post has a bunch of languages:
  (location.host || 'localhost').split(':')[0] +
  ':35729/livereload.js"></' +
  'script>')</script>
-
-xxx
-xxy
-xxy
-xxy

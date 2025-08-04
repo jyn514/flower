@@ -25,6 +25,8 @@
   (clean nil)
   (b/copy-dir {:src-dirs ["src"]
                :target-dir class-dir})
+  ; (b/copy-dir {:src-dirs ["defaults"]
+  ;              :target-dir (str class-dir "/defaults")})
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.core]

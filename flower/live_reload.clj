@@ -95,9 +95,9 @@
 (def ^:dynamic *running* false)
 (defn rerun-ninja [{:keys [type path]}]
   (when-not *running*
-    (println *running*)
+    ; (println *running*)
     (alter-var-root (var *running*) (constantly true))
-      (println "rerun ninja" *running*)
+      ; (println "rerun ninja" *running*)
       (run "ninja")
     (alter-var-root (var *running*) (constantly false))))
 

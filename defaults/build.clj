@@ -6,7 +6,8 @@
 
 ; TODO: configuration mechanism using ninja phony targets
 ; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
-(def use-jar true)
+(def use-jar false)
+(def rebuild-flower false)
 
 (defn / [x & more]
   (apply fs/path x more))
@@ -18,8 +19,12 @@
 (def builddir ".build")
 (def templates "templates")
 (def f "flower")
-(def ff [(if use-jar "../target/flower.jar" "../target/flower")])
-(def flower_cli (if use-jar "../scripts/run-jar.sh" "../target/flower"))
+(def ff
+  (if-not rebuild-flower []
+    [(if use-jar "../target/flower.jar" "../target/flower")]))
+(def flower_cli
+  (if-not rebuild-flower "flower"
+    (if use-jar "../scripts/run-jar.sh" "../target/flower")))
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
@@ -146,9 +151,10 @@
      :restat true
      :outputs "build.ninja"
      :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
-    {:rule "flower-meta"
-     :outputs ff
-     :inputs (conj (fs/glob "../flower" "**") "../flower")}
+    (if rebuild-flower
+      {:rule "flower-meta"
+      :outputs ff
+      :inputs (conj (fs/glob "../flower" "**") "../flower")})
     {:rule "tmpdir"
      :outputs builddir}]})
 
