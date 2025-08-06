@@ -2,7 +2,11 @@
 
 - write lots of tests
     - pprint
-- document that `ninja` is required
+- document how to type lozenge
+    - ◊ is option+shift+v on macOS
+    - ⋄ is compose+<> on linux
+    - point people to https://github.com/samhocevar/wincompose on windows
+    - document how to set this up in common editors (vim, vscode, helix, zed)
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
 - livereload broken ????

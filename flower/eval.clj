@@ -9,6 +9,7 @@
     [hiccup.util]
     [flower.hiccup]
     [flower.utils]
+    [flower.reflect]
     ))
 
 ; sandboxing
@@ -64,31 +65,46 @@
         html (sci/copy-var flower.hiccup/html-2 (-> ns meta :ns))]
   (assoc ns 'html html)))
 
+(declare render)
+
+(defn sci-defaults []
+  {
+   ; :load-fn load-fn
+   ; NOTE: dynamic vars are *not* bound, which means that
+   ; e.g. `*html-mode*` will not see any changes in the guest.
+   ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
+   ; maybe we can figure out a way to find dynamic vars with `dir`?
+   ; but that still doesn't help find all functions that use them…
+   :namespaces {'hiccup2.core hiccup-core
+                'hiccup.util (copy-ns 'hiccup.util) 
+                'hiccup.compiler hiccup-compiler
+                'instaparse.core (copy-ns 'instaparse.core) 
+                ; repl/doc tries to call private functions
+                'clojure.repl (copy-ns 'clojure.repl true)
+                'flower.utils flower.utils/bindings
+                'flower.select (copy-ns 'flower.select)
+                ; TODO: think through whether it's safe to always bind `reflect/read-file`
+                ; TODO: wrong, needs to account for pages not in clojure
+                'flower.reflect (assoc (copy-ns 'flower.reflect)
+                                       'render render
+                                       ; NOTE: immutable in interpreter
+                                       '*watching* flower.reflect/*watching*)
+                'flower.internal {'pprint pprint}
+                'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
+   :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
+              'fmt (sci/copy-var fmt userns)
+              'doc (sci/copy-var repl/doc userns)
+              'dir (sci/copy-var repl/dir userns)
+              'source (sci/copy-var repl/source userns)
+              'md->html flower.utils/md->html}
+   :classes {'java.lang.StringBuilder java.lang.StringBuilder}})
+
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
   ([filename] (create-sci-cx filename {}))
   ([filename opts]
-    (with-meta (sci/init (-> opts (merge-deep {
-      ; :load-fn load-fn
-      ; NOTE: dynamic vars are *not* bound, which means that e.g. `*html-mode*` will not see any changes in the guest.
-      ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
-      ; maybe we can figure out a way to find dynamic vars with `dir`? but that still doesn't help find all functions that use them…
-      :namespaces {'hiccup2.core hiccup-core
-                   'hiccup.util (copy-ns 'hiccup.util) 
-                   'hiccup.compiler hiccup-compiler
-                   'instaparse.core (copy-ns 'instaparse.core) 
-                   'clojure.repl (copy-ns 'clojure.repl true)  ; repl/doc tries to call private functions
-                   'flower.utils flower.utils/bindings
-                   'flower.select (copy-ns 'flower.select)
-                   'flower.internal {'pprint pprint}
-                   'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
-      :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
-                 'fmt (sci/copy-var fmt userns)
-                 'doc (sci/copy-var repl/doc userns)
-                 'dir (sci/copy-var repl/dir userns)
-                 'source (sci/copy-var repl/source userns)
-                 'md->html flower.utils/md->html}
-      :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) )) {:filename filename})))
+   (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
+     (with-meta cx {:filename filename}))))
 
 ; rendering
 
@@ -114,9 +130,12 @@
         ; TODO: don't print anything starting from host eval
         ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
         useful-frames (dedupe (filter useful? (sci/stacktrace e)))]
+    ; TODO: this double-prints "flower: error" inside a template
     (apply fatal
-          "failed to run interpreted clojure:"
+          (fmt "failed to eval ${default-file}:")
+          ; TODO: this is useless for file-not-found errors
           (ex-message e)
+          (ex-data e)
           "\n"
           (map #(print-sci-frame % default-file) useful-frames))))
 
@@ -150,6 +169,7 @@
 ; this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
 ; maybe add a Syntax rule:
 ; Syntax = #\"[\\[\\;@^#`~']\"
+; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
@@ -157,11 +177,12 @@
       Lisp = <'◊'> Form
       Form = (Ident | Syntax* List)
       Syntax = #\"[\\[\\;@^#`~']\"
-      Ident = #'[a-zA-Z0-9_/.-]+'
+      Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
       List = <'('> (Atom | List)* <')'>
       Atom = #'[^()]+' "))
 
 (defn teval
+  "tree eval"
   ([tree src] (teval tree src (create-sci-cx (-> src meta :filename))))
   ([tree src cx]
       (insta/transform {
@@ -175,6 +196,7 @@
 
 (defn render
   "Render content with local variables available"
+  ; TODO: this causes nothing but problems, replace it with an options map
   ([src filename] (render src filename {}))
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`

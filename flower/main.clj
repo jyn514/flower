@@ -67,7 +67,6 @@
 
 (defn help []
   (-> (->help) cli/format-opts println))
-  ; (fatal "help is not yet implemented, sorry"))
 
 (def dispatch-table
   {"configure" (no-args cmd/configure)
@@ -115,7 +114,8 @@
   "Parse the CLI args and dispatch to the appropriate clojure funciton.
   Also registers global options."
   [args]
-  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")]
+  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")
+                        flower.reflect/*watching* (boolean (= "watch" (:dispatch %2)))]
                 (%1 %2))
         table (map #(apply ->bb init %) dispatch-table)
         flat-table (flatten table)]

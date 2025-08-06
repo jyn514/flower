@@ -37,6 +37,8 @@ and some weird ones:
 
 ## quick start
 
+### [install ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
+
 ### install the flower binary
 
 two options:
