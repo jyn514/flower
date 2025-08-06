@@ -14,9 +14,9 @@
 ; bound by 'configure
 (def ^:dynamic *ninja* "not for public use" *err*)
 (def ^:dynamic *frontmatter* "not for public use" [])
-(def ^:dynamic *postprocessors*
-  "a mapping from postprocessor file extension to how to run it.
-  postprocessor runners must read {html, frontmatter} JSON on stdin
+(def ^:dynamic *transformers*
+  "a mapping from transformer file extension to how to run it.
+  transformer runners must read {html, frontmatter} JSON on stdin
   and write the same to stdout. they should not read or write to the filesystem.
   doing so will cause build caching to break."
   {})
@@ -117,13 +117,13 @@
                     (dissoc opts :outputs :inputs :implicit :order :rule)))
          )))
 
-(defn register-postprocessor-runners [m]
-  (alter-var-root #'*postprocessors* #(merge-deep % m)))
+(defn register-transformer-runners [m]
+  (alter-var-root #'*transformers* #(merge-deep % m)))
 
 (defn generate
   ([ninja & late-bound]
    (let [all-maps (map #(% {:all-frontmatter *frontmatter*
-                            :all-postprocessors *postprocessors*}) late-bound)
+                            :all-transformers *transformers*}) late-bound)
          merged (apply merge-deep ninja all-maps)]
      (generate merged)))
   ([ninja]

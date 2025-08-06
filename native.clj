@@ -42,8 +42,8 @@
   (doseq [f default-files]
     (b/copy-file {:src f
                   :target (str defaults-target "/" (strip-prefix f "defaults/"))}))
-  (fs/write-bytes manifest-path (.getBytes manifest))
-  (b/copy-file {:src manifest-path
+  (fs/write-bytes (str "defaults/" manifest-path) (.getBytes manifest))
+  (b/copy-file {:src (str "defaults/" manifest-path)
                 :target (format "%s/%s/%s" class-dir defaults manifest-path)})
 
   (b/compile-clj {:basis basis

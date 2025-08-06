@@ -1,4 +1,4 @@
-; TODO: rename to flower.postprocess
+; TODO: rename to flower.transform
 (ns flower.select
   (:require [clojure.zip :as zip])
   (:import (org.jsoup.nodes LeafNode Node Document Element Attribute Attributes)

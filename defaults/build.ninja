@@ -26,9 +26,9 @@ rule frontmatter
 rule markdown
   command = pulldown-cmark -TFSULG $in -> $out
   description = render markdown -> HTML: $in -> $out
-rule postprocess
-  command = < $in flower postprocess postprocessors/embed.clj | flower postprocess postprocessors/title.clj | flower split-dependencies $depfile $out | flower jq .content -r > $out
-  description = run all postprocessors on $in
+rule transform
+  command = < $in flower transform transformers/embed.clj | flower transform transformers/title.clj | flower split-dependencies $depfile $out | flower jq .content -r > $out
+  description = run all transformers on $in
 
 build build.ninja: ninja-meta pages/you-are-in-a-box.md pages/foo.md pages/look-ma-new-site.md templates/default.html templates/index.html templates/skeleton.html templates/main.html build.clj
   restat = true
@@ -37,20 +37,20 @@ build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md
 build .build/you-are-in-a-box.md.rendered.json: page .build/you-are-in-a-box.md.json
 build .build/you-are-in-a-box.html.embed: template .build/you-are-in-a-box.md.rendered.json | templates/default.html
   template = templates/default.html
-build public/you-are-in-a-box.html: postprocess .build/you-are-in-a-box.html.embed | postprocessors/embed.clj postprocessors/title.clj
+build public/you-are-in-a-box.html: transform .build/you-are-in-a-box.html.embed | transformers/embed.clj transformers/title.clj
   depfile = .build/you-are-in-a-box.html.embed.d
   html = .build/you-are-in-a-box.html.embed
 build .build/foo.md.json: frontmatter pages/foo.md
 build .build/foo.md.rendered.json: page .build/foo.md.json
 build .build/foo.html.embed: template .build/foo.md.rendered.json | templates/default.html
   template = templates/default.html
-build public/foo.html: postprocess .build/foo.html.embed | postprocessors/embed.clj postprocessors/title.clj
+build public/foo.html: transform .build/foo.html.embed | transformers/embed.clj transformers/title.clj
   depfile = .build/foo.html.embed.d
   html = .build/foo.html.embed
 build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md
 build .build/look-ma-new-site.md.rendered.json: page .build/look-ma-new-site.md.json
 build .build/look-ma-new-site.html.embed: template .build/look-ma-new-site.md.rendered.json | templates/default.html
   template = templates/default.html
-build public/look-ma-new-site.html: postprocess .build/look-ma-new-site.html.embed | postprocessors/embed.clj postprocessors/title.clj
+build public/look-ma-new-site.html: transform .build/look-ma-new-site.html.embed | transformers/embed.clj transformers/title.clj
   depfile = .build/look-ma-new-site.html.embed.d
   html = .build/look-ma-new-site.html.embed

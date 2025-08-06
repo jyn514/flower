@@ -56,14 +56,14 @@
                  :implicit (conj ff template_path)
                  :template template_path}
                 ; TODO: wrong, should run on all html files, not just pages
-                ; maybe we can make postprocess a dispatch-file rule, output `.processed`,
+                ; maybe we can make transform a dispatch-file rule, output `.processed`,
                 ; and add a dispatch-file rule for .processed?
                 ; wait no dispatch-file only runs on pages
                 ; ok never mind, if you have a custom build command you have to add a :build yourself
-                {:rule "postprocess"
+                {:rule "transform"
                  :inputs embedded_html
                  :outputs final_html
-                 :implicit (fs/glob "postprocessors" "*")
+                 :implicit (fs/glob "transformers" "*")
                  :depfile depfile
                  :html embedded_html}]]
      ; TODO: this will break for md->html generation because it will also copy .embed to public/
@@ -160,17 +160,17 @@
 
 ; TODO: needs to register `depfile`
 ; see /home/jyn/src/example/example-edbf02f84e934656.d for example
-(defn postprocess [{runners :all-postprocessors}]
-  (let [pps (fs/glob "postprocessors" "*")
+(defn transform [{runners :all-transformers}]
+  (let [pps (fs/glob "transformers" "*")
         cmds (map #(str (get runners (fs/extension %)) " " %) pps)
         pipe (str/join " | " cmds)
         cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $depfile $out | ${flower_cli} jq .content -r > $out")]
-  {:rules [{:name "postprocess"
+  {:rules [{:name "transform"
             :command cmd
-            :description "run all postprocessors on $in"}]}))
+            :description "run all transformers on $in"}]}))
 
-(flower.build/register-postprocessor-runners
-  {"clj" (str flower_cli " postprocess")})
+(flower.build/register-transformer-runners
+  {"clj" (str flower_cli " transform")})
 (flower.build/generate
   (update-in base [:builds] #(concat % page-builds))
-  index postprocess)
+  index transform)

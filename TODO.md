@@ -1,6 +1,6 @@
 # TODO
 
-- rename postprocessor->transform
+- rename transformer->transform
 - livereload broken ????
 - hiding `def` vars isn't working ???
 - .gitignore in defaults/
@@ -35,7 +35,7 @@
   - if we want "leads", they need to depend on contents also
   - if we want titles, we need them to be frontmatter
 
-  <!-- - maybe `postprocessors/index.clj`, present by default, returns list of strings -->
+  <!-- - maybe `transformers/index.clj`, present by default, returns list of strings -->
   <!-- - files are recognized by  -->
 
 ## ideating
@@ -45,10 +45,10 @@
 - hard-code `base` in the binary, since people can override it
 - define *an* order for transforms
   - defined in build.clj, defaults to alphabetical
-  - uses normal file extensions to determine how to run the postprocessor
+  - uses normal file extensions to determine how to run the transformer
   - default function runs embed first
   - very very simple to modify order, just a static list
-  - warn if a postprocessor is missing from the list
+  - warn if a transformer is missing from the list
 
 - preprocessors *are* different from templates and transforms because they have a fixed point algorithm with templates
 - preprocessors are clojure files with a unified interface (`def transform`)
@@ -59,7 +59,7 @@
 "magic should only be for things you almost certainly want"
 
 <!-- don't think this works
-- turn `render-page` into a postprocessor you can look at
+- turn `render-page` into a transformer you can look at
   - add `flower.unsafe/process`, asks you what the deps
   - "transformers"
   - you can add a custom transformer that calls lua via `unsafe/process`

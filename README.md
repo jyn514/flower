@@ -91,7 +91,7 @@ $ tree
 │   └── kbd.clj
 ├── pages
 │   └── look-ma-new-site.md
-├── postprocessors
+├── transformers
 │   └── title.clj
 ├── sass
 │   └── minima.scss
@@ -289,7 +289,7 @@ playing 8 white keys in a row on a piano gives you a diatonic scale.
 i recommend using embedding sparingly.
 it's very flexible, but makes logic non-local, and can be hard to follow if you step away from your site for a few months and come back to it later.
 
-TODO: document somewhere that this ends up being expanded by a postprocessor
+TODO: document somewhere that this ends up being expanded by a transformer
 
 <!--
 by default, this requires rebuilding your page whenever any page in your site changes.
@@ -337,9 +337,9 @@ TODO docs
 
 sketch: JSON input on stdin, JSON output on stdout, you can do whatever you like in the middle. record your file dependencies in the JSON output.
 
-### postprocessors
+### transformers
 say that you want to have some HTML that is common across every generated page, regardless of what template it was generated from. flower allows you to transform generated pages using “post-processors”.
-here is a sample post-processor, in a file named `postprocessors/title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
+here is a sample post-processor, in a file named `transformers/title.clj`, which takes your `<h1>` tag and duplicates it into a `<title>` tag.
 just like before, you write clojure, but unlike before, you define a function
 named `transform` instead of embedding clojure in your content.
 ```clojure
@@ -351,14 +351,14 @@ named `transform` instead of embedding clojure in your content.
 ```
 note that post-processors are *not* allowed to have frontmatter.
 they work on each page, one at a time, and cannot be configured.
-any configuration logic (such as postprocessor ordering) goes in your code, not in the meta-build system.
+any configuration logic (such as transformer ordering) goes in your code, not in the meta-build system.
 
 TODO: this example works but API for even slightly more complicated things is not implemented
 
 <!--
 the only configuration allowed is to tell the build system which files are post-processors.
-by default all files in `lib/postprocess*.clj` are postprocessors.
-you can change this by putting e.g. `postprocessors = "lib/postprocessors/*` in `config.toml` in the root directory.
+by default all files in `lib/transform*.clj` are transformers.
+you can change this by putting e.g. `transformers = "lib/transformers/*` in `config.toml` in the root directory.
 the string is a libc-style file glob.
 -->
 
@@ -430,7 +430,7 @@ flower will automatically check for conflicts when you call `generate`.
 ```
 
 ## reference
-pollen operates in four phases. within a phase, ordering is not specified (for example, postprocessing steps should not depend on the output of a previous step).
+pollen operates in four phases. within a phase, ordering is not specified (for example, transforming steps should not depend on the output of a previous step).
 if you need detailed ordering constraints, put them in your clojure code.
 1. scan all files to determine their dependencies.
 	- run `build.clj`.
@@ -443,7 +443,7 @@ if you need detailed ordering constraints, put them in your clojure code.
 	- all files in `pages/` are semantically preprocessing files unless they have explicitly opted out with `preprocessors: []`
 3. embed pages into templates. then, run all "static" transforms (e.g. `.md` -> `.html`)
 	- embedding semantically happens after preprocessing the page but before converting the markdown to HTML (so you can e.g. have a markdown list that starts in a template but ends in a page).
-  - embedding is implemented as a post-processor; it's listed as a separate phase because it runs before all other postprocessors.
+  - embedding is implemented as a post-processor; it's listed as a separate phase because it runs before all other transformers.
 4. run all post-processing steps.
 	- post-processing steps must never depend on a list of all files (since that would prevent us from statically constructing build.ninja).
 	- post-processing steps must not change the filename.
@@ -456,8 +456,8 @@ attempts to do so will be redirected to stderr.
 
 `build.clj` must generate a static list of all inputs and outputs; see above for reasoning and workarounds.
 
-`build.clj`, custom preprocessors, postprocessors, and templates must not write to the filesystem.
-postprocessors must not read from the filesystem.
+`build.clj`, custom preprocessors, transformers, and templates must not write to the filesystem.
+transformers must not read from the filesystem.
 preprocessors and templates can read from the filesystem only if they list the files read in a `dependencies` JSON field.
 this sounds more restrictive than it is; in practice you get all the info you need on stdin.
 

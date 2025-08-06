@@ -230,7 +230,7 @@
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
   (let [meta (load-all-meta "pages")
         ; TODO: use parse-ninja here
-        out (:out (run {:out :string} "ninja -t targets rule postprocess"))
+        out (:out (run {:out :string} "ninja -t targets rule transform"))
         ; handle empty string
         pages (if (seq out)
                 (map #(update (get-meta % meta) :path build/remove-parent)
@@ -238,8 +238,8 @@
                 {})]
     (render-page parsed {:locals {'pages pages}})))
 
-; postprocessing
-(defn postprocess
+; transforming
+(defn transform
   "Given a `{:content x :frontmatter y :transformer z}` map,
    run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
@@ -386,7 +386,7 @@
    "embed-template" {:fn #( map-json embed-template %)
                      :coerce {:template-name :string}
                      :args->opts [:template-name]}
-   "postprocess" {:fn #( map-json postprocess %)
+   "transform" {:fn #( map-json transform %)
                      :coerce {:transformer :string}
                      :args->opts [:transformer]}
    "split-dependencies" {:fn #(map-json split-dependencies %)

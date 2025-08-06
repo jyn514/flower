@@ -2,7 +2,7 @@
   (:require [clojure.set :refer [union]]
             [babashka.fs :as fs]))
 
-; NOTE: these helpers are exposed to all postprocessors,
+; NOTE: these helpers are exposed to all transformers,
 ; so they must record their file dependencies.
 
 (def ^:dynamic *dependencies* "not for public use" #{})
