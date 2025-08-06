@@ -1,4 +1,5 @@
 /defaults/.build
+/defaults/build.ninja
 /defaults/deps.edn
 /defaults/public
 /defaults/MANIFEST.txt
