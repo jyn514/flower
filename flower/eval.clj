@@ -38,7 +38,7 @@
      (with-meta bindings {:ns binding}))))
 
 (defn pprint [x]
-  (cond (var? x) ""
+  (cond (or (instance? sci.lang.Var x) (nil? x)) ""
         (hiccup.util/raw-string? x) (str x)
         (instance? Nodes x) (Nodes/.outerHtml x)
         (sequential? x) (apply str (map pprint x))
