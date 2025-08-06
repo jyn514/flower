@@ -2,7 +2,8 @@
 # only meant for quick iteration times in dev; for real sites use graal
 set -e
 
-flower() { java -jar ~/src/flower/target/flower.jar "$@"; }
+PATH=~/src/flower/target:$PATH
+export PATH
 
 cd ~/src/flower
 clojure -T:build uberjar
