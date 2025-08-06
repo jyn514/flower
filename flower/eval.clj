@@ -3,6 +3,7 @@
   (:import
     (org.jsoup.select Nodes))
   (:require
+    [clojure.repl :as repl]
     [instaparse.core :as insta]
     [sci.core :as sci]
     [hiccup.util]
@@ -25,13 +26,16 @@
 
 ; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))
-; (defn copy-macro [sym] (sci/copy-var* sym userns))
-; (defn copy-macro [sym] `(do ^:sci/macro (fn [_&form# _&env# & rest#] (~sym rest#))))
-(defn copy-ns [ns]
-  (let [binding (sci/create-ns ns)
-        publics (ns-publics ns)
-        bindings (update-vals publics #(sci/copy-var* % binding))]
-    (with-meta bindings {:ns binding})))
+(defn copy-ns
+  ([ns] (copy-ns ns false))
+  ([ns include-private]
+   (let [binding (sci/create-ns ns)
+         listing (if include-private ns-map ns-publics)
+         ; copy-var* assumes that it can deref any var; make sure that's true
+         vars (filter #(instance? clojure.lang.Ref %) (listing ns))
+         bindings (update-vals vars
+                               #(sci/copy-var* % binding))]
+     (with-meta bindings {:ns binding}))))
 
 (defn pprint [x]
   (cond (var? x) ""
@@ -71,12 +75,16 @@
                    'hiccup.util (copy-ns 'hiccup.util) 
                    'hiccup.compiler hiccup-compiler
                    'instaparse.core (copy-ns 'instaparse.core) 
+                   'clojure.repl (copy-ns 'clojure.repl true)  ; repl/doc tries to call private functions
                    'flower.utils flower.utils/bindings
                    'flower.select (copy-ns 'flower.select)
                    'flower.internal {'pprint pprint}
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
                  'fmt (sci/copy-var fmt userns)
+                 'doc (sci/copy-var repl/doc userns)
+                 'dir (sci/copy-var repl/dir userns)
+                 'source (sci/copy-var repl/source userns)
                  'md->html flower.utils/md->html}
       :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) )) {:filename filename})))
 
