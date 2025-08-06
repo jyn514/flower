@@ -40,9 +40,6 @@
         after (apply f before args)]
     (json/write after *out*)))
 
-(defn help []
-  (fatal "help is not yet implemented, sorry"))
-
 (defn no-args [f]
   (fn [& _] (f)))
 
@@ -50,6 +47,27 @@
   (fatal (str "unrecognized command: '"
               (str/join " " args)
               "' (-h for help, or 'watch' to build your site)")))
+
+(declare dispatch-table)
+
+(defn ->help-1
+  "Convert our `dispatch-table` DSL to babashka/format-opts syntax.
+  format-opts expects the following input:
+  `{:spec [[:option {:parse-opts-opt :val}]]}`"
+  [[k v]]
+  [(keyword k) (if (map? v) v {})])
+
+(defn ->help
+  []
+  {:spec (->> (for [[ks v] dispatch-table]
+                (if (sequential? ks)
+                  (for [k ks] (->help-1 [k v]))
+                  [(->help-1 [ks v])]))
+              (apply concat))})
+
+(defn help []
+  (-> (->help) cli/format-opts println))
+  ; (fatal "help is not yet implemented, sorry"))
 
 (def dispatch-table
   {"configure" (no-args cmd/configure)
@@ -74,7 +92,7 @@
          :aliases {:R :raw-input :r :raw-output}
          :args->opts [:query]}
    ["version" "--version"] (no-args #(println VERSION))
-   ["help" "--help" "-h"] (no-args help)
+   ["help" "--help" "-h" "/?"] (no-args help)
    [] {:fn unknown-command :needs-metadata true}})
 
 (defn ->bb
@@ -89,8 +107,9 @@
     (for [cmd key] (->bb init cmd val))
     (let [cmds (if (string? key) [key] key)
           [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
-          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))]
-      (assoc opts :cmds cmds :fn #(init wrapped-fn %)))))
+          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))
+          bb-map (assoc opts :cmds cmds :fn #(init wrapped-fn %))]
+      bb-map)))
 
 (defn dispatch-cmd
   "Parse the CLI args and dispatch to the appropriate clojure funciton.
@@ -98,8 +117,9 @@
   [args]
   (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")]
                 (%1 %2))
-        table (map #(apply ->bb init %) dispatch-table)]
-    (cli/dispatch table args {:coerce {:C :string}})))
+        table (map #(apply ->bb init %) dispatch-table)
+        flat-table (flatten table)]
+    (cli/dispatch flat-table args {:coerce {:C :string}})))
 
 (defn -main [& args]
   (try
