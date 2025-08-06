@@ -12,7 +12,7 @@
 (require '(clojure [string :as str])
          '(clojure.data [json :as json])
          '[clojure.reflect :as r]
-         '(flower [core :as flower])
+         '(flower [main :as flower])
          '(sci [core :as sci])
          '(instaparse [core :as insta])
          '(jq [api :as jq])

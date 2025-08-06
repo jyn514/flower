@@ -18,7 +18,6 @@
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
 - flower emojis
 - `index = true` doesn't work in pages
-- always run configure to avoid bootstrapping problems
 - templates can end with .md
 - render-page for each template
 - should not lose `page` with `embed-template`
