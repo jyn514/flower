@@ -1,16 +1,17 @@
 # TODO
 
-- rename transformer->transform
+- write lots of tests
+    - pprint
+- document that `ninja` is required
+- `flower help` is broken lol lmao
+- fix spans for SCI eval
+- rename flower.core -> flower.main
 - livereload broken ????
 - hiding `def` vars isn't working ???
-- .gitignore in defaults/
 - clojure.repl doesn't get loaded into SCI
     - add `flower repl`?
 - template embedding
 - template defaults
-- RSS feed
-- syntax highlighting
-- Sass compiler
 - add the rest of the HTML selector apis lol
 - allow configuring build dirs in `flower.toml`
 - sandbox fs APIs for build.clj
@@ -83,5 +84,8 @@ ninja's api for all of these is `flower transform`
 
 ## goodies
 
+- RSS feed
+- syntax highlighting
+- Sass compiler
 - SVG with embedded text for code blocks
   - https://wheybags.com/blog/macroblog.html#better_code_snippets

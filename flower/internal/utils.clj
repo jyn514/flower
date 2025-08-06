@@ -17,10 +17,13 @@
     (apply prn msg)))
 (defn inspect [x] (eprn x) x)
 
+(defn- err-msg [& msg]
+  (with-out-str
+    (apply println "flower: error:" msg)))
 (defn error [& msg]
-  (let [msg (with-out-str
-              (apply println "flower: error:" msg))]
-    (throw (ex-info msg {:flower/exit true}))))
+    (println (apply err-msg msg)))
+(defn fatal [& msg]
+  (throw (ex-info (apply err-msg msg) {:flower/exit true})))
 (defn warn [& msg]
   (apply eprintln "flower: warning:" msg))
 

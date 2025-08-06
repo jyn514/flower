@@ -102,7 +102,7 @@
   (let [in (if raw-input (json/write-str data) data)
         res (try (jq/execute in query)
                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
-                   (error "failed to run jq query:" (ex-message e))))]
+                   (fatal "failed to run jq query:" (ex-message e))))]
     (if raw-output (json/read-str res) res)))
 
 ; preprocessing

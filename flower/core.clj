@@ -49,19 +49,20 @@
   ; TODO: https://clojure.atlassian.net/browse/DJSON-43
   (let [reader (java.io.PushbackReader. *in* 64)
         before (try (json/read reader :key-fn keyword)
-                    (catch java.io.EOFException e
-                      (error "failed to parse JSON:" (ex-message e))))
+                    ; bruh what is up with the json parser not having scoped exceptions
+                    (catch java.lang.Exception e
+                      (fatal "failed to parse JSON:" (ex-message e))))
         after (apply f before args)]
     (json/write after *out*)))
 
 (defn help []
-  (error "help is not yet implemented, sorry"))
+  (fatal "help is not yet implemented, sorry"))
 
 (defn no-args [f]
   (fn [& _] (f)))
 
 (defn unknown-command [{:keys [args] :as m}]
-  (error (str "unrecognized command: '"
+  (fatal (str "unrecognized command: '"
               (str/join " " args)
               "' (-h for help, or 'watch' to build your site)")))
 

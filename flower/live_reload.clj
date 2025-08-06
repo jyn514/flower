@@ -99,7 +99,11 @@
     ; (println *running*)
     (alter-var-root (var *running*) (constantly true))
       ; (println "rerun ninja" *running*)
-      (run "ninja")
+      (try (run "ninja")
+           (catch clojure.lang.ExceptionInfo e
+             (if (= (:type (ex-data e)) :babashka.process/error)
+              (error "failed to run ninja: exit code" (:exit (ex-data e)))
+              (throw e))))
     (alter-var-root (var *running*) (constantly false))))
 
 (defn watch-ninja [build-dir]
