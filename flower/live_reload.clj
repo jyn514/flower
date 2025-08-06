@@ -2,7 +2,7 @@
 ; https://github.com/bhurlow/clj-livereload/commit/fe8c6fb296b2f3eaf654dff9f7a9b7b76fe427f5
 
 (ns flower.live-reload
-  (:use flower.utils flower.internal.utils)
+  (:use flower.internal.utils)
   (:require [org.httpkit.server :as wss]
             [nextjournal.beholder :as behold]
             [babashka.http-server :as http-server]
@@ -10,7 +10,8 @@
             [babashka.fs :as fs]
             [clojure.string :as str]
             [clojure.java.io :as io]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [flower.cmd :as cmd]))
 
 ; proto
 
@@ -127,7 +128,7 @@
            out-dir "public"
            build-dir ".build"}}]
   (println "Rerun `flower configure`")
-  ; (configure)
+  (cmd/configure)
   (println "Starting ninja watcher for" *site*)
   (watch-ninja build-dir)
   (println "Starting live reload watcher")
