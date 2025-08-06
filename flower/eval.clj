@@ -30,9 +30,11 @@
   ([ns] (copy-ns ns false))
   ([ns include-private]
    (let [binding (sci/create-ns ns)
-         listing (if include-private ns-map ns-publics)
+         vars (if include-private
+                ; TODO: figure out why this filters bb/fs to an empty map lmao
+                (filter #(instance? clojure.lang.IDeref %) (ns-map ns))
+                (ns-publics ns))
          ; copy-var* assumes that it can deref any var; make sure that's true
-         vars (filter #(instance? clojure.lang.Ref %) (listing ns))
          bindings (update-vals vars
                                #(sci/copy-var* % binding))]
      (with-meta bindings {:ns binding}))))
@@ -112,7 +114,7 @@
         ; TODO: don't print anything starting from host eval
         ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
         useful-frames (dedupe (filter useful? (sci/stacktrace e)))]
-    (apply error
+    (apply fatal
           "failed to run interpreted clojure:"
           (ex-message e)
           "\n"

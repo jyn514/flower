@@ -21,7 +21,7 @@
   (with-out-str
     (apply println "flower: error:" msg)))
 (defn error [& msg]
-    (println (apply err-msg msg)))
+    (eprintln (apply err-msg msg)))
 (defn fatal [& msg]
   (throw (ex-info (apply err-msg msg) {:flower/exit true})))
 (defn warn [& msg]

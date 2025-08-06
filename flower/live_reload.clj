@@ -135,8 +135,12 @@
   (cmd/configure)
   (println "Starting ninja watcher for" *site*)
   (watch-ninja build-dir)
+  ; ninja could have failed, in which case out-dir won't exist.
+  ; but we still want to start a server in case it succeeds later.
+  ; create a fake directory for it now.
+  (fs/create-dirs out-dir)
   (println "Starting live reload watcher")
   ; TODO: this needs to be async oops
-  (live-reload {:dir (fs/real-path out-dir) :port live-reload-port})
+  (live-reload {:dir out-dir :port live-reload-port})
   (println "Starting web server")
   (http-server/exec {:dir out-dir :port static-port}))
