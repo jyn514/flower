@@ -5,24 +5,12 @@
 (ns flower.core
   (:gen-class)
   (:use flower.internal.utils)
-  (:import
-    (java.io StringWriter)
-    (org.jsoup.select Nodes))
 (:require
-  [instaparse.core :as insta]
-  [sci.core :as sci]
-  [babashka.fs :as fs]
-  [babashka.process :as ps]
   [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
   [babashka.cli :as cli]
-  [hiccup2.core :as h]
   [hiccup.util]
   [clojure.string :as str]
-  [clojure.java.io :as io]
   [clojure.data.json :as json]
-  [clojure.edn       :as edn]
-  [yaml.core     :as yaml]
-  [toml-clj.core :as toml]
   [flower.build :as build]
   [flower.cmd :as cmd]
   [flower.eval]
@@ -32,10 +20,7 @@
   [flower.defaults]
   [flower.live-reload]
   [flower.utils]
-  [flower.internal.utils]
-  [jq.api :as jq]
-  [nextjournal.markdown :as md]
-  [nextjournal.markdown.transform :as md.transform]))
+  [flower.internal.utils]))
 
 (def VERSION "0.0.1")
 

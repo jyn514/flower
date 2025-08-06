@@ -32,15 +32,13 @@
       {:namespaces
        ; TODO: sandboxing
        {'babashka.fs fs
-        'fs fs
-        'flower.build build
-        'build build}})))
+        'flower.build build}})))
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   []
-  (let [in (str *site* "/" "build.clj")
-        out (str *site* "/" "build.ninja")
+  (let [in (str *site* "/build.clj")
+        out (str *site* "/build.ninja")
         ninja-writer (new StringWriter)
         page-meta (load-all-meta "pages")
         ; TODO: every time we hard-code a dir it makes things unconfigurable, figure out what to do
