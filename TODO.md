@@ -5,9 +5,7 @@
 - document that `ninja` is required
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
-- rename flower.core -> flower.main
 - livereload broken ????
-- hiding `def` vars isn't working ???
 - clojure.repl doesn't get loaded into SCI
     - add `flower repl`?
 - template embedding

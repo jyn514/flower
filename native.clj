@@ -48,10 +48,10 @@
 
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
-                  :ns-compile '[flower.core]
+                  :ns-compile '[flower.main]
                   :class-dir class-dir})
   (b/copy-file {:src (str "flower/" reachable)
-                :target (str class-dir "/META-INF/native-image/flower/core/" reachable)})
+                :target (str class-dir "/META-INF/native-image/flower/main/" reachable)})
   (b/copy-file {:src live-reload
                 :target (str class-dir "/" live-reload)})
   (b/copy-file {:src "scripts/run-jar.sh"
@@ -59,7 +59,7 @@
   (b/uber {:class-dir class-dir
            :uber-file jar-file
            :basis basis
-           :main 'flower.core}))
+           :main 'flower.main}))
 
 ; https://github.com/babashka/babashka/blob/e2316f1bbef9daa9e5ec801a9bcbc0ece703d076/resources/META-INF/native-image/babashka/babashka/native-image.properties#L15
 

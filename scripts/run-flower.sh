@@ -9,4 +9,4 @@ if ! [ -e $here/deps.edn ]; then
 fi
 # java -jar $here/target/flower.jar "$@"
 cd $here
-exec clojure -M --main flower.core "$@"
+exec clojure -M --main flower.main "$@"

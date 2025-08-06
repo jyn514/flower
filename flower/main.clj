@@ -2,7 +2,7 @@
 ; see https://github.com/liquidz/frontmatter
 ; (set! *warn-on-reflection* true)
 
-(ns flower.core
+(ns flower.main
   (:gen-class)
   (:use flower.internal.utils)
 (:require
