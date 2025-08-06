@@ -2,7 +2,7 @@
 
 (ns flower.build
   (:import (java.io Writer))
-  (:use [flower.utils])
+  (:use [flower.internal.utils])
   (:require [clojure.string :as str]
             [babashka.fs :as fs]
             [clojure.data.json :as json]

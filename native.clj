@@ -1,6 +1,8 @@
 (ns native
+  (:use [flower.internal.utils])
   (:require [clojure.tools.build.api :as b]
             [clojure.string :as str]
+            [babashka.fs :as fs]
             [babashka.process :as ps]
             [babashka.process.pprint]))
 
@@ -15,18 +17,35 @@
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with live-reload.clj
 (def live-reload "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
+(def defaults "META-INF/resources/flower/defaults")
 
 (defn clean [_]
   (b/delete {:path class-dir})
   (b/delete {:path exe})
   (b/delete {:path jar-file}))
 
+(def git-output
+  (->> "git ls-tree -r --name-only HEAD defaults"
+                 (ps/shell {:out :string}) :out))
+(def manifest-path "MANIFEST.txt")
+(def default-files (str/split git-output #"\n"))
+(def manifest
+  (str/join "\n"
+            (map #(strip-prefix % "defaults/")
+                 default-files)))
+(def defaults-target (str class-dir "/" defaults))
+
 (defn uberjar [_]
   (clean nil)
   (b/copy-dir {:src-dirs ["src"]
                :target-dir class-dir})
-  ; (b/copy-dir {:src-dirs ["defaults"]
-  ;              :target-dir (str class-dir "/defaults")})
+  (doseq [f default-files]
+    (b/copy-file {:src f
+                  :target (str defaults-target "/" (strip-prefix f "defaults/"))}))
+  (fs/write-bytes manifest-path (.getBytes manifest))
+  (b/copy-file {:src manifest-path
+                :target (format "%s/%s/%s" class-dir defaults manifest-path)})
+
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.core]
@@ -35,6 +54,8 @@
                 :target (str class-dir "/META-INF/native-image/flower/core/" reachable)})
   (b/copy-file {:src live-reload
                 :target (str class-dir "/" live-reload)})
+  (b/copy-file {:src "scripts/run-jar.sh"
+                :target "target/flower"})
   (b/uber {:class-dir class-dir
            :uber-file jar-file
            :basis basis

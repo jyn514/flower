@@ -1,5 +1,11 @@
 # TODO
 
+- rename postprocessor->transform
+- livereload broken ????
+- hiding `def` vars isn't working ???
+- .gitignore in defaults/
+- clojure.repl doesn't get loaded into SCI
+    - add `flower repl`?
 - template embedding
 - template defaults
 - RSS feed
@@ -11,14 +17,9 @@
 - file watcher should give a nice error if dir doesn't exist
 - nice syntax over ninja phony targets so you have some equivalent of `--drafts`
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
-- rename `flower.internal-utils` to `flower.internals.utils`
 - flower emojis
-- livereload broken ????
-- hiding `def` vars isn't working ???
-- .gitignore in defaults/
 - `index = true` doesn't work in pages
 - always run configure to avoid bootstrapping problems
-- rename markdown to `md->html`
 - templates can end with .md
 - render-page for each template
 - should not lose `page` with `embed-template`
@@ -26,10 +27,8 @@
 - allow more things to be dynamic with depfiles?
   - e.g. `templates` could be fed through with JSON
   - `embed-template` could be a post-processor
-- `<a>` is a valid clojure ident???
 - bundle asciidoc; suggest for highly nested md->clj->md->clj
 - allow preprocessors to edit frontmatter
-- rename postprocessor->transform
 - render needs to not blindly assume that the preprocessing language is clojure
 - `embed` is the fixed point algorithm, calls render
 - dependencies between index pages and rendered pages
@@ -41,6 +40,7 @@
 
 ## ideating
 
+- `<a>` is a valid clojure ident???
 - have a 7 line outline for `defaults/build.clj`
 - hard-code `base` in the binary, since people can override it
 - define *an* order for transforms

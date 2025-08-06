@@ -11,6 +11,7 @@
        ; (clojure.tools.trace/trace ~@args)))
 (require '(clojure [string :as str])
          '(clojure.data [json :as json])
+         '[clojure.reflect :as r]
          '(flower [core :as flower])
          '(sci [core :as sci])
          '(instaparse [core :as insta])
@@ -18,3 +19,6 @@
          '(babashka [process :as ps])
          '(babashka [cli :as cli])
          '(babashka [fs :as fs]))
+
+(defn members [val]
+  (->> val r/reflect :members (map :name) set sort))

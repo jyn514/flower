@@ -1,14 +1,16 @@
 (ns flower.defaults
-  (:use [flower utils internal-utils])
+  (:use [flower utils] [flower.internal.utils])
   (:require [babashka.fs :as fs]
-            [flower.build :as build]))
+            [clojure.string :as str]
+            [clojure.java.io :as io]))
+
+(def flower-defaults "META-INF/resources/flower/defaults/")
 
 (def all-defaults
-  (let [paths (fs/glob "defaults" "**")
-        files (filter fs/regular-file? paths)
-        contents (map fs/read-all-bytes files)
-        short-paths (map build/remove-parent files)]
-    (zipmap short-paths contents)))
+  (let [manifest (-> (str flower-defaults "MANIFEST.txt") io/resource slurp)
+        files (str/split manifest #"\n")
+        contents (map #(->> % (str flower-defaults) io/resource slurp .getBytes) files)]
+    (zipmap files contents)))
 
 (defn materialize
   [path bytes]
@@ -20,5 +22,5 @@
       ; not as nice as a warning but this should basically never happen
       (fs/write-bytes path bytes {:truncate-existing false}))))
 
-(defn materialize-all [path]
-  (doseq [[path bytes] all-defaults] (materialize path bytes)))
+(defn materialize-all []
+  (doseq [[p bytes] all-defaults] (materialize (str *site* "/" p) bytes)))

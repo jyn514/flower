@@ -4,7 +4,7 @@
 
 (ns flower.core
   (:gen-class)
-  (:use flower.utils flower.internal-utils)
+  (:use flower.internal.utils)
   (:import
     (java.io StringWriter)
     (org.jsoup.select Nodes))
@@ -29,7 +29,8 @@
   [flower.reflect]
   [flower.defaults]
   [flower.live-reload]
-  [flower.internal-utils]
+  [flower.utils]
+  [flower.internal.utils]
   [jq.api :as jq]
   [nextjournal.markdown :as md]
   [nextjournal.markdown.transform :as md.transform]))
@@ -97,15 +98,13 @@
                    'hiccup.util (copy-ns 'hiccup.util) 
                    'hiccup.compiler hiccup-compiler
                    'instaparse.core (copy-ns 'instaparse.core) 
-                   ; 'clojure.repl (copy-ns 'clojure.repl)
-                   'flower.utils (copy-ns 'flower.utils)
+                   'flower.utils flower.utils/bindings
                    'flower.select (copy-ns 'flower.select)
                    'flower.internal {'pprint pprint}
                    'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
       :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
-                 'str str
                  'fmt (sci/copy-var fmt userns)
-                 'markdown markdown}
+                 'md->html flower.utils/md->html}
       :classes {'java.lang.StringBuilder java.lang.StringBuilder}}) )) {:filename filename})))
 
 ; rendering
@@ -261,17 +260,12 @@
         ; TODO: should be keyed by output file so we can minimize rebuilds
         (merge parsed {:content html :dependencies flower.reflect/*dependencies*})))))
 
-; (defn write-deps!
-;   [depfile out-file deps]
-  
-
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]
   (let [[parsed deps] (split-map parsed :dependencies)
         joined (build/join (:dependencies deps))
         formatted (fmt "${out-file}: ${joined}")]
     (spit depfile formatted)
-    ; (write-deps! depfile out-file deps)
     ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
     parsed))
 
@@ -399,7 +393,7 @@
                          :coerce {:depfile :string :out-file :string}
                          :args->opts [:depfile :out-file]}
    "watch" flower.live-reload/watch
-   "new" flower.defaults/materialize-all
+   "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (jq (assoc % :data (slurp *in*))))
          :coerce {:raw-input :boolean :raw-output :boolean
