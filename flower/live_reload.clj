@@ -66,6 +66,7 @@
 ; NOTE: does *not* run on changes to metadata (e.g. modification time)
 (defn- on-file-change
   [{:keys [type path build-dir] :as m}]
+  (println "file change:" path type)
   (when-not (contains? [:delete :overflow] type)
     ; TODO: strip-prefix
     (doseq [ch @channels]
@@ -139,8 +140,7 @@
   ; but we still want to start a server in case it succeeds later.
   ; create a fake directory for it now.
   (fs/create-dirs out-dir)
-  (println "Starting live reload watcher")
+  (println "Starting live reload watcher for" out-dir)
   ; TODO: this needs to be async oops
   (live-reload {:dir out-dir :port live-reload-port})
-  (println "Starting web server")
   (http-server/exec {:dir out-dir :port static-port}))

@@ -17,7 +17,8 @@
 (defn template [relative-path]
   (when-not relative-path
     (throw (AssertionError. "did not get a template name")))
-  (-> (str "templates/" relative-path) read-file String.))
+  (let [bs (read-file (str "templates/" relative-path))]
+    (String. ^bytes bs)))
 
 ; TODO: this sucks! i don't like having things only available in the guest :(
 (declare render)

@@ -26,6 +26,8 @@
   (if rebuild-flower "../target/flower" "flower"))
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
+(def expressions (fs/glob "expressions" "**.clj"))
+
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
 (defn build-page
@@ -48,11 +50,11 @@
                 {:rule rule
                  :inputs json_frontmatter
                  :outputs processed_markdown
-                 :implicit implicits}
+                 :implicit (concat implicits expressions)}
                 {:rule "template"
                  :inputs processed_markdown
                  :outputs embedded_markdown
-                 :implicit (conj ff template_path)
+                 :implicit (concat (conj ff template_path) expressions)
                  :template template_path}
                 ; TODO: wrong, should run on all html files, not just pages
                 ; maybe we can make transform a dispatch-file rule, output `.processed`,
@@ -62,7 +64,7 @@
                 {:rule "transform"
                  :inputs embedded_html
                  :outputs final_html
-                 :implicit (fs/glob "transformers" "*")
+                 :implicit (concat (fs/glob "transformers" "*") expressions)
                  :depfile depfile
                  :html embedded_html}]]
      ; TODO: this will break for md->html generation because it will also copy .embed to public/

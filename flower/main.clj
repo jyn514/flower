@@ -1,6 +1,6 @@
 ; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
 ; see https://github.com/liquidz/frontmatter
-; (set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 
 (ns flower.main
   (:gen-class)
@@ -14,7 +14,6 @@
   [flower.build :as build]
   [flower.cmd :as cmd]
   [flower.eval]
-  [flower.select]
   [flower.hiccup]
   [flower.reflect]
   [flower.defaults]

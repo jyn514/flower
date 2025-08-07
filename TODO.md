@@ -8,12 +8,11 @@
     - point people to https://github.com/samhocevar/wincompose on windows
     - document how to set this up in common editors (vim, vscode, helix, zed)
 - `flower help` is broken lol lmao
-- rename flower.select to flower.transform
 - fix spans for SCI eval
+- rename flower.live-reload to flower.watch
 - livereload broken ????
 - clojure.repl doesn't get loaded into SCI
     - add `flower repl`?
-- template embedding
 - template defaults
 - add the rest of the HTML selector apis lol
 - allow configuring build dirs in `flower.toml`
@@ -89,5 +88,7 @@ ninja's api for all of these is `flower transform`
 - RSS feed
 - syntax highlighting
 - Sass compiler
+- bsky comments
+  - https://natalie.sh/posts/bluesky-comments/
 - SVG with embedded text for code blocks
   - https://wheybags.com/blog/macroblog.html#better_code_snippets

@@ -1,3 +1,4 @@
+(use 'flower.utils)
 (import
   (org.jsoup Jsoup)
   (org.jsoup.nodes Attribute Attributes Element)
@@ -11,8 +12,9 @@
 
 (defn- is-root [doc]
   (let [fragment (if-not (string? doc) doc
-                   (Jsoup/parse doc "" (Parser/xmlParser)))]
-    (-> fragment .ownerDocument .firstChild .nodeName (= "html"))))
+                   (Jsoup/parse doc "" (Parser/xmlParser)))
+        root (-> fragment .ownerDocument .firstChild .nodeName)]
+    (boolean (some #{root} ["html" "#doctype"]))))
 
 (defn ->element
   "Convert an HTML string into a parsed HTML Element"
@@ -56,7 +58,8 @@
   "Given an HTML Element and an unparsed HTML document,
    replace the element with HTML."
   [node html]
-  (let [parsed (->element html)]
+  (let [parsed (->element html)
+        node (if (is-root parsed) (document node) node)]
     (.replaceWith node parsed)
     (when (is-root parsed)
       ; replaceWith normalizes away <!doctype> >:(

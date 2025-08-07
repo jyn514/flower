@@ -1,10 +1,14 @@
 (ns native
   (:use [flower.internal.utils])
-  (:require [clojure.tools.build.api :as b]
-            [clojure.string :as str]
-            [babashka.fs :as fs]
-            [babashka.process :as ps]
-            [babashka.process.pprint]))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.process :as ps]
+   [babashka.process.pprint]
+   [clojure.data.json :as json]
+   [clojure.string :as str]
+   [clojure.tools.build.api :as b]) 
+  (:import
+   [java.io FileWriter]))
 
 (def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
 (def is-linux (= (System/getProperty "os.name") "Linux"))
@@ -13,7 +17,6 @@
 (def basis (b/create-basis {:project "deps.edn"}))
 (def jar-file "target/flower.jar")
 (def exe (str "target/flower" (when is-win ".exe")))
-(def reachable "reachability-metadata.json")
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with live-reload.clj
 (def live-reload "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
@@ -35,6 +38,39 @@
                  default-files)))
 (def defaults-target (str class-dir "/" defaults))
 
+(def ctors :allPublicConstructors)
+(defn all-public [& names]
+  (for [t names]
+    {:type t
+     :allDeclaredConstructors true
+     :allPublicConstructors true
+     :allDeclaredFields true
+     :allPublicFields true
+     :allDeclaredMethods true
+     :allPublicMethods true}))
+; keep this in sync with :classes in flower.eval
+(def dynamic
+  (all-public
+    "java.lang.Class"
+    "org.jsoup.Jsoup"
+    "org.jsoup.select.Elements"
+    "org.jsoup.nodes.Node"
+    "org.jsoup.nodes.Element"
+    "org.jsoup.nodes.Comment"
+    "org.jsoup.nodes.TextNode"
+    "org.jsoup.nodes.Document"
+    "org.jsoup.nodes.DocumentType"
+    "org.jsoup.nodes.Attribute"
+    "org.jsoup.nodes.Attributes"
+    "org.jsoup.parser.Parser"))
+(def reachable
+  {:reflection
+   (concat [{:type "org.yaml.snakeyaml.Yaml" ctors true}] dynamic)
+   :resources
+   [{:glob "META-INF/resources/flower/live-reload/**"}
+    {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
+    {:glob "simplelogger.properties"}]})
+
 (defn uberjar [_]
   (clean nil)
   (b/copy-dir {:src-dirs ["src"]
@@ -50,8 +86,9 @@
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]
                   :class-dir class-dir})
-  (b/copy-file {:src (str "flower/" reachable)
-                :target (str class-dir "/META-INF/native-image/flower/main/" reachable)})
+  (let [target (str class-dir "/META-INF/native-image/flower/main/reachability-metadata.json")
+        serialized (json/write-str reachable)]
+    (b/write-file {:path target :string serialized}))
   (b/copy-file {:src live-reload
                 :target (str class-dir "/" live-reload)})
   (b/copy-file {:src "scripts/run-jar.sh"
