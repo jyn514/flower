@@ -2,6 +2,7 @@
 
 (ns flower.internal.utils
   (:require [babashka.process :as ps]
+            [clojure.set :refer [union]]
             [clojure.string :as str]))
 
 (defmacro reexport [& syms]
@@ -60,6 +61,7 @@
 (defn merge-deep [& xs]
   (cond
     (every? map? xs) (apply merge-with merge-deep xs)
+    (every? set? xs) (apply union xs)
     (every? sequential? xs) (apply concat xs)
     :else (last xs)))
 

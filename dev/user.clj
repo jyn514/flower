@@ -1,4 +1,5 @@
-(use 'clojure.repl 'clojure.repl.deps 'flower.utils)
+(use 'clojure.repl 'clojure.repl.deps 'flower.internal.utils 'flower.select)
+(import org.jsoup.Jsoup org.jsoup.parser.Parser)
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)
 ;        (ns-unmap *ns* '~'trace)

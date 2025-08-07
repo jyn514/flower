@@ -144,7 +144,7 @@
 ; transforming
 (defn transform
   "Given a `{:content x :frontmatter y :transformer z}` map,
-   run the clojure in file `:transformer` on `{:content :frontmatter}`."
+  run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
   (let [locals {'page parsed}
         reflect (assoc (eval/copy-ns 'flower.reflect) 'render eval/render)
@@ -157,9 +157,11 @@
         transformer (eval/parse-string cx ls)
         lisp (eval/embed (list 'do transformer '(transform page)))]
     (binding [flower.reflect/*dependencies* #{}]
-      (let [html (eval/eval-form cx lisp)]
-        ; TODO: should be keyed by output file so we can minimize rebuilds
-        (merge parsed {:content html :dependencies flower.reflect/*dependencies*})))))
+      (let [html (eval/eval-form cx lisp)
+            ; TODO: should be keyed by output file so we can minimize rebuilds
+            for-merge (update parsed :dependencies set)]
+        (merge-deep for-merge {:content html
+                               :dependencies flower.reflect/*dependencies*})))))
 
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]

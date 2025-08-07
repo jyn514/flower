@@ -8,6 +8,7 @@
     - point people to https://github.com/samhocevar/wincompose on windows
     - document how to set this up in common editors (vim, vscode, helix, zed)
 - `flower help` is broken lol lmao
+- rename flower.select to flower.transform
 - fix spans for SCI eval
 - livereload broken ????
 - clojure.repl doesn't get loaded into SCI

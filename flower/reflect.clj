@@ -12,7 +12,7 @@
   true) ; TODO update in main
 
 (defn read-file [path]
-  (alter-var-root #'*dependencies* #(union % #{path}))
+  (set! *dependencies* (conj *dependencies* path))
   (fs/read-all-bytes path))
 
 (defn template [relative-path]

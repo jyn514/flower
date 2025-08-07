@@ -1,16 +1,16 @@
 (ns flower.eval
   (:use flower.internal.utils)
-  (:import
-    (org.jsoup.select Nodes))
   (:require
-    [clojure.repl :as repl]
-    [instaparse.core :as insta]
-    [sci.core :as sci]
-    [hiccup.util]
-    [flower.hiccup]
-    [flower.utils]
-    [flower.reflect]
-    ))
+   [clojure.repl :as repl]
+   [flower.hiccup]
+   [flower.reflect]
+   [flower.utils]
+   [hiccup.util]
+   [instaparse.core :as insta]
+   [sci.core :as sci])
+  (:import
+   [org.jsoup.nodes Document]
+   (org.jsoup.select Nodes)))
 
 ; sandboxing
 
@@ -43,6 +43,7 @@
 (defn pprint [x]
   (cond (or (instance? sci.lang.Var x) (nil? x)) ""
         (hiccup.util/raw-string? x) (str x)
+        (instance? Document x) (Document/.outerHtml x)
         (instance? Nodes x) (Nodes/.outerHtml x)
         (sequential? x) (apply str (map pprint x))
         :else (print-str x)))

@@ -1,32 +1,81 @@
 ; TODO: rename to flower.transform
 (ns flower.select
-  (:require [clojure.zip :as zip])
-  (:import (org.jsoup.nodes LeafNode Node Document Element Attribute Attributes)
-           (org.jsoup.select Elements)
-           (org.jsoup Jsoup)))
+  (:use [flower.internal.utils])
+  (:import
+   (org.jsoup Jsoup)
+   (org.jsoup.nodes Attribute Attributes Element)
+   (org.jsoup.parser Parser)
+   (org.jsoup.select Elements)))
 
 (declare after!)
 
 ; TODO: a bunch of these functions make sense on Elements, not just Element
 ; — maybe allow that?
 
+(defn- is-root [doc]
+  (let [fragment (if-not (string? doc) doc
+                   (Jsoup/parse doc "" (Parser/xmlParser)))]
+    (-> fragment .ownerDocument .firstChild .nodeName (= "html"))))
+
+(defn ->element
+  "Convert an HTML string into a parsed HTML Element"
+  [doc]
+  (if-not (string? doc) doc
+    ; we want to preserve the html exactly as written.
+    ; unfortunately, Jsoup tries to do lots of normalization.
+    ; things that don't work:
+    ; - Jsoup/parse (adds surrounding html/body)
+    ; - Jsoup/parseFragment (as far as i can tell, the same as /parse)
+    ; - wrapping in <template> (strips any <html> tags, so it doesn't work for skeleton.html)
+    ; - Parser.xmlParser (tries to add closing tags for self-closing tags)
+    ; do a really dumb thing:
+    ; first, check if this has an existing <html> tag or not by parsing it with XML.
+    ; then, decide whether to call .body based on that.
+    (let [html (Jsoup/parse doc)]
+      (if (is-root doc) html (.body html)))))
+
+(defn document
+  "Given an HTML element, get the root document element.
+   The root may not necessarily be <html> if this was parsed from an element fragment."
+   [doc]
+   (Element/.ownerDocument (->element doc)))
+
 (defn select
   "Given an HTML document and a CSS selector, return a `org.jsoup.nodes.Elements` of matching elements"
   [doc ^String selector]
-  (let [doc (if (string? doc) (Jsoup/parse ^String doc) doc)]
-    (Element/.select doc selector)))
+  (Element/.select (->element doc) selector))
+
+; (defmacro forward [& names]
+;   (let [names (for [[name doc] (partition 2 names)]
+;                 `(defn ~name ~doc [instance# & args#]
+;                    (. instance# (~(symbol "Element" (str name)) args#))))]
+;     `(do ~@names)))
+;
+; (forward
+;   html "Given an HTML Element, return its innerHtml() as a string."
+;   parent "Give an HTML Element, return its parent.")
 
 (defn html
   "Given an HTML Element, return its innerHtml() as a string."
   [node]
   (Element/.html node))
 
+(defn parent
+  "Given an HTML Element, return its parent() as a string."
+  [node]
+  (Element/.parent node))
+
 (defn replace-with!
   "Given an HTML Element and an unparsed HTML document,
    replace the element with HTML."
   [node html]
-  (after! node html)
-  (Element/.remove node))
+  (let [parsed (->element html)]
+    (if (is-root parsed)
+      ; after! normalizes away <!doctype> >:(
+      (.replaceWith node parsed)
+      (do
+        (after! node html)
+        (Element/.remove node)))))
 
 
 ; after before append prepend attrs set-attr remove-attr remove replace-with
@@ -34,8 +83,8 @@
 ; (defn append [& rest] (apply #(.append %&) rest))
 
 ; TODO: this only works on a list of elements lol, make it work on an individual Element too
-(defn append! [n c] (Elements/.append n (str c)))
-(defn  after! [n c] (Element/.after n (str c)))
+(defn append! [node html] (Elements/.append node (str html)))
+(defn  after! [node html] (Element/.after node (str html)))
 
 (defn attrs
   "Given an HTML Element, return its attributes as a clojure map from string to string.
