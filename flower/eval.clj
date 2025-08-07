@@ -83,12 +83,13 @@
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings
                 'flower.select (copy-ns 'flower.select)
-                ; TODO: think through whether it's safe to always bind `reflect/read-file`
-                ; TODO: wrong, needs to account for pages not in clojure
-                'flower.reflect (assoc (copy-ns 'flower.reflect)
-                                       'render render
-                                       ; NOTE: immutable in interpreter
-                                       '*watching* flower.reflect/*watching*)
+                ; TODO: can't bind `reflect/read-file` until we do dependency tracking elsewhere
+                'flower.reflect {'*watching*
+                                 (sci/copy-var
+                                   flower.reflect/*watching*
+                                   (sci/create-ns 'flower.reflect))}
+                ; 'flower.reflect (assoc (copy-ns 'flower.reflect)
+                ;                        'render render)
                 'flower.internal {'pprint pprint}
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
@@ -135,7 +136,6 @@
           (fmt "failed to eval ${default-file}:")
           ; TODO: this is useless for file-not-found errors
           (ex-message e)
-          (ex-data e)
           "\n"
           (map #(print-sci-frame % default-file) useful-frames))))
 
@@ -194,6 +194,7 @@
                 (seval cx (apply subs src (insta/span %))))
       } tree)))
 
+; TODO: needs to account for pages not in clojure
 (defn render
   "Render content with local variables available"
   ; TODO: this causes nothing but problems, replace it with an options map

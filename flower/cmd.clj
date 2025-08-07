@@ -147,14 +147,16 @@
    run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
   (let [locals {'page parsed}
-        cx-opts {:bindings locals } #_:load-fn #_load
+        reflect (assoc (eval/copy-ns 'flower.reflect) 'render eval/render)
+        cx-opts {:bindings locals
+                 :namespaces {'flower.reflect reflect}}
         cx (eval/create-sci-cx transformer cx-opts)
         f (slurp transformer)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ls (str "(do " f ")")
         transformer (eval/parse-string cx ls)
         lisp (eval/embed (list 'do transformer '(transform page)))]
-    (binding [flower.reflect/*dependencies* #{} flower.reflect/*watching* true]
+    (binding [flower.reflect/*dependencies* #{}]
       (let [html (eval/eval-form cx lisp)]
         ; TODO: should be keyed by output file so we can minimize rebuilds
         (merge parsed {:content html :dependencies flower.reflect/*dependencies*})))))
