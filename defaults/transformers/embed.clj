@@ -1,10 +1,14 @@
-(use 'flower.select 'hiccup2.core 'flower.utils 'flower.reflect)
+(use 'hiccup2.core 'flower.utils 'flower.reflect 'flower.expressions.html)
 (defn transform [{page :content}]
-  (doseq [tag (select page "flower-embed")]
-    (let [embedded (flower.select/html tag)
-          attrs (flower.select/attrs tag)
-          template (-> attrs inspect (get "template") flower.reflect/template)
+  ; replace-with! modifies in place, so we need to hold on to the root node
+  (let [doc (document page)]
+  (doseq [tag (select doc "flower-embed")]
+    (let [embedded (html tag)
+          attrs (attrs tag)
+          template-name (get attrs "template")
+          template (flower.reflect/template template-name)
           locals {(symbol (get attrs "name")) embedded}
-          rendered (flower.reflect/render template locals)]
-      (flower.select/replace-with! tag rendered)))
-    page)
+          ; TODO: this includes the tag we were trying to replace
+          rendered (flower.reflect/render template template-name locals)]
+      (replace-with! tag rendered)))
+    doc))

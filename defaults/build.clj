@@ -23,8 +23,7 @@
   (if-not rebuild-flower []
     [(if use-jar "../target/flower.jar" "../target/flower")]))
 (def flower_cli
-  (if-not rebuild-flower "flower"
-    (if use-jar "../scripts/run-jar.sh" "../target/flower")))
+  (if rebuild-flower "../target/flower" "flower"))
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata

@@ -7,6 +7,7 @@
    [flower.utils]
    [hiccup.util]
    [instaparse.core :as insta]
+   [babashka.fs :as fs]
    [sci.core :as sci])
   (:import
    [org.jsoup.nodes Document]
@@ -83,7 +84,6 @@
                 ; repl/doc tries to call private functions
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings
-                'flower.select (copy-ns 'flower.select)
                 ; TODO: can't bind `reflect/read-file` until we do dependency tracking elsewhere
                 'flower.reflect {'*watching*
                                  (sci/copy-var
@@ -99,7 +99,18 @@
               'dir (sci/copy-var repl/dir userns)
               'source (sci/copy-var repl/source userns)
               'md->html flower.utils/md->html}
-   :classes {'java.lang.StringBuilder java.lang.StringBuilder}})
+   :classes {'java.lang.StringBuilder java.lang.StringBuilder
+             'org.jsoup.Jsoup org.jsoup.Jsoup
+             'org.jsoup.select.Elements org.jsoup.select.Elements
+             'org.jsoup.nodes.Node org.jsoup.nodes.Node
+             'org.jsoup.nodes.Element org.jsoup.nodes.Element
+             'org.jsoup.nodes.Comment org.jsoup.nodes.Comment
+             'org.jsoup.nodes.TextNode org.jsoup.nodes.TextNode
+             'org.jsoup.nodes.Document org.jsoup.nodes.Document
+             'org.jsoup.nodes.DocumentType org.jsoup.nodes.DocumentType
+             'org.jsoup.nodes.Attribute org.jsoup.nodes.Attribute
+             'org.jsoup.nodes.Attributes org.jsoup.nodes.Attributes
+             'org.jsoup.parser.Parser org.jsoup.parser.Parser}})
 
 (defn create-sci-cx
   "Create SCI context with standard library and local variables"
@@ -151,18 +162,28 @@
            (throw e)
            (print-sci-trace e (-> cx meta :filename))))))
 
+(defn parse-string
+  [cx s]
+  (try-sci cx #(sci/parse-string cx s)))
+
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
   [cx form]
   (sci/binding [sci/out *err*
                 sci/err *err*]
-    (try-sci cx #(sci/eval-form cx form))))
+     ; TODO: we shouldn't bind locals when loading expressions ...
+     (doseq [clj (fs/glob "expressions" "**.clj")]
+       (let [f (str clj)
+             ns (->> f fs/strip-ext fs/file-name (str "flower.expressions."))
+             ; TODO: shouldn't be necessary: https://clojurians.slack.com/archives/C015LCR9MHD/p1754590244420059?thread_ts=1754589990.970939&cid=C015LCR9MHD
+             lisp (str "(do (ns " ns ")" (slurp f) ")")
+             fcx (with-meta cx {:filename f})]
+         (sci/with-bindings {sci/ns (sci/create-ns (symbol ns))}
+          (try-sci fcx #(sci/eval-string* fcx lisp)))))
+     (sci/with-bindings {sci/ns userns}
+      (try-sci cx #(sci/eval-form cx form)))))
 
-(defn parse-string
-  [cx s]
-  (try-sci cx #(sci/parse-string cx s)))
-
-(defn seval "string eval" [cx s]
+(defn ppeval "pretty print eval" [cx s]
   (->> s (parse-string cx) embed (eval-form cx)))
 
 ; TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
@@ -189,10 +210,10 @@
       (insta/transform {
         :Start str
         :Text identity
-        :Ident #(seval cx %)
+        :Ident #(ppeval cx %)
         ; str? if this was an Ident
         :Lisp #(if (string? %) %
-                (seval cx (apply subs src (insta/span %))))
+                (ppeval cx (apply subs src (insta/span %))))
       } tree)))
 
 ; TODO: needs to account for pages not in clojure
@@ -203,4 +224,4 @@
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
    (let [cx (create-sci-cx filename {:bindings locals})]
-    (teval (parse src) src cx))))
+     (teval (parse src) src cx))))

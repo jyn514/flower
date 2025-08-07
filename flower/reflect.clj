@@ -1,7 +1,6 @@
 (ns flower.reflect
   (:use flower.internal.utils)
-  (:require [clojure.set :refer [union]]
-            [babashka.fs :as fs]))
+  (:require [babashka.fs :as fs]))
 
 ; NOTE: these helpers are exposed to all transformers,
 ; so they must record their file dependencies.
