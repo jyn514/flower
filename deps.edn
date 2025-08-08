@@ -27,8 +27,8 @@
     io.github.nextjournal/markdown {:mvn/version "0.7.186"}}
   :paths ["."]
   :aliases {
-    ; :default-deps {instaparse/instaparse {:mvn/version "1.5.0"}}
-    ; :extra-paths ["parse.clj"]
+    :dev
+    {:extra-paths ["dev" "target/repl-cache"]}
     :build
     {:deps
      {io.github.clojure/tools.build {:mvn/version "0.10.9"}

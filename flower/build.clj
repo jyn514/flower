@@ -1,3 +1,6 @@
+; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
+; see https://github.com/liquidz/frontmatter
+
 ; NOTE: everything here must be possible to run in a sandbox with read-only access to the filesystem
 
 (ns flower.build

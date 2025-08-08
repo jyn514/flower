@@ -1,5 +1,9 @@
 # TODO
 
+- (compile) so startup time is better
+- don't materialize onto disk by default
+    - .build/vfs (maybe with chattr -i)
+    - reload vfs itself when flower changes using ninja
 - write lots of tests
     - pprint
 - document how to type lozenge
@@ -90,3 +94,4 @@ ninja's api for all of these is `flower transform`
   - https://natalie.sh/posts/bluesky-comments/
 - SVG with embedded text for code blocks
   - https://wheybags.com/blog/macroblog.html#better_code_snippets
+- blog pingback protocol
