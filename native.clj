@@ -18,8 +18,8 @@
 (def jar-file "target/flower.jar")
 (def exe (str "target/flower" (when is-win ".exe")))
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
-; keep this in sync with live-reload.clj
-(def live-reload "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
+; keep this in sync with watch.clj
+(def live-reload "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
 (def defaults "META-INF/resources/flower/defaults")
 
 (defn clean [_]

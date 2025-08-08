@@ -1,7 +1,7 @@
 ; Portions Copyright Brian Hurlow
 ; https://github.com/bhurlow/clj-livereload/commit/fe8c6fb296b2f3eaf654dff9f7a9b7b76fe427f5
 
-(ns flower.live-reload
+(ns flower.watch
   (:use flower.internal.utils)
   (:require [org.httpkit.server :as wss]
             [nextjournal.beholder :as behold]
@@ -19,7 +19,7 @@
   {:command "hello"
    ; zola and tiny-rl only support this version, so I think it's safe to do the same
    :protocols ["http://livereload.com/protocols/official-7"]
-   :serverName "flower live-reload"})
+   :serverName "flower watch"})
 
 (defn- reload-msg
   [path]
@@ -49,7 +49,7 @@
      :on-close on-close}))
 
 ; HTTP server
-(def livereload-js "META-INF/resources/flower/live-reload/livereload-4.0.2/livereload.js")
+(def livereload-js "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
 
 (defn- handler [req]
   (println (apply format "%s %s" ((juxt :request-method :uri) req)))

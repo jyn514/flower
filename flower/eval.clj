@@ -99,6 +99,7 @@
               'dir (sci/copy-var repl/dir userns)
               'source (sci/copy-var repl/source userns)
               'md->html flower.utils/md->html}
+   ; keep this in sync with `dynamic` in native.clj
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
              'org.jsoup.Jsoup org.jsoup.Jsoup
              'org.jsoup.select.Elements org.jsoup.select.Elements

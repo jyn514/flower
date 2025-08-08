@@ -17,7 +17,7 @@
   [flower.hiccup]
   [flower.reflect]
   [flower.defaults]
-  [flower.live-reload]
+  [flower.watch]
   [flower.utils]
   [flower.internal.utils]))
 
@@ -81,7 +81,7 @@
    "split-dependencies" {:fn #(map-json cmd/split-dependencies %)
                          :coerce {:depfile :string :out-file :string}
                          :args->opts [:depfile :out-file]}
-   "watch" flower.live-reload/watch
+   "watch" flower.watch/watch
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))

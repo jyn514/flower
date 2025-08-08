@@ -9,7 +9,6 @@
     - document how to set this up in common editors (vim, vscode, helix, zed)
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
-- rename flower.live-reload to flower.watch
 - clojure.repl doesn't get loaded into SCI
     - add `flower repl`?
 - template defaults
