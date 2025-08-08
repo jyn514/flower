@@ -1,7 +1,4 @@
-; Portions copyright Masashi Iizuka under Eclipse Public License 2.0
-; see https://github.com/liquidz/frontmatter
 (set! *warn-on-reflection* true)
-
 (ns flower.main
   (:gen-class)
   (:use flower.internal.utils)

@@ -3,17 +3,38 @@
 
 (ns flower.watch
   (:use flower.internal.utils)
-  (:require [org.httpkit.server :as wss]
-            [nextjournal.beholder :as behold]
-            [babashka.http-server :as http-server]
-            [babashka.process :as ps]
-            [babashka.fs :as fs]
-            [clojure.string :as str]
-            [clojure.java.io :as io]
-            [clojure.data.json :as json]
-            [flower.cmd :as cmd]))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.http-server :as http-server]
+   [clojure.core.async :as async]
+   [clojure.data.json :as json]
+   [clojure.java.io :as io]
+   [clojure.stacktrace]
+   [clojure.string :as str]
+   [flower.cmd :as cmd]
+   [nextjournal.beholder :as behold]
+   [org.httpkit.server :as wss]))
 
-; proto
+; file watcher
+
+(defn on-file-change
+  [cb paths event]
+  ; behold doesn't support file filters, only directory filters. implement them ourselves.
+  (when (contains? paths (-> event :path str))
+    ; behold silently swallows stack traces >:(
+    (try (cb event)
+         (catch java.lang.Exception e
+           (clojure.stacktrace/print-stack-trace e)))))
+
+(defn watch-files
+  [cb paths]
+  (let [abs-paths (set (map #(-> % fs/real-path str) paths))]
+    ; NOTE: does *not* run on changes to metadata (e.g. modification time)
+    ; probably we should tell the underlying java library not to do that?
+    ; see https://github.com/gmethvin/directory-watcher#configuration
+    (apply behold/watch #(on-file-change cb abs-paths %) abs-paths)))
+
+; live-reload proto
 
 (def hello-message
   {:command "hello"
@@ -39,7 +60,7 @@
   (swap! channels disj ch))
 (defn- on-receive [ch data]
   (let [cmd (get (json/read-str data) "command")]
-    (if (= "hello" cmd)
+    (when (= "hello" cmd)
       (wss/send! ch (json/write-str hello-message)))))
 
 (defn- start-wss [req]
@@ -48,11 +69,10 @@
      :on-receive on-receive
      :on-close on-close}))
 
-; HTTP server
+; live-reload HTTP server
 (def livereload-js "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
 
 (defn- handler [req]
-  (println (apply format "%s %s" ((juxt :request-method :uri) req)))
   (case (:uri req)
     "/livereload.js" {:body (slurp (io/resource livereload-js))
                       :headers {"Content-Type" "application/javascript"}}
@@ -61,11 +81,12 @@
                      :headers {}})
     {:status 404 :body "Not Found\r\n" :headers {}}))
 
-; file watcher
+; live-reload listener
 
-; NOTE: does *not* run on changes to metadata (e.g. modification time)
-(defn- on-file-change
-  [{:keys [type path build-dir] :as m}]
+(def default-port 35729)
+
+(defn- on-output-change
+  [{:keys [type path build-dir]}]
   (when-not (some #{type} [:delete :overflow])
     ; TODO: strip-prefix
     (doseq [ch @channels]
@@ -74,38 +95,22 @@
         (->> (fs/relativize build-dir path) fs/file-name reload-msg json/write-str (wss/send! ch))
         (on-close ch "(unknown reason)")))))
 
-; live-reload listener
-
-(def default-port 35729)
-
 (defn live-reload
   [& {:keys [dir port]}]
-  (behold/watch
-    #(try (on-file-change (assoc % :build-dir (fs/real-path dir)))
-          (catch java.lang.Exception e
-            (clojure.stacktrace/print-stack-trace e)))
-    (fs/file-name dir))
+  (watch-files #(on-output-change (assoc % :build-dir (fs/real-path dir)))
+               [(fs/file-name dir)])
   (wss/run-server handler {:port port}))
-
-; static file server
-
-; already babashka's default, but we want to print it out nicely
-(def default-http-port 8090)
 
 ; ninja file watcher
 
-(def ^:dynamic *running* false)
 (defn rerun-ninja [{:keys [type path]}]
-  (when-not *running*
-    ; (println *running*)
-    (alter-var-root (var *running*) (constantly true))
-      ; (println "rerun ninja" *running*)
-      (try (run "ninja")
-           (catch clojure.lang.ExceptionInfo e
-             (if (= (:type (ex-data e)) :babashka.process/error)
-              (error "failed to run ninja: exit code" (:exit (ex-data e)))
-              (throw e))))
-    (alter-var-root (var *running*) (constantly false))))
+  ; TODO: figure out if we need to avoid rerunning if ninja is already running
+  (println type (str path))
+  (try (run "ninja")
+       (catch clojure.lang.ExceptionInfo e
+         (if (= (:type (ex-data e)) :babashka.process/error)
+           (error "failed to run ninja: exit code" (:exit (ex-data e)))
+           (throw e)))))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes
@@ -115,13 +120,9 @@
   (let [all-inputs (parse-ninja "ninja -t inputs")
         temp-file? #(str/starts-with? % (str build-dir "/"))
         important-inputs (filter #(not (temp-file? %)) all-inputs)
-        ; watch is really annoying and silently does nothing on files.
-        ; we might depend on a top-level file, so we're forced to watch the
-        ; whole directory.
-        watcher (behold/watch rerun-ninja *site*)]
-        ; watcher (apply behold/watch rerun-ninja important-inputs)]
+        watcher (watch-files rerun-ninja important-inputs)]
     ; run once at startup
-    (rerun-ninja {:type :created :path *site*})
+    (async/go #(rerun-ninja {:type :created :path *site*}))
     watcher))
 
 ; api
@@ -129,7 +130,7 @@
 (defn watch
   [& {:keys [live-reload-port static-port out-dir build-dir change-dir]
       :or {live-reload-port default-port
-           static-port default-http-port
+           static-port 8090
            out-dir "public"
            build-dir ".build"}}]
   (println "Rerun `flower configure`")
