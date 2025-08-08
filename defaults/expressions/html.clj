@@ -14,6 +14,7 @@
   (let [fragment (if-not (string? doc) doc
                    (Jsoup/parse doc "" (Parser/xmlParser)))
         root (-> fragment .ownerDocument .firstChild .nodeName)]
+    ; https://stackoverflow.com/a/3249401/7669110
     (boolean (some #{root} ["html" "#doctype"]))))
 
 (defn ->element

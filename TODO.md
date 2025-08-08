@@ -10,7 +10,6 @@
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
 - rename flower.live-reload to flower.watch
-- livereload broken ????
 - clojure.repl doesn't get loaded into SCI
     - add `flower repl`?
 - template defaults

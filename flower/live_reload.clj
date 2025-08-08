@@ -66,8 +66,7 @@
 ; NOTE: does *not* run on changes to metadata (e.g. modification time)
 (defn- on-file-change
   [{:keys [type path build-dir] :as m}]
-  (println "file change:" path type)
-  (when-not (contains? [:delete :overflow] type)
+  (when-not (some #{type} [:delete :overflow])
     ; TODO: strip-prefix
     (doseq [ch @channels]
       ; TODO: only send this message if the :url matches the changed path
@@ -81,7 +80,11 @@
 
 (defn live-reload
   [& {:keys [dir port]}]
-  (behold/watch #(on-file-change (assoc % :build-dir dir)) (fs/file-name dir))
+  (behold/watch
+    #(try (on-file-change (assoc % :build-dir (fs/real-path dir)))
+          (catch java.lang.Exception e
+            (clojure.stacktrace/print-stack-trace e)))
+    (fs/file-name dir))
   (wss/run-server handler {:port port}))
 
 ; static file server
@@ -90,9 +93,6 @@
 (def default-http-port 8090)
 
 ; ninja file watcher
-
-; TODO: tracebacks here aren't printed? lol???
-(defn help [{:keys [type path]}] (println "Aaaa"))
 
 (def ^:dynamic *running* false)
 (defn rerun-ninja [{:keys [type path]}]
