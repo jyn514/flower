@@ -5,6 +5,8 @@
 
 **NOTE: still in pre-alpha, blog post forthcoming**
 
+**NOTE: flower lives on [Codeberg](https://codeberg.org/jyn514/flower) now. Github is a read-only mirror.**
+
 `flower` is currently EXTREMELY ROUGH. this is mostly on github so i can show it to people and as a tech demo.
 
 ## testimonials
