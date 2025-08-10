@@ -5,22 +5,21 @@
   (:require
     [clojure.data.json :as json]
     [clojure.string :as str]
-    [sci.core :as sci]
     [babashka.fs :as fs]
     [jq.api :as jq]
     [flower.reflect]
     [flower.build :as build]
     [flower.eval :as eval]))
 
-(defn load-meta [f]
-  (let [content (-> f fs/file slurp)]
-    (build/split-frontmatter {:filename f :content content}) :frontmatter))
+(defn- load-meta [f]
+  (let [content (-> f fs/file slurp)
+        split (build/split-frontmatter {:filename f :content content})]
+   [(str f) (:frontmatter split)]))
 
-; TODO: allow configuring :url
-(defn load-all-meta [dir]
+(defn- load-all-meta [dir]
   (let [paths (fs/glob dir "**")
         files (filter #(not (fs/directory? %)) paths)]
-    (map load-meta files)))
+    (into {} (map load-meta files))))
 
 ; meta-build system
 
@@ -54,6 +53,7 @@
     (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
 ; template embedding
+; TODO: this should happen in transformers/embed.clj
 (defn embed-template
   "Given a {:content :frontmatter} page and the name of a template file,
   render `template` in context."
@@ -73,30 +73,10 @@
 
 ; jq emulator
 
-; the clojure wrapper sucks and is poorly documented, so just use the Java one
-; Helper interface that specifies a method to get a string value.
-#_(definterface IContainer
-  ; net.thisptr.jackson.jq/Output
-  (^java.lang.Iterable getValue []))
-
-; (deftype give-me-the-damn-data [JsonNode the-data]
-;   Output
-;   (emit [this json-node] (set! (. this the-data) json-node)))
-;
-; (defn jq [data query]
-;   (let [scope (Scope/newEmptyScope)
-;         compiled (JsonQuery/compile query Versions/JQ_1_6)
-;         tree (.readTree (ObjectMapper.) data)
-;         ; s (java.io.StringWriter.)
-;         s (give-me-the-damn-data. nil)
-;         out (.apply compiled scope tree s)]
-;     s))
-
 ; the clojure library is buggy and the underlying java library is hideously complicated.
 ; rather than try to figure out their api, just parse and reserialize the string.
 (defn jq
-  [{:keys [data query raw-input raw-output] :as m}]
-  ; (eprn m)
+  [{:keys [data query raw-input raw-output]}]
   (let [in (if raw-input (json/write-str data) data)
         res (try (jq/execute in query)
                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
@@ -105,6 +85,7 @@
 
 ; preprocessing
 
+; TODO: this can just be a normal transfomer
 (defn render-page
   "Preprocess and render a JSON blob"
   ([parsed {:keys [locals] :or {locals {}}}]
@@ -115,7 +96,7 @@
 
 ; index preprocessing
 
-(defn get-meta
+(defn- get-meta
   [out all-meta]
   (let [orig_path (fs/path "pages" (build/remove-parent out))
         frontmatter (get all-meta orig_path {})]

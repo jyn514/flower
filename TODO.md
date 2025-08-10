@@ -11,6 +11,7 @@
     - ⋄ is compose+<> on linux
     - point people to https://github.com/samhocevar/wincompose on windows
     - document how to set this up in common editors (vim, vscode, helix, zed)
+
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
 - clojure.repl doesn't get loaded into SCI
@@ -21,8 +22,14 @@
 - sandbox fs APIs for build.clj
 - file watcher should debounce nvim delete/recreate
 - file watcher should cancel existing ninja processes if a new input is changed
+- generated build.ninja can't handle file deletes
+  - probably i can avoid this by deleting all the outputs of `ninja -t query <deleted file>`
+- `watch` tries to rebuild if an intermediate file was rebuilt.
+  - get a list of all outputs of the modified file and ignore them if they happen within a ~second of a completed build? unsure
+  - debouncing will help probably
 - nice syntax over ninja phony targets so you have some equivalent of `--drafts`
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
+  - note that `ninja -t browse` defaults to `all`. hm.
 - flower emojis
 - `index = true` doesn't work in pages
 - templates can end with .md

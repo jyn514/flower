@@ -10,6 +10,12 @@
                `(intern *ns* '~sym ~sym))]
     `(do ~@defs)))
 
+(defmacro fmt [^String string]
+  (let [-re #"\$\{(.*?)\}"
+        fstr (clojure.string/replace string -re "%s")
+        fargs (map #(read-string (second %)) (re-seq -re string))]
+    `(format ~fstr ~@fargs)))
+
 (defn eprintln [& msg]
   (binding [*out* *err*]
     (apply println msg)))
@@ -38,6 +44,16 @@
       (apply ps/shell opts rest)
       (ps/shell opts rest))))
 
+(defn run-non-fatal
+  "Like `run`, but if the process fails, print an error instead of throwing an exception.
+  You can check if the process failed because you'll get `nil` instead of a process record."
+  [opts & rest]
+  (try (apply run opts rest)
+       (catch clojure.lang.ExceptionInfo e
+         (if (= (:type (ex-data e)) :babashka.process/error)
+           (error (fmt "failed to run ${rest}: exit code") (:exit (ex-data e)))
+           (throw e)))))
+
 (defn strip-prefix
   [s pre]
   (let [quoted (java.util.regex.Pattern/quote pre)
@@ -50,12 +66,6 @@
     (if (seq out)
       (str/split out #"\n")
       [])))
-
-(defmacro fmt [^String string]
-  (let [-re #"\$\{(.*?)\}"
-        fstr (clojure.string/replace string -re "%s")
-        fargs (map #(read-string (second %)) (re-seq -re string))]
-    `(format ~fstr ~@fargs)))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& xs]

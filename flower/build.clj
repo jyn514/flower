@@ -10,13 +10,17 @@
             [babashka.fs :as fs]
             [clojure.data.json :as json]
             [clojure.edn       :as edn]
-            [yaml.core     :as yaml]
             [toml-clj.core :as toml]
             ))
+(binding [*warn-on-reflection* false]
+  (require '[yaml.core     :as yaml]))
 
 ; bound by 'configure
 (def ^:dynamic *ninja* "not for public use" *err*)
-(def ^:dynamic *frontmatter* "not for public use" [])
+(def ^:dynamic *frontmatter*
+  "A {:templates Frontmatter  :pages Frontmatter} map,
+  where Frontmatter is a {\"path\" metadata-map}"
+  {})
 (def ^:dynamic *transformers*
   "a mapping from transformer file extension to how to run it.
   transformer runners must read {html, frontmatter} JSON on stdin
@@ -66,11 +70,6 @@
        :frontmatter (parser (str/join "\n" frontmatter))}
       {:frontmatter {} :file filename :content content})))
 
-(defn all-frontmatter
-  "Returns a {:templates Frontmatter  :pages Frontmatter} map,
-  where Frontmatter is a {\"path\" metadata-map}"
-  [] *frontmatter*)
-
 ; ninja utils
 
 (defn- escape
@@ -102,7 +101,7 @@
 (defn- gen-rule [opts]
   (str "rule " (:name opts) nl
        (variable "command" (:command opts))
-     (if (contains? opts :description)
+     (when (contains? opts :description)
        (variable "description" (:description opts)))))
 
 (defn- gen-build [opts]
@@ -112,8 +111,8 @@
         order (join (:order opts))]
     (apply str "build " out ": "
          (:rule opts) " " in
-         (if (seq implicit) (str " | " implicit))
-         (if (seq order) (str " || " order))
+         (when (seq implicit) (str " | " implicit))
+         (when (seq order) (str " || " order))
          nl
          (str/join
            (map-vars variable

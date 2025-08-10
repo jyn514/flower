@@ -82,8 +82,6 @@
 
 ; live-reload listener
 
-(def default-port 35729)
-
 (defn- on-output-change
   [{:keys [type path build-dir]}]
   (when-not (some #{type} [:delete :overflow])
@@ -105,11 +103,13 @@
 (defn rerun-ninja [{:keys [type path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
   (println type (str path))
-  (try (run "ninja")
-       (catch clojure.lang.ExceptionInfo e
-         (if (= (:type (ex-data e)) :babashka.process/error)
-           (error "failed to run ninja: exit code" (:exit (ex-data e)))
-           (throw e)))))
+  ; ninja can't handle file deletes. generate a new build plan for it.
+  ; TODO: delete all the outputs of the deleted file;
+  ; you can get a list with `ninja -t query`
+  ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
+  ; TODO: don't rebuild immediately if ninja modifies a bunch of intermediate files, it looks weird
+  (when (= :delete type) (run-non-fatal "flower configure"))
+  (run-non-fatal "ninja"))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes
@@ -127,14 +127,13 @@
 ; api
 
 (defn watch
-  [& {:keys [live-reload-port static-port out-dir build-dir change-dir]
-      :or {live-reload-port default-port
-           static-port 8090
+  [& {:keys [static-port out-dir build-dir]
+      :or {static-port 8090
            out-dir "public"
            build-dir ".build"}}]
   (println "Rerun `flower configure`")
   (cmd/configure)
-  (println "Starting ninja watcher for" *site*)
+  (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`")
   (watch-ninja build-dir)
   ; ninja could have failed, in which case out-dir won't exist.
   ; but we still want to start a server in case it succeeds later.
@@ -142,6 +141,6 @@
   (fs/create-dirs out-dir)
   (println "Starting live reload watcher for" out-dir)
   ; TODO: this needs to be async oops
-  (live-reload {:dir out-dir :port live-reload-port})
+  (live-reload {:dir out-dir :port 35729})
   (http-server/exec {:dir out-dir :port static-port}))
 
