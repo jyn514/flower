@@ -1,0 +1,17 @@
+# https://stackoverflow.com/questions/27957454/how-to-disable-pull-requests-in-github
+
+name: 'Lock Pull Requests'
+
+on:
+  pull_request_target:
+    types: opened
+
+permissions:
+  pull-requests: write
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/repo-lockdown@v4
+        pr-comment: 'Flower does not accept Github pull requests. Use [Codeberg](https://codeberg.org/jyn514/flower/pulls) instead.'
