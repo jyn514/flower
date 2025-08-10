@@ -7,6 +7,7 @@
   (require '(clojure [string :as str])
           '(clojure.data [json :as json])
           '[clojure.reflect :as r]
+          '[clojure.stacktrace :refer [print-stack-trace]]
           '(flower [main :as flower])
           '(sci [core :as sci])
           '(instaparse [core :as insta])

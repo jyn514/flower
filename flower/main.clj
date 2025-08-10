@@ -14,6 +14,7 @@
   [flower.hiccup]
   [flower.reflect]
   [flower.defaults]
+  [flower.beholder]
   [flower.watch]
   [flower.utils]
   [flower.internal.utils]))

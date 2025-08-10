@@ -12,27 +12,26 @@
    [clojure.stacktrace]
    [clojure.string :as str]
    [flower.cmd :as cmd]
-   [nextjournal.beholder :as behold]
+   [flower.beholder :as behold]
    [org.httpkit.server :as wss]))
 
 ; file watcher
 
 (defn on-file-change
   [cb paths event]
-  ; behold doesn't support file filters, only directory filters. implement them ourselves.
-  (when (contains? paths (-> event :path str))
-    ; behold silently swallows stack traces >:(
-    (try (cb event)
-         (catch java.lang.Exception e
-           (clojure.stacktrace/print-stack-trace e)))))
+    ; behold doesn't support file filters, only directory filters. implement them ourselves.
+    (when (contains? paths (:path event))
+         (cb event)))
+
+(defn to-dir [path]
+  (let [dir (if (fs/directory? path) path (fs/parent path))]
+    (-> dir fs/real-path str)))
 
 (defn watch-files
   [cb paths]
-  (let [abs-paths (set (map #(-> % fs/real-path str) paths))]
-    ; NOTE: does *not* run on changes to metadata (e.g. modification time)
-    ; probably we should tell the underlying java library not to do that?
-    ; see https://github.com/gmethvin/directory-watcher#configuration
-    (apply behold/watch #(on-file-change cb abs-paths %) abs-paths)))
+  (let [abs-paths (set (map fs/real-path paths))
+        dirs (set (map to-dir abs-paths))]
+    (apply behold/watch #(on-file-change cb abs-paths %) dirs)))
 
 ; live-reload proto
 
@@ -145,3 +144,4 @@
   ; TODO: this needs to be async oops
   (live-reload {:dir out-dir :port live-reload-port})
   (http-server/exec {:dir out-dir :port static-port}))
+
