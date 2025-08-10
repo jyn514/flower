@@ -14,4 +14,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/repo-lockdown@v4
-        pr-comment: 'Flower does not accept Github pull requests. Use [Codeberg](https://codeberg.org/jyn514/flower/pulls) instead.'
+        with:
+          pr-comment: 'Flower does not accept Github pull requests. Use [Codeberg](https://codeberg.org/jyn514/flower/pulls) instead.'
