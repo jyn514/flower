@@ -51,7 +51,7 @@
   (try (apply run opts rest)
        (catch clojure.lang.ExceptionInfo e
          (if (= (:type (ex-data e)) :babashka.process/error)
-           (error (fmt "failed to run ${rest}: exit code") (:exit (ex-data e)))
+           (error (fmt "failed to run ${opts}: exit code") (:exit (ex-data e)))
            (throw e)))))
 
 (defn strip-prefix

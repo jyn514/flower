@@ -66,9 +66,9 @@
         [frontmatter body]        (split-lines rest-lines first-line)]
     (if-let [parser (select-parse-fn first-line)]
       {:content (str/join "\n" body)
-       :file filename
+       :filename filename
        :frontmatter (parser (str/join "\n" frontmatter))}
-      {:frontmatter {} :file filename :content content})))
+      {:content content :filename filename :frontmatter {}})))
 
 ; ninja utils
 

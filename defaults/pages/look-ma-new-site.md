@@ -1,5 +1,6 @@
 ---
 languages: ["cpp", "clj"]
+template: main.html
 ---
 
 #define TITLE the website of jyn

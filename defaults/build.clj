@@ -12,8 +12,10 @@
 (defn / [x & more]
   (apply fs/path x more))
 
-(defn ext [path ext]
+(defn replace-ext [path ext]
   (-> path fs/path fs/file-name fs/strip-ext (str "." ext)))
+(defn add-ext [path ext]
+  (-> path fs/path fs/file-name (str "." ext)))
 
 (def public "public")
 (def builddir ".build")
@@ -30,19 +32,20 @@
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
+; TODO: allow configuring :url
 (defn build-page
   ([rule page] (build-page rule page []))
   ([rule page implicits]
-   (let [template (-> (get flower.build/all-frontmatter page) :template (or "default.html"))
+   (let [page-frontmatter (get flower.build/*frontmatter* :pages)
+         template (-> (get page-frontmatter (str page)) :template (or "default.html"))
          template_path (/ templates template)
-         json_frontmatter (/ builddir (ext page "md.json"))
-         processed_markdown (/ builddir (ext page "md.rendered.json"))
+         json_frontmatter (/ builddir (add-ext page "json"))
+         processed_markdown (/ builddir (add-ext page "rendered.json"))
          ; can be different than embedded_html if e.g. the template ends in .md
-         embedded_markdown (/ builddir (ext page (str (fs/extension template) ".embed")))
-         ; TODO: needs a different name, this setup causes the embed to be copied into the final dir
-         embedded_html (/ builddir (ext page "html.embed"))
-         depfile (/ builddir (ext page "html.embed.d"))
-         final_html (/ public (ext page "html"))
+         embedded_markdown (/ builddir (replace-ext page (str (fs/extension template) ".embed")))
+         embedded_html (/ builddir (replace-ext page "html.embed"))
+         depfile (/ builddir (replace-ext page "html.embed.d"))
+         final_html (/ public (replace-ext page "html"))
          rules [{:rule "frontmatter"
                  :inputs (str page)
                  :outputs json_frontmatter
@@ -72,7 +75,7 @@
      ) ))
 
 (defn markdown-page [page]
-  (let [html (/ builddir (ext page "html"))]
+  (let [html (/ builddir (replace-ext page "html"))]
     {:rules [{:rule "markdown"
               :inputs page
               :outputs html
@@ -87,7 +90,6 @@
 
 (defmulti dispatch-file fs/extension)
 (defmethod dispatch-file "md" [f] (markdown-page f))
-; (defmethod dispatch-file "html" [f] (link-page f))
 (defmethod dispatch-file :default [f] (link-page f))
 (defn chain-commands [in out]
   (let [{new-rules :rules
@@ -97,21 +99,21 @@
       all-rules
       (recur new-path all-rules))))
 
-(def all-pages (fs/glob "pages" "**.md"))
+(def all-pages (fs/glob "pages" "**"))
 
 (defn chain-page [pages build-func]
   (mapcat
     #(let [{:keys [rules out]} (build-func %)]
        (if out (chain-commands out rules) rules))
     pages))
-(def page-builds (chain-page all-pages #(build-page "page" %)))
 
-(defn index [{frontmatter :all-frontmatter}]
-  ; TODO: this is wrong, index pages should be pages, not templates
-  (let [index-meta (filter #(get % "index") (:templates frontmatter))
-        index-paths (map :file index-meta)
-        index-builds (chain-page index-paths #(build-page "index" % "build.ninja"))]
-    {:builds index-builds}))
+(defn pages [{frontmatter :all-frontmatter}]
+  (let [[indexes pages] (split-with (fn [[_ meta]] (get meta "index")) (:pages frontmatter))
+        index-paths (map first indexes)
+        page-paths (map first pages)
+        index-builds (chain-page index-paths #(build-page "index" % (conj page-paths "build.ninja")))
+        page-builds (chain-page page-paths #(build-page "page" %))]
+    {:builds (concat index-builds page-builds)}))
 
 (def base
   {:variables {:builddir builddir}
@@ -172,6 +174,4 @@
 
 (flower.build/register-transformer-runners
   {"clj" (str flower_cli " transform")})
-(flower.build/generate
-  (update-in base [:builds] #(concat % page-builds))
-  index transform)
+(flower.build/generate base pages transform)
