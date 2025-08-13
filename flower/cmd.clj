@@ -153,3 +153,9 @@
     ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
     parsed))
 
+(defn split-sass-dependencies
+  [parsed]
+  (let [deps (:sources parsed)
+        root (first deps)
+        joined (build/join deps)]
+    (fmt "${root}: ${joined}")))

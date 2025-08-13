@@ -2,6 +2,7 @@
 ; see https://github.com/liquidz/frontmatter
 
 ; NOTE: everything here must be possible to run in a sandbox with read-only access to the filesystem
+; TODO: move this to expressions/
 
 (ns flower.build
   (:import (java.io Writer))
@@ -10,8 +11,7 @@
             [babashka.fs :as fs]
             [clojure.data.json :as json]
             [clojure.edn       :as edn]
-            [toml-clj.core :as toml]
-            ))
+            [toml-clj.core :as toml]))
 (binding [*warn-on-reflection* false]
   (require '[yaml.core     :as yaml]))
 

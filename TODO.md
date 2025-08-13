@@ -4,6 +4,7 @@
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)
     - reload vfs itself when flower changes using ninja
+    - custom merge isn't *that* hard https://github.com/mystor/git-revise/blob/main/gitrevise/merge.py
 - write lots of tests
     - pprint
 - document how to type lozenge
@@ -21,6 +22,7 @@
 - allow configuring build dirs in `flower.toml`
 - sandbox fs APIs for build.clj
 - file watcher should debounce nvim delete/recreate
+  - https://github.com/clojure/core.async
 - file watcher should cancel existing ninja processes if a new input is changed
 - generated build.ninja can't handle file deletes
   - probably i can avoid this by deleting all the outputs of `ninja -t query <deleted file>`
@@ -97,6 +99,9 @@ ninja's api for all of these is `flower transform`
 
 - RSS feed
 - syntax highlighting
+  - https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html
+  - https://github.com/bonede/tree-sitter-ng
+  - https://github.com/seart-group/java-tree-sitter
 - Sass compiler
 - bsky comments
   - https://natalie.sh/posts/bluesky-comments/

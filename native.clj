@@ -32,7 +32,7 @@
                  (ps/shell {:out :string}) :out))
 (def manifest-path "MANIFEST.txt")
 (def default-files (str/split git-output #"\n"))
-(def manifest
+(def manifest-contents
   (str/join "\n"
             (map #(strip-prefix % "defaults/")
                  default-files)))
@@ -71,17 +71,19 @@
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
     {:glob "simplelogger.properties"}]})
 
+(defn manifest [_]
+  (fs/write-bytes (str "defaults/" manifest-path) (.getBytes manifest-contents))
+  (b/copy-file {:src (str "defaults/" manifest-path)
+                :target (format "%s/%s/%s" class-dir defaults manifest-path)}))
+
 (defn uberjar [_]
   (clean nil)
+  (manifest nil)
   (b/copy-dir {:src-dirs ["src"]
                :target-dir class-dir})
   (doseq [f default-files]
     (b/copy-file {:src f
                   :target (str defaults-target "/" (strip-prefix f "defaults/"))}))
-  (fs/write-bytes (str "defaults/" manifest-path) (.getBytes manifest))
-  (b/copy-file {:src (str "defaults/" manifest-path)
-                :target (format "%s/%s/%s" class-dir defaults manifest-path)})
-
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]

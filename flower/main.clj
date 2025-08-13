@@ -23,17 +23,20 @@
 
 ; CLI and IO
 
+(defn read-json []
+        ; TODO: https://clojure.atlassian.net/browse/DJSON-43
+  (let [reader (java.io.PushbackReader. *in* 64)]
+    (try (json/read reader :key-fn keyword)
+         ; bruh what is up with the json parser not having scoped exceptions
+         (catch java.lang.Exception e
+           (fatal "failed to parse JSON:" (ex-message e))))))
+
 (defn map-json
   "Given a function `f` that transforms a clojure map to a clojure map,
    read the map as JSON from stdin and write it to stdout.
    If any `args` are present, they will be passed after the map."
   [f & args]
-  ; TODO: https://clojure.atlassian.net/browse/DJSON-43
-  (let [reader (java.io.PushbackReader. *in* 64)
-        before (try (json/read reader :key-fn keyword)
-                    ; bruh what is up with the json parser not having scoped exceptions
-                    (catch java.lang.Exception e
-                      (fatal "failed to parse JSON:" (ex-message e))))
+  (let [before (read-json)
         after (apply f before args)]
     (json/write after *out*)))
 
@@ -79,6 +82,8 @@
    "split-dependencies" {:fn #(map-json cmd/split-dependencies %)
                          :coerce {:depfile :string :out-file :string}
                          :args->opts [:depfile :out-file]}
+   "split-sass-dependencies"
+      #(-> (read-json) cmd/split-sass-dependencies println)
    "watch" flower.watch/watch
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data

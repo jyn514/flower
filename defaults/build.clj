@@ -1,6 +1,7 @@
 ; TODO: expose this as flower.defaults.build
 (require 'flower.build
          '(babashka [fs :as fs])
+         '[clojure.set :refer [union]]
          '(clojure [string :as str]))
 (use 'flower.utils)
 
@@ -16,6 +17,13 @@
   (-> path fs/path fs/file-name fs/strip-ext (str "." ext)))
 (defn add-ext [path ext]
   (-> path fs/path fs/file-name (str "." ext)))
+
+(defn all-dirs [root]
+  (let [dirs (atom #{})
+        update #(swap! dirs conj %)
+        visitor (fn [path _attrs] (update path) :continue)]
+    (fs/walk-file-tree root {:pre-visit-dir visitor})
+    (map str @dirs)))
 
 (def public "public")
 (def builddir ".build")
@@ -115,6 +123,21 @@
         page-builds (chain-page page-paths #(build-page "page" %))]
     {:builds (concat index-builds page-builds)}))
 
+(def sass-files
+  ; excludes /_*.sass
+  (filter #(-> % fs/file-name first (= \_) not)
+          (fs/glob "sass" "**.{scss,sass}")))
+
+(defn sass->build [path]
+  (let [out (/ public (replace-ext path "css"))
+        source-map (/ public (add-ext out "map"))
+        depfile (/ builddir (add-ext path "d"))]
+    {:rule "sass"
+    :inputs (str path)
+    :outputs out
+    :source-map source-map
+    :depfile depfile}))
+
 (def base
   {:variables {:builddir builddir}
    :rules
@@ -144,6 +167,9 @@
     {:name "frontmatter"
      ; TODO: maybe add an `--arg` equivalent idk
      :command (fmt "${flower_cli} jq -R \"{filename: \\\"$in\\\", content: .}\" < $in | ${flower_cli} split-frontmatter > $out")}
+    {:name "sass"
+     :command "sass $in $out; ${flower_cli} <$source-map >$depfile"
+     :description "compile Sass file $in to CSS"}
     {:name "markdown"
      ; TODO: use flower builtins
      :command "pulldown-cmark -TFSULG $in -> $out"
@@ -153,8 +179,9 @@
    [{:rule "ninja-meta"
      :restat true
      :outputs "build.ninja"
-     :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff)}
-    (if rebuild-flower
+     :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff
+                     (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
+    (when rebuild-flower
       {:rule "flower-meta"
       :outputs ff
       :inputs (conj (fs/glob "../flower" "**") "../flower")})
@@ -174,4 +201,6 @@
 
 (flower.build/register-transformer-runners
   {"clj" (str flower_cli " transform")})
-(flower.build/generate base pages transform)
+(flower.build/generate
+  (update base :builds #(concat % (map sass->build sass-files)))
+  pages transform)
