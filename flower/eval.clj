@@ -16,6 +16,8 @@
 
 ; sandboxing
 
+(def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
+
 (defn load-sci-file [file] 
   {:file file :source (slurp file)})
 
@@ -172,19 +174,22 @@
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
   [cx form]
-  (sci/binding [sci/out *err*
-                sci/err *err*]
-     ; TODO: we shouldn't bind locals when loading expressions ...
-     (doseq [clj (fs/glob "expressions" "**.clj")]
-       (let [f (str clj)
-             ns (->> f fs/strip-ext fs/file-name (str "flower.expressions."))
-             ; TODO: shouldn't be necessary: https://clojurians.slack.com/archives/C015LCR9MHD/p1754590244420059?thread_ts=1754589990.970939&cid=C015LCR9MHD
-             lisp (str "(do (ns " ns ")" (slurp f) ")")
-             fcx (with-meta cx {:filename f})]
-         (sci/with-bindings {sci/ns (sci/create-ns (symbol ns))}
-          (try-sci fcx #(sci/eval-string* fcx lisp)))))
-     (sci/with-bindings {sci/ns userns}
-      (try-sci cx #(sci/eval-form cx form)))))
+  (binding [flower.reflect/*dependencies* #{}
+            *cx* cx]
+    (sci/binding [sci/out *err*
+                  sci/err *err*]
+      ; TODO: we shouldn't bind locals when loading expressions ...
+      (doseq [clj (fs/glob "expressions" "**.clj")]
+        (let [f (str clj)
+              ns (->> f fs/strip-ext fs/file-name (str "flower.expressions."))
+              ; TODO: shouldn't be necessary: https://clojurians.slack.com/archives/C015LCR9MHD/p1754590244420059?thread_ts=1754589990.970939&cid=C015LCR9MHD
+              lisp (str "(do (ns " ns ")" (slurp f) ")")
+              fcx (with-meta cx {:filename f})]
+          (sci/with-bindings {sci/ns (sci/create-ns (symbol ns))}
+            ; TODO: this doesn't set :file :(
+            (try-sci fcx #(sci/eval-string* fcx lisp)))))
+        (sci/with-bindings {sci/ns userns}
+          (try-sci cx #(sci/eval-form cx form))))))
 
 (defn embed-custom [cx s f]
   (->> s (parse-string cx) f (eval-form cx))) 
@@ -217,8 +222,8 @@
 ; this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
 ; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
 ; TODO: allow escaping ] and } in InlineRender
-; TODO: inline InlineBody
 ; TODO: don't actually need to disallow whitespace in Atom now that InlineRender handles Vec properly
+; TODO: i don't think this handles nested InlineRender properly
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
@@ -248,21 +253,11 @@
         :List #(identity %&)
         :Atom identity
         :Form identity
-        ; :Form identity
         :FlowerSyntax identity
         ; TODO: i think this is wrong when ReaderSyntax is present?
         :OuterList #(ppeval cx (->source src %))
-        ; :OuterIdent #(ppeval cx %)
         :OuterIdent #(->> % embed (eval-form cx))
         :InlineRender #(apply inline-render cx src %&)
-        ; :Vec #(->source src %)
-        ; :Vec vector
-        ; :InlineArgs vec
-        ; :InlineArg #(parse-string cx (apply str %&))
-        ; :InlineArgs #(eval-string cx (str "[" (->source src %) "]"))
-        ; :InlineBody #(embed-custom cx %)
-        ; str? if this was an Ident or InlineRender
-                ; (ppeval cx (apply subs src (insta/span %))))
       } tree)))
 
 ; TODO: needs to account for pages not in clojure
@@ -272,5 +267,6 @@
   ([src filename] (render-file src filename {}))
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
-   (let [cx (create-sci-cx filename {:bindings locals})]
+   (let [cx (if (some? *cx*) *cx*
+              (create-sci-cx filename {:bindings locals}))]
      (teval (parse src) src cx))))

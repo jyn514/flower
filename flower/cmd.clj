@@ -5,6 +5,7 @@
   (:require
     [clojure.data.json :as json]
     [clojure.string :as str]
+    [clojure.set :refer [union]]
     [babashka.fs :as fs]
     [jq.api :as jq]
     [flower.reflect]
@@ -122,6 +123,13 @@
                 {})]
     (render-page parsed {:locals {'pages pages}})))
 
+(defn with-tracked-deps [dependencies f]
+    (binding [flower.reflect/*dependencies* #{}]
+      (let [out-map (f)
+            ; TODO: should be keyed by output file so we can minimize rebuilds
+            all-deps (union (set dependencies) flower.reflect/*dependencies*)]
+        (assoc out-map :dependencies all-deps))))
+
 ; transforming
 (defn transform
   "Given a `{:content x :frontmatter y :transformer z}` map,
@@ -137,12 +145,7 @@
         ls (str "(do " f ")")
         transformer (eval/parse-string cx ls)
         lisp (eval/embed (list 'do transformer '(transform page)))]
-    (binding [flower.reflect/*dependencies* #{}]
-      (let [html (eval/eval-form cx lisp)
-            ; TODO: should be keyed by output file so we can minimize rebuilds
-            for-merge (update parsed :dependencies set)]
-        (merge-deep for-merge {:content html
-                               :dependencies flower.reflect/*dependencies*})))))
+    {:content (eval/eval-form cx lisp)}))
 
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]
@@ -153,9 +156,11 @@
     ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
     parsed))
 
+; TODO: take out-dir as an arg
 (defn split-sass-dependencies
-  [parsed]
-  (let [deps (:sources parsed)
-        root (first deps)
-        joined (build/join deps)]
-    (fmt "${root}: ${joined}")))
+  [parsed {:keys [source-file]}]
+  (let [out-dir "public"
+        deps (:sources parsed)
+        relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)
+        joined (build/join relative-deps)]
+    (fmt "${source-file}: ${joined}")))

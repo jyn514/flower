@@ -116,6 +116,7 @@
   ; definitely shouldn't for anything in `build`
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
+  ; TODO: this doesn't notice files that were added after the watch started
   (let [all-inputs (parse-ninja "ninja -t inputs")
         temp-file? #(str/starts-with? % (str build-dir "/"))
         important-inputs (filter #(not (temp-file? %)) all-inputs)

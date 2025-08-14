@@ -37,13 +37,13 @@
    If any `args` are present, they will be passed after the map."
   [f & args]
   (let [before (read-json)
-        after (apply f before args)]
+        after (cmd/with-tracked-deps (:dependencies before) #(apply f before args))]
     (json/write after *out*)))
 
 (defn no-args [f]
   (fn [& _] (f)))
 
-(defn unknown-command [{:keys [args] :as m}]
+(defn unknown-command [{:keys [args]}]
   (fatal (str "unrecognized command: '"
               (str/join " " args)
               "' (-h for help, or 'watch' to build your site)")))
@@ -83,7 +83,9 @@
                          :coerce {:depfile :string :out-file :string}
                          :args->opts [:depfile :out-file]}
    "split-sass-dependencies"
-      #(-> (read-json) cmd/split-sass-dependencies println)
+     {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
+      :coerce {:source-file :string}
+      :args->opts [:source-file]}
    "watch" flower.watch/watch
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
