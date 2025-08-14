@@ -154,3 +154,4 @@
         relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)
         joined (build/join relative-deps)]
     (fmt "${source-file}: ${joined}")))
+

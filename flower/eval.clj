@@ -168,7 +168,7 @@
   [cx s]
   (try-sci cx #(sci/parse-string cx s)))
 
-(defn- eval-inner-form
+(defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
   [cx form]
   (binding [flower.reflect/*dependencies* #{}
@@ -189,15 +189,15 @@
           (eprn form)
           (try-sci cx #(sci/eval-form cx form))))))
 
-(defn eval-form
-  "Evaluate a quoted form as if it had been loaded with `load-file`."
-  [cx form]
-  ; can't just use normal dequoting here. if there is a `(require)` that is used later,
-  ; it won't be evaluated eagerly and we will get a resolution error.
-  ; use `eval` to delay resolution.
-  ; this has to be at the outermost level because eval doesn't see local bindings
-  ; (e.g. from let, for)
-  (eval-inner-form cx `(flower.eval/pprint (eval '~form))))
+; (defn eval-form
+;   "Evaluate a quoted form as if it had been loaded with `load-file`."
+;   [cx form]
+;   ; can't just use normal dequoting here. if there is a `(require)` that is used later,
+;   ; it won't be evaluated eagerly and we will get a resolution error.
+;   ; use `eval` to delay resolution.
+;   ; this has to be at the outermost level because eval doesn't see local bindings
+;   ; (e.g. from let, for)
+;   (eval-inner-form cx `(flower.eval/pprint (eval '~form))))
 ; (defn embed-custom [cx s f]
 ;   (f (parse-string cx s)) 
 
@@ -216,7 +216,7 @@
 (defn inline-render
   ([cx src ident body] (apply inline-render cx src ident '[] body))
   ([cx src ident args body]
-    (eprn body)
+    ; (eprn body)
     (let [;inline-body #(identity `(str ~@%))
           ; rendered (inline-body (map #(parse-string cx %) body))
           ; rendered (inline-body body)
@@ -277,6 +277,7 @@
   ([tree src] (teval tree src (create-sci-cx (-> src meta :filename))))
   ([tree src cx]
    (let [form (transformer tree src cx)
+         ; TODO: maybe wrong? do we need to wrap this in pprint/eval?
          strs (map #(if (string? %) % (eval-form cx %)) form)]
      (apply str strs))))
 
