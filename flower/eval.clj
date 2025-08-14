@@ -232,7 +232,7 @@
       FlowerSyntax = (OuterIdent | InlineRender | OuterList)
       OuterList = ReaderSyntax* List
       OuterIdent = Ident
-      InlineRender = Ident ( Vec )? <'{'> #'[^}]*' <'}'>
+      InlineRender = Ident ( Vec )? <'{'> ( #'[^}◊]' | Lisp )* <'}'>
 
       ReaderSyntax = #\"[\\[\\;@^#`~']\"
       Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
