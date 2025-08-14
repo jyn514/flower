@@ -1,11 +1,12 @@
 (ns flower.eval
   (:use flower.internal.utils)
   (:require
-   [clojure.repl :as repl]
    [flower.hiccup]
    [flower.reflect]
    [flower.utils]
+   [clj-commons.digest]
    [hiccup.util]
+   [clojure.repl :as repl]
    [instaparse.core :as insta]
    [babashka.fs :as fs]
    [sci.core :as sci])
@@ -67,7 +68,7 @@
         html (sci/copy-var flower.hiccup/html-2 (-> ns meta :ns))]
   (assoc ns 'html html)))
 
-(declare render)
+(declare render-file)
 
 (defn sci-defaults []
   {
@@ -85,13 +86,14 @@
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings
                 ; TODO: can't bind `reflect/read-file` until we do dependency tracking elsewhere
-                'flower.reflect {'*watching*
-                                 (sci/copy-var
-                                   flower.reflect/*watching*
-                                   (sci/create-ns 'flower.reflect))}
-                ; 'flower.reflect (assoc (copy-ns 'flower.reflect)
-                ;                        'render render)
+                ; 'flower.reflect {'*watching*
+                ;                  (sci/copy-var
+                ;                    flower.reflect/*watching*
+                ;                    (sci/create-ns 'flower.reflect))}
+                'flower.reflect (assoc (copy-ns 'flower.reflect)
+                                       'render-file render-file)
                 'flower.internal {'pprint pprint}
+                'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
@@ -184,25 +186,55 @@
      (sci/with-bindings {sci/ns userns}
       (try-sci cx #(sci/eval-form cx form)))))
 
+(defn embed-custom [cx s f]
+  (->> s (parse-string cx) f (eval-form cx))) 
+
+(defn eval-string [cx s]
+  (embed-custom cx s identity))
+
 (defn ppeval "pretty print eval" [cx s]
-  (->> s (parse-string cx) embed (eval-form cx)))
+  (embed-custom cx s embed))
+
+(defn inline-body [cx s]
+  (embed-custom cx s
+                (fn [body] `(flower.reflect/render-file ~(str body) "<inline>" {}))))
+
+(defn ->source [src node]
+  (apply subs src (insta/span node)))
+
+(defn inline-render
+  ([cx src ident body] (inline-render cx src ident '[] body))
+  ([cx src ident args body]
+    (let
+         [rendered (inline-body cx body)
+          quoted-args (embed-custom cx (->source src args)
+                                    (fn [args] `(quote ~args)))
+          call `(~ident ~@(conj quoted-args rendered))]
+      (eval-form cx (embed call)))))
 
 ; TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
 ; https://clojure.org/reference/reader
 ; this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
-; maybe add a Syntax rule:
-; Syntax = #\"[\\[\\;@^#`~']\"
 ; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
+; TODO: allow escaping ] and } in InlineRender
+; TODO: inline InlineBody
+; TODO: don't actually need to disallow whitespace in Atom now that InlineRender handles Vec properly
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
       Text = #'[^◊]+'
-      Lisp = <'◊'> Form
-      Form = (Ident | Syntax* List)
-      Syntax = #\"[\\[\\;@^#`~']\"
+      Lisp = <'◊'> FlowerSyntax
+      FlowerSyntax = (OuterIdent | InlineRender | OuterList)
+      OuterList = ReaderSyntax* List
+      OuterIdent = Ident
+      InlineRender = Ident ( Vec )? <'{'> #'[^}]*' <'}'>
+
+      ReaderSyntax = #\"[\\[\\;@^#`~']\"
       Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
-      List = <'('> (Atom | List)* <')'>
-      Atom = #'[^()]+' "))
+      Form = <#'\\s*'> (Atom | List | Vec) <#'\\s*'>
+      List = <'('> Form* <')'>
+      Vec = <'['> Form* <']'>
+      Atom = #'[^()\\[\\] ]+' "))
 
 (defn teval
   "tree eval"
@@ -211,17 +243,33 @@
       (insta/transform {
         :Start str
         :Text identity
-        :Ident #(ppeval cx %)
-        ; str? if this was an Ident
-        :Lisp #(if (string? %) %
-                (ppeval cx (apply subs src (insta/span %))))
+        :Lisp identity
+        :Ident symbol
+        :List #(identity %&)
+        :Atom identity
+        :Form identity
+        ; :Form identity
+        :FlowerSyntax identity
+        ; TODO: i think this is wrong when ReaderSyntax is present?
+        :OuterList #(ppeval cx (->source src %))
+        ; :OuterIdent #(ppeval cx %)
+        :OuterIdent #(->> % embed (eval-form cx))
+        :InlineRender #(apply inline-render cx src %&)
+        ; :Vec #(->source src %)
+        ; :Vec vector
+        ; :InlineArgs vec
+        ; :InlineArg #(parse-string cx (apply str %&))
+        ; :InlineArgs #(eval-string cx (str "[" (->source src %) "]"))
+        ; :InlineBody #(embed-custom cx %)
+        ; str? if this was an Ident or InlineRender
+                ; (ppeval cx (apply subs src (insta/span %))))
       } tree)))
 
 ; TODO: needs to account for pages not in clojure
-(defn render
+(defn render-file
   "Render content with local variables available"
   ; TODO: this causes nothing but problems, replace it with an options map
-  ([src filename] (render src filename {}))
+  ([src filename] (render-file src filename {}))
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
    (let [cx (create-sci-cx filename {:bindings locals})]

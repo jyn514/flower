@@ -25,6 +25,7 @@
     ; html parsing and manipulation
     hiccup/hiccup {:mvn/version "2.0.0"}
     org.jsoup/jsoup {:mvn/version "1.21.1"}
+    org.clj-commons/digest {:mvn/version "1.4.100"}
     io.github.nextjournal/markdown {:mvn/version "0.7.186"}}
   :paths ["."]
   :aliases {

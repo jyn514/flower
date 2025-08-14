@@ -21,6 +21,6 @@
     (String. ^bytes bs)))
 
 ; TODO: this sucks! i don't like having things only available in the guest :(
-(declare render)
+(declare render-file)
 ; (def render flower.eval/render)
 ; (reexport flower.eval/render)

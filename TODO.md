@@ -1,5 +1,10 @@
 # TODO
 
+- implement `◊ident[arg1 arg2]{body}` as shorthand for `◊(ident arg1 arg2 (render body))`
+- delete `<flower-embed>`
+- `◊span[{:class "author"}]{jyn}`
+- `◊tag['span {:class "author"}]{jyn}`
+
 - (compile) so startup time is better
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)
@@ -13,6 +18,7 @@
     - point people to https://github.com/samhocevar/wincompose on windows
     - document how to set this up in common editors (vim, vscode, helix, zed)
 
+- prelude module? maybe inject `(eval "expressions/prelude.clj")`?
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
 - clojure.repl doesn't get loaded into SCI

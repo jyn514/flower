@@ -67,7 +67,7 @@
         frontmatter (merge-deep template-frontmatter (:frontmatter embed))
         locals {'content (:content embed)
                 'frontmatter frontmatter}
-        embedded (eval/render template template-name locals)]
+        embedded (eval/render-file template template-name locals)]
     {:content embedded
      :frontmatter frontmatter}))
 
@@ -90,7 +90,7 @@
   "Preprocess and render a JSON blob"
   ([parsed {:keys [locals] :or {locals {}}}]
    (let [locals (merge-deep {'frontmatter (:frontmatter parsed)} locals)
-         rendered (eval/render (:content parsed) (:filename parsed) locals)]
+         rendered (eval/render-file (:content parsed) (:filename parsed) locals)]
      {:content rendered
       :frontmatter (:frontmatter parsed)})))
 
@@ -128,7 +128,7 @@
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
   (let [locals {'page parsed}
-        reflect (assoc (eval/copy-ns 'flower.reflect) 'render eval/render)
+        reflect (assoc (eval/copy-ns 'flower.reflect) 'render eval/render-file)
         cx-opts {:bindings locals
                  :namespaces {'flower.reflect reflect}}
         cx (eval/create-sci-cx transformer cx-opts)
