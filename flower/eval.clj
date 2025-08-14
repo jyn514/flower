@@ -292,3 +292,13 @@
    (let [cx (if (some? *cx*) *cx*
               (create-sci-cx filename {:bindings locals}))]
      (teval (parse src) src cx))))
+
+(defn create-fs-cx
+  [filename]
+  (let [fs (copy-ns 'babashka.fs)
+        build (copy-ns 'flower.build)]
+    (create-sci-cx filename
+      {:namespaces
+       ; TODO: sandboxing
+       {'babashka.fs fs
+        'flower.build build}})))

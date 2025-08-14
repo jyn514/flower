@@ -11,6 +11,7 @@
   [flower.build :as build]
   [flower.cmd :as cmd]
   [flower.eval]
+  [flower.repl]
   [flower.hiccup]
   [flower.reflect]
   [flower.defaults]
@@ -87,6 +88,7 @@
       :coerce {:source-file :string}
       :args->opts [:source-file]}
    "watch" flower.watch/watch
+   "repl" (no-args flower.repl/repl)
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))

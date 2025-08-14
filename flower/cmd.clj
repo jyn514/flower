@@ -24,16 +24,6 @@
 
 ; meta-build system
 
-(defn- create-fs-cx
-  [filename]
-  (let [fs (eval/copy-ns 'babashka.fs)
-        build (eval/copy-ns 'flower.build)]
-    (eval/create-sci-cx filename
-      {:namespaces
-       ; TODO: sandboxing
-       {'babashka.fs fs
-        'flower.build build}})))
-
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   []
@@ -47,7 +37,7 @@
         dst (fs/path out)]
     (binding [flower.build/*ninja* ninja-writer
               flower.build/*frontmatter* frontmatter]
-      (let [cx (create-fs-cx in)
+      (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
             lisp (eval/parse-string cx embedded)]
         (eval/eval-form cx lisp)))
