@@ -55,10 +55,7 @@
 (defn embed
   "given a quoted form, embeds it in a program that prints out the stringified value"
   [lisp]
-  ; can't just use normal dequoting here. if there is a `(require)` that is used later in `lisp`,
-  ; it won't be evaluated eagerly and we will get a resolution error.
-  ; use `eval` to delay resolution.
-  `(flower.internal/pprint (eval '~lisp)))
+  `(flower.eval/pprint ~lisp))
 
 ; don't bind compile-html{,-with-bindings}, they'll crash at runtime
 (def hiccup-compiler
@@ -94,7 +91,7 @@
                 ;                    (sci/create-ns 'flower.reflect))}
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
                                        'render-file render-file)
-                'flower.internal {'pprint pprint}
+                'flower.eval {'pprint pprint}
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
@@ -171,7 +168,7 @@
   [cx s]
   (try-sci cx #(sci/parse-string cx s)))
 
-(defn eval-form
+(defn- eval-inner-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
   [cx form]
   (binding [flower.reflect/*dependencies* #{}
@@ -189,33 +186,44 @@
             ; TODO: this doesn't set :file :(
             (try-sci fcx #(sci/eval-string* fcx lisp)))))
         (sci/with-bindings {sci/ns userns}
+          (eprn form)
           (try-sci cx #(sci/eval-form cx form))))))
 
-(defn embed-custom [cx s f]
-  (->> s (parse-string cx) f (eval-form cx))) 
+(defn eval-form
+  "Evaluate a quoted form as if it had been loaded with `load-file`."
+  [cx form]
+  ; can't just use normal dequoting here. if there is a `(require)` that is used later,
+  ; it won't be evaluated eagerly and we will get a resolution error.
+  ; use `eval` to delay resolution.
+  ; this has to be at the outermost level because eval doesn't see local bindings
+  ; (e.g. from let, for)
+  (eval-inner-form cx `(flower.eval/pprint (eval '~form))))
+; (defn embed-custom [cx s f]
+;   (f (parse-string cx s)) 
 
-(defn eval-string [cx s]
-  (embed-custom cx s identity))
+; (defn eval-string [cx s]
+;   (eval-form cx (parse-string cx s)))
+;
+; (defn ppeval "pretty print eval" [cx s]
+;   (->> s (parse-string cx) embed (eval-form cx)))
 
-(defn ppeval "pretty print eval" [cx s]
-  (embed-custom cx s embed))
-
-(defn inline-body [cx s]
-  (embed-custom cx s
-                (fn [body] `(flower.reflect/render-file ~(str body) "<inline>" {}))))
+; (defn inline-body [form]
+;   `(flower.reflect/render-file ~form "<inline>" {}))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))
 
 (defn inline-render
-  ([cx src ident body] (inline-render cx src ident '[] body))
+  ([cx src ident body] (apply inline-render cx src ident '[] body))
   ([cx src ident args body]
-    (let
-         [rendered (inline-body cx body)
-          quoted-args (embed-custom cx (->source src args)
-                                    (fn [args] `(quote ~args)))
-          call `(~ident ~@(conj quoted-args rendered))]
-      (eval-form cx (embed call)))))
+    (eprn body)
+    (let [;inline-body #(identity `(str ~@%))
+          ; rendered (inline-body (map #(parse-string cx %) body))
+          ; rendered (inline-body body)
+          quote-args #(identity `(quote ~@%))
+          parsed-args (->> (->source src args) (parse-string cx))
+          call `(~ident ~@(concat parsed-args body))]
+      (embed call))))
 
 ; TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
 ; https://clojure.org/reference/reader
@@ -223,7 +231,7 @@
 ; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
 ; TODO: allow escaping ] and } in InlineRender
 ; TODO: don't actually need to disallow whitespace in Atom now that InlineRender handles Vec properly
-; TODO: i don't think this handles nested InlineRender properly
+; TODO: this renders nested InlineRender eagerly, it needs to delay evaluation
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*
@@ -232,7 +240,8 @@
       FlowerSyntax = (OuterIdent | InlineRender | OuterList)
       OuterList = ReaderSyntax* List
       OuterIdent = Ident
-      InlineRender = Ident ( Vec )? <'{'> ( #'[^}◊]' | Lisp )* <'}'>
+      InlineRender = Ident ( Vec )? <'{'> NestedRender <'}'>
+      NestedRender = ( #'[^}◊]+' | Lisp )*
 
       ReaderSyntax = #\"[\\[\\;@^#`~']\"
       Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
@@ -241,24 +250,37 @@
       Vec = <'['> Form* <']'>
       Atom = #'[^()\\[\\] ]+' "))
 
+
+(def x "")
+(defn- transformer
+  "'''IR''' (really just fancy parse-form)"
+  [tree src cx]
+  (insta/transform
+    {:Start vector
+     :Text identity
+     :Lisp identity
+     :Ident symbol
+     :List #(identity %&)
+     :Atom identity
+     :Form identity
+     :FlowerSyntax identity
+     ; TODO: i think this is wrong when ReaderSyntax is present?
+     :OuterList #(->> (->source src %) (parse-string cx) embed)
+     :OuterIdent #(->> % embed)
+     :InlineRender #(apply inline-render cx src %&)
+     ; :NestedRender vector
+     :NestedRender #(identity `((str ~@%&)))
+     } tree))
+
 (defn teval
   "tree eval"
   ([tree src] (teval tree src (create-sci-cx (-> src meta :filename))))
   ([tree src cx]
-      (insta/transform {
-        :Start str
-        :Text identity
-        :Lisp identity
-        :Ident symbol
-        :List #(identity %&)
-        :Atom identity
-        :Form identity
-        :FlowerSyntax identity
-        ; TODO: i think this is wrong when ReaderSyntax is present?
-        :OuterList #(ppeval cx (->source src %))
-        :OuterIdent #(->> % embed (eval-form cx))
-        :InlineRender #(apply inline-render cx src %&)
-      } tree)))
+   (let [form (transformer tree src cx)
+         strs (map #(if (string? %) % (eval-form cx %)) form)]
+     (apply str strs))))
+
+; (defn eval-string [s]
 
 ; TODO: needs to account for pages not in clojure
 (defn render-file
