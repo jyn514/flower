@@ -186,8 +186,9 @@
             ; TODO: this doesn't set :file :(
             (try-sci fcx #(sci/eval-string* fcx lisp)))))
         (sci/with-bindings {sci/ns userns}
-          (eprn form)
-          (try-sci cx #(sci/eval-form cx form))))))
+          (let [final `(do (~'ns ~'user) ~form)]
+            (eprn final)
+            (try-sci cx #(sci/eval-form cx final)))))))
 
 ; (defn eval-form
 ;   "Evaluate a quoted form as if it had been loaded with `load-file`."

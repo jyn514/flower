@@ -15,7 +15,9 @@
     ; template parsing
     instaparse/instaparse {:mvn/version "1.5.0"}
     ; clojure evaluator
-    org.babashka/sci {:mvn/version "0.10.47"}
+    org.babashka/sci {:git/url "https://github.com/babashka/sci.git"
+                      :git/sha "56104c81cb7a3804f8ee84aa64b313dc7143f30e"}
+    ; org.babashka/sci {:mvn/version "0.10.47"}
     ; build helpers
     babashka/fs {:mvn/version "0.5.26"}
     babashka/process {:mvn/version "0.6.23"}

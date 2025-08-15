@@ -8,6 +8,48 @@
 **NOTE: flower lives on [Codeberg](https://codeberg.org/jyn514/flower) now. Github is a read-only mirror.**
 
 `flower` is currently EXTREMELY ROUGH. this is mostly on github so i can show it to people and as a tech demo.
+## what is flower?
+flower is a static site generator that is a library, not a framework. it comes with good defaults that allow you to get started quickly with minimum boilerplate, but scales to projects of great size and complexity without having to rewrite your code. it is extensible, pluggable, and extremely configurable—because all the code is exposed to you the creator.
+
+flower’s guiding principle is: it’s your site, you should control what’s on it.
+## language overview
+the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊func[args]{body}` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
+```html
+◊def[body]{
+ <div class="trigger">
+    ◊for[[section subsections
+          :when (:title section)]]{
+      <a class="page-link" href="◊(:path section)">(:title section)</a>
+    }
+    ◊a[{:class "page-link" :href "/computer-of-the-future"}]{the computer of the next 200 years}
+ </div>
+ }
+ ◊(embed "page.html" {'body body})
+```
+## features
+
+all the basics:
+
+- static binaries
+- live-reload
+- extremely fast builds
+- syntax highlighting -- TODO
+- RSS feed support -- TODO
+
+things it’s weird other SSGs don’t support:
+
+- println debugging
+- a REPL so you can try things out easily
+- a real programming language (clojure). the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
+- use any markup language you like. asciidoc (TODO) and markdown are supported by default. other languages are pluggable.
+
+and some weird ones:
+
+- support for arbitrary build commands
+- import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
+- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
+- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- NOT DOCUMENTED
+- render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
 ## testimonials
 
@@ -18,24 +60,6 @@ folks the reviews for my new ssg are in
 
 > you have made a tool i might actually use.  
 —girl who rolls her own crypto
-
-## features
-
-all the basics:
-
-- static binaries
-- syntax highlighting -- TODO
-- live-reload
-- RSS feed support -- TODO
-
-and some weird ones:
-
-- support for arbitrary build commands
-- import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary)
-- default templating language is a fully-featured programming environment (clojure). the same language is used in pages and templates, with very few restrictions.
-- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
-- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- NOT DOCUMENTED
-- render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
 ## quick start
 
@@ -74,7 +98,7 @@ four phases:
 1. build dependency graph
 1. preprocessing
 1. custom commands (including built-in commands)
-1. post processing (including template embedding)
+2. transforms
 ## guide
 the smallest flower site is simply a markdown file with your content:
 ```
@@ -113,7 +137,7 @@ flower has four kinds of files:
 - expressions
 - static files
 
-it also comes with some default custom commands, such as compiling Sass to CSS (TODO) and markdown to HTML.
+it also comes with some default custom commands, such as compiling Sass to CSS and markdown to HTML.
 
 let's look at them one at a time.
 #### pages
@@ -193,7 +217,6 @@ the directory and file extension are important, but the file name isn't; all .cl
 ##### index pages
 often, you will want to make an index of pages in your site.
 to do so, first mark your page as an index. then, simply generate your pages using the `pages` local variable.
-<!-- https://medium.com/code-is-data-data-is-code/python-f-string-like-string-interpolation-in-clojure-385015ab2dc2 -->
 ```clojure
 ---
 index: true
@@ -210,9 +233,9 @@ here's a simple example of what `templates/page.html` could look like:
 <!DOCTYPE html><html>
 <head>
   <title>the website of jyn</title>
-  <meta name=description>◊(:description page)
+  <meta name=description>◊(:description frontmatter)
 </head>
-<body>◊(:content page)</body>
+<body>◊content</body>
 </html>
 ```
 note that this is exactly the same syntax as before, we just have a `page` local variable available to us now. see the API reference for a full list of locals injected by flower.
@@ -241,9 +264,9 @@ to include `footer.html` in `index.html`, call the clojure function `include` wi
 `◊(include)` also works in pages. i am not sure why you'd want that, but if you have a use case, please tell me :)
 
 you may want to pass a custom context to a template (for example, an SVG that is a different color on different pages).
-to do so, use `:locals`:
+to do so, pass a map of the local variables you want to be available:
 ```clojure
-◊(include "logo.svg" :locals {'color "red"})
+◊(include "logo.svg" {'color "red"})
 ```
 then, in `logo.svg`, `◊color` will expand to the text `"red"`.
 
@@ -258,57 +281,15 @@ Zola and other template languages descended from Django call this "inheritance".
 for simple cases where you are embedding the whole template at once, you can write `template: default.html` in the frontmatter of `music-theory.html`, just like in a page.
 
 you may want to embed only parts of the template.
-to do this in flower, surround the content you want to embed in a `flower-embed` HTML tag, like you are calling a JSX component.
-`flower-embed` takes two attributes, `template` and `name`.
-`template` will be expanded as-if you had called `◊(include template :locals {name content})`, where `content` is all nested HTML inside the tag.
-
-here is an example:
-```html
-<!-- in pages/my-post.md -->
----
-template: music-theory.html
----
-
-playing 8 white keys in a row on a piano gives you a diatonic scale.
-
-<!-- in templates/music-theory.html -->
-<flower-embed template=default.html name=body>
-	<nav>
-		<h4>tags</h4>
-		<ul>
-			<li><a href=/tags/music>music</a></li>
-		</ul>
-	</nav>
-	◊content
-</flower-embed>
-
-<!-- in default.html -->
-<html>
-	<body>
-		◊body
-	</body>
-</html>
-```
-
-i recommend using embedding sparingly.
-it's very flexible, but makes logic non-local, and can be hard to follow if you step away from your site for a few months and come back to it later.
-
-TODO: document somewhere that this ends up being expanded by a transformer
-
-<!--
-by default, this requires rebuilding your page whenever any page in your site changes.
-to rebuild less frequently, say which files you want to index by defining a `depends` variable:
+in flower, this is the same `include` call we’ve already seen: `◊(include "music-theory.html" {'body "this is *some* markdown"})`.
+most of the time, dealing with quoting, escaping, and formatting nested markup is a pain to deal with. to make this easier, flower offers an easy way to embed markup inside of clojure:
 ```clojure
-◊(def depends "*") <!-- allows any file glob -->
-<!-- or --
-◊(def depends ["first-page.html", "second-page.html"]) <!-- takes a list of file paths, relative to "pages" -->
-<!-- or --
-# https://jsoup.org/
-<!-- takes an arbitrary clojure function.
-     note that at this stage of processing, `(:content page)` is  an empty string. --
-◊(def depends (fn [page] (contains? (:metadata page) "author")))
+◊def[body]{
+  this is *some* markdown
+}
+◊(include "music-theory.html" {'body body})
 ```
--->
+
 <!-- not well motivated; suggest `template = ""` instead?
 #### preprocessed files
 so far we have been working with pages and templates.
@@ -339,7 +320,9 @@ this works for both pages and templates. TODO
 
 TODO docs
 
-sketch: JSON input on stdin, JSON output on stdout, you can do whatever you like in the middle. record your file dependencies in the JSON output.
+sketch: write a transformer. you can call an external compiler with flower.unsafe/process. make sure to record your file dependencies with flower.reflect/read-file.
+
+TODO: need a way to record mappings between language names and transformers.
 
 ### transformers
 say that you want to have some HTML that is common across every generated page, regardless of what template it was generated from. flower allows you to transform generated pages using “post-processors”.
@@ -359,6 +342,8 @@ any configuration logic (such as transformer ordering) goes in your code, not in
 
 TODO: this example works but API for even slightly more complicated things is not implemented
 
+TODO: there really needs to be a way to control transformer order. maybe this goes in build.clj?
+
 <!--
 the only configuration allowed is to tell the build system which files are post-processors.
 by default all files in `lib/transform*.clj` are transformers.
@@ -372,6 +357,7 @@ say you are building a demo of a Rust program that compiles to WASM and runs in 
 rather than running many commands in sequence, you can tell flower to build the program for you.
 create a `build.clj` that passes a map of your commands to `flower.build/generate`:
 ```clojure
+(require '[flower.build :as build])
 (def my-exe "my-rust-program/target/release/my-bin")
 (def commands
   {:rules
@@ -383,7 +369,7 @@ create a `build.clj` that passes a map of your commands to `flower.build/generat
      :outputs my-exe
      ; walkdir respects .gitignore
      ; this overestimates; use https://github.com/declantsien/cargo-ninja for something more accurate
-     :inputs (walkdir "my-rust-program")}]})
+     :inputs (build/walkdir "my-rust-program")}]})
 
 (build/generate commands (build/link my-exe "public/my-bin"))
 ```

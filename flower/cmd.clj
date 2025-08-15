@@ -134,7 +134,9 @@
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ls (str "(do " f ")")
         transformer (eval/parse-string cx ls)
-        lisp (eval/embed (list 'do transformer '(transform page)))]
+        run-transform (eval/embed '(transform page))
+        lisp `(do ~transformer ~run-transform)]
+        ; lisp (list 'do transformer '(transform page))]
     {:content (eval/eval-form cx lisp)}))
 
 (defn split-dependencies

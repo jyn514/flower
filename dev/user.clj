@@ -9,6 +9,7 @@
           '[clojure.reflect :as r]
           '[clojure.stacktrace :refer [print-stack-trace]]
           '(flower [main :as flower])
+          '[flower.eval :as eval]
           '(sci [core :as sci])
           '(instaparse [core :as insta])
           '(jq [api :as jq])
@@ -19,6 +20,9 @@
 
 (defn members [val]
   (->> val r/reflect :members (map :name) set sort))
+
+(defn feval [form]
+  (eval/eval-form (eval/create-sci-cx {}) form))
 
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)
