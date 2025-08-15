@@ -25,8 +25,10 @@
 #_(defn load-fn
   "load user code on-demand"
   [{ns- :namespace}]
-    (when (str/starts-with? "flower.user." (name ns-))
-      (let [file (-> ns- name (str/split #"\.") last (str "lib/" ".clj"))]
+    ; TODO: this can't handle nested directories
+    ; want strip-prefix, not this hack
+    (when (str/starts-with? "flower.expressions." (name ns-))
+      (let [file (-> ns- name (str/split #"\.") last (str "expressions/" ".clj"))]
         (load-sci-file file))))
 
 ; see sci/binding for how to allow overriding this
@@ -81,14 +83,9 @@
                 'hiccup.util (copy-ns 'hiccup.util) 
                 'hiccup.compiler hiccup-compiler
                 'instaparse.core (copy-ns 'instaparse.core) 
-                ; repl/doc tries to call private functions
+                ; repl/doc tries to call private functions, so we need to copy those too
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings
-                ; TODO: can't bind `reflect/read-file` until we do dependency tracking elsewhere
-                ; 'flower.reflect {'*watching*
-                ;                  (sci/copy-var
-                ;                    flower.reflect/*watching*
-                ;                    (sci/create-ns 'flower.reflect))}
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
                                        'render-file render-file)
                 'flower.eval {'pprint pprint}
@@ -184,32 +181,11 @@
               fcx (with-meta cx {:filename f})]
           (sci/with-bindings {sci/ns (sci/create-ns (symbol ns))}
             ; TODO: this doesn't set :file :(
+            ; probably the right thing to do is to use `:load-fn`?
             (try-sci fcx #(sci/eval-string* fcx lisp)))))
         (sci/with-bindings {sci/ns userns}
           (let [final `(do (~'ns ~'user) ~form)]
-            (eprn final)
             (try-sci cx #(sci/eval-form cx final)))))))
-
-; (defn eval-form
-;   "Evaluate a quoted form as if it had been loaded with `load-file`."
-;   [cx form]
-;   ; can't just use normal dequoting here. if there is a `(require)` that is used later,
-;   ; it won't be evaluated eagerly and we will get a resolution error.
-;   ; use `eval` to delay resolution.
-;   ; this has to be at the outermost level because eval doesn't see local bindings
-;   ; (e.g. from let, for)
-;   (eval-inner-form cx `(flower.eval/pprint (eval '~form))))
-; (defn embed-custom [cx s f]
-;   (f (parse-string cx s)) 
-
-; (defn eval-string [cx s]
-;   (eval-form cx (parse-string cx s)))
-;
-; (defn ppeval "pretty print eval" [cx s]
-;   (->> s (parse-string cx) embed (eval-form cx)))
-
-; (defn inline-body [form]
-;   `(flower.reflect/render-file ~form "<inline>" {}))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))
@@ -217,12 +193,7 @@
 (defn inline-render
   ([cx src ident body] (apply inline-render cx src ident '[] body))
   ([cx src ident args body]
-    ; (eprn body)
-    (let [;inline-body #(identity `(str ~@%))
-          ; rendered (inline-body (map #(parse-string cx %) body))
-          ; rendered (inline-body body)
-          quote-args #(identity `(quote ~@%))
-          parsed-args (->> (->source src args) (parse-string cx))
+    (let [parsed-args (->> (->source src args) (parse-string cx))
           call `(~ident ~@(concat parsed-args body))]
       (embed call))))
 
@@ -269,7 +240,6 @@
      :OuterList #(->> (->source src %) (parse-string cx) embed)
      :OuterIdent #(->> % embed)
      :InlineRender #(apply inline-render cx src %&)
-     ; :NestedRender vector
      :NestedRender #(identity `((str ~@%&)))
      } tree))
 
@@ -297,10 +267,8 @@
 
 (defn create-fs-cx
   [filename]
-  (let [fs (copy-ns 'babashka.fs)
-        build (copy-ns 'flower.build)]
-    (create-sci-cx filename
-      {:namespaces
-       ; TODO: sandboxing
-       {'babashka.fs fs
-        'flower.build build}})))
+  (let [override {:namespaces
+                  ; TODO: sandboxing
+                  {'babashka.fs (copy-ns 'babashka.fs)
+                   'flower.build (copy-ns 'flower.build)}}]
+    (create-sci-cx filename override)))

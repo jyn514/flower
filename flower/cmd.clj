@@ -135,8 +135,8 @@
         ls (str "(do " f ")")
         transformer (eval/parse-string cx ls)
         run-transform (eval/embed '(transform page))
+        ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)]
-        ; lisp (list 'do transformer '(transform page))]
     {:content (eval/eval-form cx lisp)}))
 
 (defn split-dependencies
