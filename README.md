@@ -39,6 +39,7 @@ all the basics:
 things it’s weird other SSGs don’t support:
 
 - println debugging
+- real stack traces ([example][example-stacktrace])
 - a REPL so you can try things out easily
 - a real programming language (clojure). the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
 - use any markup language you like. asciidoc (TODO) and markdown are supported by default. other languages are pluggable.
@@ -500,6 +501,23 @@ as a bonus, JVM langs can interop well, which means it was easy to lean on the J
 
 ## why a "meta-build" system instead of something simpler?
 because if i'm going to be insane enough to write my own SSG, i want it to be one that i don't rip up and throw away in a year. that means it has to be extensible *and* not break *and* be easy enough to import that i don't spend a bunch of time rewriting things away from jinja again.
+
+## example stacktrace
+
+```
+flower: error: failed to eval templates/default.html
+Caused by: failed to eval templates/footer.html
+ [expressions.meta/embed expressions/meta.clj 21:14]
+ [expressions.meta/embed expressions/meta.clj 16:1]
+ [expressions.meta/include expressions/meta.clj 26:14]
+ [expressions.meta/include expressions/meta.clj 24:1]
+ [user/str templates/default.html 17:1]
+ [clojure.core/str <host code>]
+
+Caused by: Could not find namespace: flower.expressions.constants.
+ [clojure.core/use <host code>]
+ [user/<top-level> templates/footer.html 1:1]
+```
 
 # sandboxing and security
 it's an SSG. it's running arbitrary code because you (or i) wrote all the code. don't treat it as a security boundary and you'll be fine.

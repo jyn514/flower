@@ -1,4 +1,6 @@
+(ns expressions.meta)
 (require '[flower.reflect :as reflect])
+(require '[clj-commons.digest :as digest])
 
 (defn render
   ([source] (render source {}))
@@ -17,8 +19,13 @@
   (let [content (template template-name)
         path (str "templates/" template-name)
         data (reflect/render-file content path locals)]
-    (:content data)))
+    data))
 
 (defn include
   "Render an external template or page to a string"
   [filename] (embed filename {}))
+
+(defn hash
+  "Calculate the SHA256 hash of a file."
+  [filename]
+  (-> filename reflect/read-file digest/sha-256))

@@ -1,6 +1,6 @@
 (ns flower.repl
   (:import (org.jline.terminal TerminalBuilder)
-           (org.jline.reader LineReaderBuilder))
+           (org.jline.reader LineReaderBuilder LineReader))
   (:require
     [clojure.main]
     [flower.eval :as eval]))
@@ -14,10 +14,11 @@
 (defn- readline
   [fresh exit]
   ; TODO: line-aware
-  (try (.readLine *reader* "flower=>")
+  (try (LineReader/.readLine *reader* "flower=>")
        (catch org.jline.reader.EndOfFileException _ exit)
        (catch org.jline.reader.UserInterruptException _ fresh)))
 
+; TODO: this only supports page mode. support transform mode too.
 (defn repl
   []
   (binding [eval/*cx* (eval/create-fs-cx "<repl>")

@@ -40,7 +40,7 @@
       (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
             lisp (eval/parse-string cx embedded)]
-        (eval/eval-form cx lisp)))
+        (eval/eval-form cx "" lisp)))
     (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
 ; template embedding
@@ -117,6 +117,7 @@
     (binding [flower.reflect/*dependencies* #{}]
       (let [out-map (f)
             ; TODO: should be keyed by output file so we can minimize rebuilds
+            ; TODO: something is wrong here, it's not tracking file reads in templates
             all-deps (union (set dependencies) flower.reflect/*dependencies*)]
         (assoc out-map :dependencies all-deps))))
 
@@ -125,10 +126,7 @@
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [parsed {:keys [transformer]}]
-  (let [locals {'page parsed}
-        reflect (assoc (eval/copy-ns 'flower.reflect) 'render eval/render-file)
-        cx-opts {:bindings locals
-                 :namespaces {'flower.reflect reflect}}
+  (let [cx-opts {:bindings {'page parsed}}
         cx (eval/create-sci-cx transformer cx-opts)
         f (slurp transformer)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
@@ -137,7 +135,9 @@
         run-transform (eval/embed '(transform page))
         ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)]
-    {:content (eval/eval-form cx lisp)}))
+    ; TODO: this discards metadata, allow the transformer to mutate metadata
+    ; also allow returning just a string to inherit existing metadata
+    {:content (eval/eval-form cx "" lisp)}))
 
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]

@@ -16,6 +16,9 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
+(defn eprint [& msg]
+  (binding [*out* *err*]
+    (apply print msg)))
 (defn eprintln [& msg]
   (binding [*out* *err*]
     (apply println msg)))
@@ -24,15 +27,14 @@
     (apply prn msg)))
 (defn inspect [x] (eprn x) x)
 
-(defn- err-msg [& msg]
-  (with-out-str
-    (apply println "flower: error:" msg)))
-(defn error [& msg]
-    (eprintln (apply err-msg msg)))
-(defn fatal [& msg]
-  (throw (ex-info (apply err-msg msg) {:flower/exit true})))
 (defn warn [& msg]
   (apply eprintln "flower: warning:" msg))
+(defn error [& msg]
+  (apply eprintln "flower: error:" msg))
+(defn fatal [& msg]
+  (throw (ex-info
+           (apply str (interpose " " msg))
+           {:flower/exit true})))
 
 (def ^:dynamic *site* ".")
 
@@ -80,3 +82,11 @@
   [(apply dissoc m ks)
    (select-keys m ks)])
 
+; https://github.com/clojure/clojure-contrib/blob/b8d2743d3a89e13fc9deb2844ca2167b34aaa9b6/src/main/clojure/clojure/contrib/seq.clj#L51
+(defn indexed
+  "Returns a lazy sequence of [index, item] pairs, where items come
+  from 's' and indexes count up from zero.
+
+  (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
+  [s]
+  (map vector (iterate inc 0) s))

@@ -19,7 +19,7 @@
   (-> path fs/path fs/file-name (str "." ext)))
 
 (defn all-dirs [root]
-  (let [dirs (atom #{})
+  (let [dirs (atom #{root})
         update #(swap! dirs conj %)
         visitor (fn [path _attrs] (update path) :continue)]
     (fs/walk-file-tree root {:pre-visit-dir visitor})

@@ -1,16 +1,18 @@
 (ns flower.eval
   (:use flower.internal.utils)
   (:require
+   [babashka.fs]
+   [clj-commons.digest]
+   [clojure.repl :as repl]
+   [clojure.string :as str]
    [flower.hiccup]
    [flower.reflect]
    [flower.utils]
-   [clj-commons.digest]
    [hiccup.util]
-   [clojure.repl :as repl]
    [instaparse.core :as insta]
-   [babashka.fs :as fs]
    [sci.core :as sci])
   (:import
+   [java.io StringReader BufferedReader]
    [org.jsoup.nodes Document]
    (org.jsoup.select Nodes)))
 
@@ -21,14 +23,12 @@
 (defn load-sci-file [file] 
   {:file file :source (slurp file)})
 
-; very broken; (-> str) doesn't work
-#_(defn load-fn
+(defn load-fn
   "load user code on-demand"
   [{ns- :namespace}]
-    ; TODO: this can't handle nested directories
-    ; want strip-prefix, not this hack
-    (when (str/starts-with? "flower.expressions." (name ns-))
-      (let [file (-> ns- name (str/split #"\.") last (str "expressions/" ".clj"))]
+    (when (str/starts-with? (name ns-) "expressions.")
+      (let [as-path (str/replace ns- "." "/")
+            file (str as-path ".clj")]
         (load-sci-file file))))
 
 ; see sci/binding for how to allow overriding this
@@ -73,7 +73,7 @@
 
 (defn sci-defaults []
   {
-   ; :load-fn load-fn
+   :load-fn load-fn
    ; NOTE: dynamic vars are *not* bound, which means that
    ; e.g. `*html-mode*` will not see any changes in the guest.
    ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
@@ -116,50 +116,69 @@
   ([filename] (create-sci-cx filename {}))
   ([filename opts]
    (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
-     (with-meta cx {:filename filename}))))
+     (with-meta cx {:flower/filename filename}))))
 
 ; rendering
 
-(defn print-sci-frame [f default-file]
+(defn span->start [span src]
+  (if-let [[start _] span]
+    (let [[line-zero line] (->> (subs src 0 start)
+                                StringReader.
+                                BufferedReader.
+                                line-seq
+                                indexed
+                                last)]
+      [line-zero (dec (count line))])
+    [0 0]))
+
+(defn print-sci-frame [f default-file [start-line start-column]]
   (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
         file (or (:file f)
                  ; TODO: this only catches the clojure runtime,
                  ; not bound flower functions
                  (if (:sci/built-in f)
                    "<host code>"
-                   default-file)) 
-        ; TODO: translate these to be relative to the template file, not the form start
-        line (:line f)
-        column (:column f)
+                   "<BUG: unknown file>")) 
+        [relative-line relative-column] [(:line f) (:column f)]
+        [line column] (if (and relative-line relative-column (= default-file file))
+                        [(+ relative-line start-line)
+                         (if (= relative-line 1) (+ relative-column start-column) relative-column)]
+                        [relative-line relative-column])
         span (cond
                (and line column) (str " " line ":" column)
                line (str " " line)
                :else "")]
-        (fmt "[${var} ${file}${span}]\n")))
+    (fmt " [${var} ${file}${span}]\n")))
 
-(defn print-sci-trace [e default-file]
+(defn print-sci-trace [e stacktrace]
   (let [useful? #(or (:name %) (:line %) (not= (:ns %) 'user))
-        ; TODO: don't print anything starting from host eval
         ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
-        useful-frames (dedupe (filter useful? (sci/stacktrace e)))]
-    ; TODO: this double-prints "flower: error" inside a template
-    (apply fatal
-          (fmt "failed to eval ${default-file}:")
-          ; TODO: this is useless for file-not-found errors
-          (ex-message e)
-          "\n"
-          (map #(print-sci-frame % default-file) useful-frames))))
+        useful-frames (dedupe (filter useful? stacktrace))
+        file (-> e ex-data :flower/filename)
+        src (-> e ex-data :flower/source)
+        start (-> e ex-data :flower/span (span->start src))]
+    (apply println
+      (ex-message e )
+      "\n"
+      (map #(print-sci-frame % file start) useful-frames))))
 
 (defn try-sci
   [cx f]
-  ; TODO: render tracebacks nicely
   ; TODO: give a better error message for native libs that use eval
   (try (f)
-       (catch clojure.lang.ExceptionInfo e
-         ; TODO: env variables suck lmao, do something else
-         (if (System/getenv "FLOWER_HOST_TRACE")
-           (throw e)
-           (print-sci-trace e (-> cx meta :filename))))))
+       (catch clojure.lang.ExceptionInfo cause
+         (let [file (-> cx meta :flower/filename)
+               span (-> cx meta :flower/span)
+               src (-> cx meta :flower/source)
+               msg (fmt "failed to eval ${file}")
+               old-info (or (ex-data cause) {})
+               new-info (assoc old-info
+                               :flower/filename file
+                               :flower/span span
+                               :flower/source src)
+               new-cause (ex-info (ex-message cause) new-info (ex-cause cause))
+               ex (ex-info msg {:flower/exit true} new-cause)]
+           (throw ex)))))
 
 (defn parse-string
   [cx s]
@@ -167,25 +186,16 @@
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
-  [cx form]
-  (binding [flower.reflect/*dependencies* #{}
-            *cx* cx]
-    (sci/binding [sci/out *err*
-                  sci/err *err*]
-      ; TODO: we shouldn't bind locals when loading expressions ...
-      (doseq [clj (fs/glob "expressions" "**.clj")]
-        (let [f (str clj)
-              ns (->> f fs/strip-ext fs/file-name (str "flower.expressions."))
-              ; TODO: shouldn't be necessary: https://clojurians.slack.com/archives/C015LCR9MHD/p1754590244420059?thread_ts=1754589990.970939&cid=C015LCR9MHD
-              lisp (str "(do (ns " ns ")" (slurp f) ")")
-              fcx (with-meta cx {:filename f})]
-          (sci/with-bindings {sci/ns (sci/create-ns (symbol ns))}
-            ; TODO: this doesn't set :file :(
-            ; probably the right thing to do is to use `:load-fn`?
-            (try-sci fcx #(sci/eval-string* fcx lisp)))))
-        (sci/with-bindings {sci/ns userns}
-          (let [final `(do (~'ns ~'user) ~form)]
-            (try-sci cx #(sci/eval-form cx final)))))))
+  [cx src form]
+  (binding [flower.reflect/*dependencies* #{}]
+    (let [cx (with-meta cx (merge (meta cx)
+                                  {:flower/span (insta/span form)
+                                   :flower/source src}))]
+      (sci/binding [sci/out *err*
+                    sci/err *err*
+                    sci/ns userns
+                    sci/file (-> cx meta :flower/filename)]
+        (try-sci cx #(sci/eval-form cx form))))))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))
@@ -222,8 +232,6 @@
       Vec = <'['> Form* <']'>
       Atom = #'[^()\\[\\] ]+' "))
 
-
-(def x "")
 (defn- transformer
   "'''IR''' (really just fancy parse-form)"
   [tree src cx]
@@ -245,25 +253,23 @@
 
 (defn teval
   "tree eval"
-  ([tree src] (teval tree src (create-sci-cx (-> src meta :filename))))
   ([tree src cx]
    (let [form (transformer tree src cx)
-         ; TODO: maybe wrong? do we need to wrap this in pprint/eval?
-         strs (map #(if (string? %) % (eval-form cx %)) form)]
+         strs (map #(if (string? %) % (eval-form cx src %)) form)]
      (apply str strs))))
 
-; (defn eval-string [s]
-
 ; TODO: needs to account for pages not in clojure
+; TODO: should include metadata parsed from frontmatter
 (defn render-file
   "Render content with local variables available"
   ; TODO: this causes nothing but problems, replace it with an options map
   ([src filename] (render-file src filename {}))
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
-   (let [cx (if (some? *cx*) *cx*
-              (create-sci-cx filename {:bindings locals}))]
-     (teval (parse src) src cx))))
+   (binding [*cx* (if (some? *cx*)
+                    (with-meta *cx* {:flower/filename filename})
+                    (create-sci-cx filename {:bindings locals}))]
+     (teval (parse src) src *cx*))))
 
 (defn create-fs-cx
   [filename]

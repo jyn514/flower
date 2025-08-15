@@ -122,6 +122,7 @@
         important-inputs (filter #(not (temp-file? %)) all-inputs)
         watcher (watch-files rerun-ninja important-inputs)]
     ; run once at startup
+    ; TODO: this doesn't seem to be working?
     (async/go #(rerun-ninja {:type :created :path *site*}))
     watcher))
 

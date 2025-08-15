@@ -3,22 +3,24 @@
   (:gen-class)
   (:use flower.internal.utils)
 (:require
-  [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
-  [babashka.cli :as cli]
-  [hiccup.util]
-  [clojure.string :as str]
-  [clojure.data.json :as json]
-  [flower.build :as build]
-  [flower.cmd :as cmd]
-  [flower.eval]
-  [flower.repl]
-  [flower.hiccup]
-  [flower.reflect]
-  [flower.defaults]
-  [flower.beholder]
-  [flower.watch]
-  [flower.utils]
-  [flower.internal.utils]))
+ [babashka.cli :as cli]
+ [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+ [clojure.data.json :as json]
+ [clojure.stacktrace :as st]
+ [clojure.string :as str]
+ [flower.beholder]
+ [flower.build :as build]
+ [flower.cmd :as cmd]
+ [flower.defaults]
+ [flower.eval :as eval]
+ [flower.hiccup]
+ [flower.internal.utils]
+ [flower.reflect]
+ [flower.repl]
+ [flower.utils]
+ [flower.watch]
+ [hiccup.util]
+ [sci.core :as sci]))
 
 (def VERSION "0.0.1")
 
@@ -127,16 +129,42 @@
         flat-table (flatten table)]
     (cli/dispatch flat-table args {:coerce {:C :string}})))
 
-(defn -main [& args]
+(defn print-stack-trace [e]
+  (if-let [sci-ex (sci/stacktrace e)]
+      ; skip the inner error, sci duplicates messages >:(
+      (let [inner (some-> e ex-cause ex-message)]
+        (eval/print-sci-trace e sci-ex)
+        (when (= inner (ex-message e))
+          (-> e ex-cause ex-cause)))
+      (do
+        (println (ex-message e))
+        ; (st/print-stack-trace e)
+        (ex-cause e))))
+
+(defn print-cause-trace [ex]
+  (loop [e ex
+         first-loop true]
+    (when (not first-loop)
+      (print " Caused by: "))
+    (when-let [cause (print-stack-trace e)]
+      (recur cause false))))
+
+(defn main [& args]
   (try
     (dispatch-cmd args)
-    (catch clojure.lang.ExceptionInfo e
-      (if (and (-> e ex-data :flower/exit)
-               (not (System/getenv "FLOWER_HOST_TRACE")))
-        (do
-          (eprintln (ex-message e))
-          (System/exit 1))
-        (throw e)))
+    0
+    (catch java.lang.Exception e
+      (binding [*out* *err*]
+        (print "flower: error: ")
+        ; TODO: env variables suck lmao, do something else
+        (if-not (System/getenv "FLOWER_HOST_TRACE")
+          (print-cause-trace e)
+          (st/print-cause-trace e))
+        (println))
+      1)
     (finally
       (shutdown-agents)
       (flush))))
+
+(defn -main [& args]
+  (System/exit (apply main args)))
