@@ -1,9 +1,9 @@
 # TODO
 
-- implement `◊ident[arg1 arg2]{body}` as shorthand for `◊(ident arg1 arg2 (render body))`
-- delete `<flower-embed>`
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
+
+- test in CI that `scripts/clean-build.sh` works
 
 - (compile) so startup time is better
 - don't materialize onto disk by default

@@ -90,7 +90,9 @@
       :coerce {:source-file :string}
       :args->opts [:source-file]}
    "watch" flower.watch/watch
-   "repl" (no-args flower.repl/repl)
+   "repl" {:fn flower.repl/repl
+           :coerce {:template :boolean}
+           :args->opts [:template]}
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
@@ -137,6 +139,8 @@
         (when (= inner (ex-message e))
           (-> e ex-cause ex-cause)))
       (do
+        ; TODO: this gives quite bad errors for host issues.
+        ; maybe check if there are any SCI frames and print a traceback if so?
         (println (ex-message e))
         ; (st/print-stack-trace e)
         (ex-cause e))))

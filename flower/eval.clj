@@ -69,8 +69,19 @@
         html (sci/copy-var flower.hiccup/html-2 (-> ns meta :ns))]
   (assoc ns 'html html)))
 
-(declare render-file)
+(def missing-core
+  "missing from clojure.core in an SCI context;
+  see https://clojurians.slack.com/archives/C015LCR9MHD/p1755400427739019?thread_ts=1755396527.247349&cid=C015LCR9MHD"
+  #{'println-str 'abs 'infinite? 'iteration 'NaN?
+    'parse-boolean 'parse-long 'parse-double
+    'partitionv 'partitionv-all 'splitv-at
+    'update-keys 'update-vals 'with-precision})
+(def clojure-core
+  (into {} (for [sym missing-core]
+             [sym (sci/copy-var* (resolve sym) 'clojure.core)])))
 
+(declare render-file)
+; needs to be a function, otherwise render-file won't be bound
 (defn sci-defaults []
   {
    :load-fn load-fn
@@ -83,6 +94,7 @@
                 'hiccup.util (copy-ns 'hiccup.util) 
                 'hiccup.compiler hiccup-compiler
                 'instaparse.core (copy-ns 'instaparse.core) 
+                'clojure.core clojure-core
                 ; repl/doc tries to call private functions, so we need to copy those too
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings
@@ -142,6 +154,7 @@
         [relative-line relative-column] [(:line f) (:column f)]
         [line column] (if (and relative-line relative-column (= default-file file))
                         [(+ relative-line start-line)
+                         ; TODO: columns are messed up
                          (if (= relative-line 1) (+ relative-column start-column) relative-column)]
                         [relative-line relative-column])
         span (cond
@@ -156,6 +169,7 @@
         useful-frames (dedupe (filter useful? stacktrace))
         file (-> e ex-data :flower/filename)
         src (-> e ex-data :flower/source)
+        ; TODO: this doesn't handle InlineRender; *something* is going wrong
         start (-> e ex-data :flower/span (span->start src))]
     (apply println
       (ex-message e )
@@ -181,12 +195,13 @@
            (throw ex)))))
 
 (defn parse-string
-  [cx s]
-  (try-sci cx #(sci/parse-string cx s)))
+  ([s] (parse-string *cx* s))
+  ([cx s] (try-sci cx #(sci/parse-string cx s))))
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
-  [cx src form]
+  ([src form] (eval-form *cx* src form))
+  ([cx src form]
   (binding [flower.reflect/*dependencies* #{}]
     (let [cx (with-meta cx (merge (meta cx)
                                   {:flower/span (insta/span form)
@@ -195,7 +210,7 @@
                     sci/err *err*
                     sci/ns userns
                     sci/file (-> cx meta :flower/filename)]
-        (try-sci cx #(sci/eval-form cx form))))))
+        (try-sci cx #(sci/eval-form cx form)))))))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))

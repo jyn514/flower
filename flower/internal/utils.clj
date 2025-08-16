@@ -16,9 +16,6 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
-(defn eprint [& msg]
-  (binding [*out* *err*]
-    (apply print msg)))
 (defn eprintln [& msg]
   (binding [*out* *err*]
     (apply println msg)))

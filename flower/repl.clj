@@ -14,16 +14,18 @@
 (defn- readline
   [fresh exit]
   ; TODO: line-aware
-  (try (LineReader/.readLine *reader* "flower=>")
+  (try (LineReader/.readLine *reader* "flower=> ")
        (catch org.jline.reader.EndOfFileException _ exit)
        (catch org.jline.reader.UserInterruptException _ fresh)))
 
 ; TODO: this only supports page mode. support transform mode too.
 (defn repl
-  []
+  [{:keys [template]}]
   (binding [eval/*cx* (eval/create-fs-cx "<repl>")
             *reader* (make-reader)]
-    (let [flower-eval #(eval/render-file % "<repl>")]
+    (let [flower-eval (if template
+                        #(eval/render-file % "<repl>")
+                        #(eval/eval-form % (eval/parse-string %)))]
           (clojure.main/repl :prompt (fn []) ; handled by readline
                              :eval flower-eval
                              :read readline))))
