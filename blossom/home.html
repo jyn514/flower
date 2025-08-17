@@ -1,0 +1,54 @@
+{% extends "default.html" %}
+{% block content %}
+<nav class="home">
+
+  <h1 class="page-heading">{{ section.title }}</h1>
+
+  <ul class="post-list">
+    {% for post in section.pages %}
+      {% if post.extra.unlisted or post.extra.stub %}{% continue %}{% endif %}
+      {% if post.extra.rss_only %}{% continue %}{% endif %}
+      <li>
+        {% set date_format = site.minima.date_format | default(value = "%b %-d, %Y") %}
+        <span class="post-meta">
+          {{ post.date | date(value = date_format) }}
+          {% if post.extra.audience %}
+            • audience—{{ post.extra.audience | default(value = "everyone") }}
+          {% endif %}
+          {% for term, tags in post.taxonomies %}
+            {% if term != "tags" %}{% continue %}{% endif %}
+            {% for tag in tags %}
+          • <a href="{{ get_taxonomy_url(kind=term, name=tag) }}">{{ tag }}</a>
+            {% endfor %}
+          {% endfor %}
+        </span>
+
+        <h2>
+          <a {%if post.description%}title="{{post.description}}"{%endif%} class="post-link" href="{{ post.path }}">{{ post.title | safe }}</a>
+        </h2>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <p class="rss-subscribe">subscribe <a type="application/atom+xml" href="{{ "/atom.xml" }}">via RSS</a></p>
+
+{% set all_tags = [] %}
+{% for post in section.pages %}
+  {% for term, tags in post.taxonomies %}
+      {% if term != "tags" %}{% continue %}{% endif %}
+      {% for tag in tags %}
+        {% set_global all_tags = all_tags | concat(with=tag) | unique %}
+      {% endfor %}
+  {% endfor %}
+{% endfor %}
+
+{% if all_tags %}
+<nav class=all-tags>all tags:<ul>
+{% for tag in all_tags | sort %}
+<li><a href="{{ get_taxonomy_url(kind="tags", name=tag) }}">{{ tag }}</a></li>
+{% endfor %}
+</ul></div>
+
+</nav>
+{%endif%}
+{% endblock content %}
