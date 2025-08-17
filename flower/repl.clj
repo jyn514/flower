@@ -1,9 +1,11 @@
 (ns flower.repl
-  (:import (org.jline.terminal TerminalBuilder)
-           (org.jline.reader LineReaderBuilder LineReader))
   (:require
-    [clojure.main]
-    [flower.eval :as eval]))
+   [clojure.main]
+   [clojure.stacktrace :as st]
+   [flower.eval :as eval])
+  (:import
+   (org.jline.reader LineReader LineReaderBuilder)
+   (org.jline.terminal TerminalBuilder)))
 
 (def ^:dynamic *reader*)
 
@@ -18,6 +20,16 @@
        (catch org.jline.reader.EndOfFileException _ exit)
        (catch org.jline.reader.UserInterruptException _ fresh)))
 
+(defn print-trace [e]
+  (print "flower: error: ")
+  ; TODO: env variables suck lmao, do something else
+  (if-not (System/getenv "FLOWER_HOST_TRACE")
+    (eval/print-cause-trace e)
+    ; TODO: pretty-printer that hides `invoke` if it's not relevant
+    ; maybe do this for apply and LazySeq too?
+    (st/print-cause-trace e))
+  (println))
+
 ; TODO: this only supports page mode. support transform mode too.
 (defn repl
   [{:keys [template]}]
@@ -27,6 +39,8 @@
                         #(eval/render-file % "<repl>")
                         ; TODO: bind *e
                         #(eval/eval-form % (eval/parse-string %)))]
-          (clojure.main/repl :prompt (fn []) ; handled by readline
-                             :eval flower-eval
-                             :read readline))))
+      (clojure.main/repl :prompt (fn []) ; handled by readline
+                         :eval #(try (flower-eval %) 
+                                     (catch java.lang.Exception e
+                                       (print-trace e)))
+                         :read readline))))

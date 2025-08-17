@@ -177,6 +177,29 @@
       "\n"
       (map #(print-sci-frame % file start) useful-frames))))
 
+(defn print-stack-trace [e]
+  (if-let [sci-ex (sci/stacktrace e)]
+      ; skip the inner error, sci duplicates messages >:(
+      (let [inner (some-> e ex-cause ex-message)]
+        (print-sci-trace e sci-ex)
+        (when (= inner (ex-message e))
+          (-> e ex-cause ex-cause)))
+      (do
+        (if (some-> e ex-data :flower/exit)
+          (println (ex-message e))
+          (println (str (pr-str (class e)) ":") (ex-message e)))
+        ; (st/print-stack-trace e)
+        (ex-cause e))))
+
+(defn print-cause-trace [ex]
+  (loop [e ex
+         first-loop true]
+    (when (not first-loop)
+      (print " Caused by: "))
+    (when-let [cause (print-stack-trace e)]
+      (recur cause false)))
+  (print "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"))
+
 (defn try-sci
   [cx f]
   ; TODO: give a better error message for native libs that use eval

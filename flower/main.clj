@@ -6,21 +6,18 @@
  [babashka.cli :as cli]
  [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
  [clojure.data.json :as json]
- [clojure.stacktrace :as st]
  [clojure.string :as str]
  [flower.beholder]
  [flower.cmd :as cmd]
  [flower.defaults]
- [flower.eval :as eval]
  [flower.frontmatter :refer [split-frontmatter]]
  [flower.hiccup]
  [flower.internal.utils]
  [flower.reflect]
- [flower.repl]
+ [flower.repl :as repl]
  [flower.utils]
  [flower.watch]
- [hiccup.util]
- [sci.core :as sci]))
+ [hiccup.util]))
 
 (def VERSION "0.0.1")
 
@@ -132,45 +129,13 @@
         flat-table (flatten table)]
     (cli/dispatch flat-table args {:coerce {:C :string}})))
 
-(defn print-stack-trace [e]
-  (if-let [sci-ex (sci/stacktrace e)]
-      ; skip the inner error, sci duplicates messages >:(
-      (let [inner (some-> e ex-cause ex-message)]
-        (eval/print-sci-trace e sci-ex)
-        (when (= inner (ex-message e))
-          (-> e ex-cause ex-cause)))
-      (do
-        ; TODO: this gives quite bad errors for host issues.
-        ; maybe check if there are any SCI frames and print a traceback if so?
-        (if (some-> e ex-data :flower/exit)
-          (println (ex-message e))
-          (println (str (pr-str (class e)) ":") (ex-message e)))
-        ; (st/print-stack-trace e)
-        (ex-cause e))))
-
-(defn print-cause-trace [ex]
-  (loop [e ex
-         first-loop true]
-    (when (not first-loop)
-      (print " Caused by: "))
-    (when-let [cause (print-stack-trace e)]
-      (recur cause false)))
-  (print "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"))
-
 (defn main [& args]
   (try
     (dispatch-cmd args)
     0
     (catch java.lang.Exception e
       (binding [*out* *err*]
-        (print "flower: error: ")
-        ; TODO: env variables suck lmao, do something else
-        (if-not (System/getenv "FLOWER_HOST_TRACE")
-          (print-cause-trace e)
-          ; TODO: pretty-printer that hides `invoke` if it's not relevant
-          ; maybe do this for apply and LazySeq too?
-          (st/print-cause-trace e))
-        (println))
+        (repl/print-trace e))
       1)
     (finally
       (shutdown-agents)
