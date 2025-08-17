@@ -7,8 +7,8 @@
 
 ; TODO: configuration mechanism using ninja phony targets
 ; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
-(def use-jar false)
-(def rebuild-flower false)
+(def use-jar true)
+(def rebuild-flower true)
 
 (defn / [x & more]
   (apply fs/path x more))
@@ -44,15 +44,11 @@
 (defn build-page
   ([rule page] (build-page rule page []))
   ([rule page implicits]
-   (let [page-frontmatter (get flower.reflect/*frontmatter* :pages)
-         template (-> (get page-frontmatter (str page)) :template (or "default.html"))
-         template_path (/ templates template)
-         json_frontmatter (/ builddir (add-ext page "json"))
+   (let [json_frontmatter (/ builddir (add-ext page "json"))
          ; can be different than processed_html if e.g. the template ends in .md
-         processed_markdown (/ builddir (add-ext page "rendered.json"))
-         ; embedded_markdown (/ builddir (replace-ext page (str (fs/extension template) ".embed")))
-         processed_html (/ builddir (replace-ext page "html.rendered.json"))
-         depfile (/ builddir (replace-ext page "html.rendered.d"))
+         processed_markdown (/ builddir (replace-ext page (str "rendered." (fs/extension page))))
+         processed_html (/ builddir (replace-ext page "rendered.html"))
+         depfile (/ builddir (replace-ext page "rendered.html.d"))
          final_html (/ public (replace-ext page "html"))
          rules [{:rule "frontmatter"
                  :inputs (str page)
@@ -61,12 +57,8 @@
                 {:rule rule
                  :inputs json_frontmatter
                  :outputs processed_markdown
+                 ; TODO: check if we can remove unconditional dependency on expressions/ now that load-fn does dep tracking
                  :implicit (concat implicits expressions)}
-                #_{:rule "template"
-                 :inputs processed_markdown
-                 :outputs embedded_markdown
-                 :implicit (concat (conj ff template_path) expressions)
-                 :template template_path}
                 ; TODO: wrong, should run on all html files, not just pages
                 ; maybe we can make transform a dispatch-file rule, output `.processed`,
                 ; and add a dispatch-file rule for .processed?
@@ -138,6 +130,12 @@
     :source-map source-map
     :depfile depfile}))
 
+(def defaults
+  ; MANIFEST.txt gets rebuilt when we rebuild flower.
+  ; avoid it always showing up as dirty.
+  (remove #{(fs/path "../defaults/MANIFEST.txt")}
+          (fs/glob "../defaults" "**")))
+
 (def base
   {:variables {:builddir builddir}
    :transformers {"clj" (str flower_cli " transform")}
@@ -176,7 +174,7 @@
      :description "compile Sass file $in to CSS"}
     {:name "markdown"
      ; TODO: use flower builtins
-     :command "pulldown-cmark -TFSULG $in -> $out"
+     :command (flow "render-markdown")
      :description "render markdown -> HTML: $in -> $out"}]
    :builds
    ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
@@ -188,7 +186,7 @@
     (when rebuild-flower
       {:rule "flower-meta"
         :outputs ff
-        :inputs (concat (fs/glob "../flower" "**") (fs/glob "../defaults" "**") ["../flower" "../deps.edn"])})
+        :inputs (concat (fs/glob "../flower" "**") defaults ["../flower" "../deps.edn"])})
     (when rebuild-flower
        {:rule "flower-defaults"
         :outputs "../defaults/build.ninja"

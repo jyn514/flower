@@ -75,7 +75,8 @@
   {"configure" (no-args cmd/configure)
    "split-frontmatter" (no-args #(map-json split-frontmatter))
    "render-page" (no-args #(map-json cmd/render-page {}))
-   "render-index" (no-args #( map-json cmd/render-index ))
+   "render-index" (no-args #(map-json cmd/render-index))
+   "render-markdown" (no-args #(map-json cmd/render-markdown))
    "embed-template" {:fn #( map-json cmd/embed-template %)
                      :coerce {:template-name :string}
                      :args->opts [:template-name]}

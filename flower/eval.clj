@@ -21,6 +21,7 @@
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
 
 (defn load-sci-file [file] 
+  (set! flower.reflect/*dependencies* (conj flower.reflect/*dependencies* file))
   {:file file :source (slurp file)})
 
 (defn load-fn
@@ -275,6 +276,16 @@
 
 ; TODO: needs to account for pages not in clojure
 ; TODO: should include metadata parsed from frontmatter
+; actually hm. we don't need to deal with *preprocessing* other than clojure,
+; or at least, `◊(render ...)` doesn't need to.
+; we only need to deal with *markup languages* other than markdown.
+; i think we need to split `render-in-context` from `render-file` and only expose the former through flower.reflect.
+; for now i'm going to treat this as `render-in-context`, i'll write `render-file` later.
+; render-file will need to:
+; - look at frontmatter.preprocessors and run them in sequence
+; - once all preprocessors have run, convert the markup language to html
+; for now, hard-code the clojure preprocessor and language markdown.
+; actually no, the markup renderer needs to live in build.clj so people can write custom commands.
 (defn render-file
   "Render content with local variables available"
   ; TODO: this causes nothing but problems, replace it with an options map

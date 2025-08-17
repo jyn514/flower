@@ -1,16 +1,17 @@
 (ns flower.cmd
   (:use flower.internal.utils)
-  (:import
-    (java.io StringWriter))
   (:require
-    [clojure.data.json :as json]
-    [clojure.string :as str]
-    [clojure.set :refer [union]]
-    [babashka.fs :as fs]
-    [jq.api :as jq]
-    [flower.reflect]
-    [flower.frontmatter :refer [split-frontmatter]]
-    [flower.eval :as eval]))
+   [babashka.fs :as fs]
+   [clojure.data.json :as json]
+   [clojure.set :refer [union]]
+   [clojure.string :as str]
+   [flower.eval :as eval]
+   [flower.frontmatter :refer [split-frontmatter]]
+   [flower.reflect]
+   [flower.utils :refer [md->html]]
+   [jq.api :as jq])
+  (:import
+   (java.io StringWriter)))
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
@@ -77,6 +78,8 @@
 ; preprocessing
 
 ; TODO: this can just be a normal transfomer
+; actually no it needs to know the input languages and run them in sequence;
+; see comment on render-file
 (defn render-page
   "Preprocess and render a JSON blob"
   ([parsed {:keys [locals] :or {locals {}}}]
@@ -112,6 +115,13 @@
                      (str/split out #"\n"))
                 {})]
     (render-page parsed {:locals {'pages pages}})))
+
+; TODO: this is silly lol, is this really the easiest way?
+; maybe we can have `transformers/preprocessors` and `transformers/renderers` or something
+(defn render-markdown
+  "Render a markdown file to HTML"
+  [parsed]
+  (update parsed :content md->html))
 
 (defn with-tracked-deps [dependencies f]
     (binding [flower.reflect/*dependencies* #{}]
