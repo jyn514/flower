@@ -6,7 +6,7 @@ export PATH
 
 cd ~/src/flower
 # only meant for quick iteration times in dev; for real sites use graal
-clojure -T:build uberjar
+(cd blossom && ninja ../target/flower.jar)
 # clojure -T:build native
 cd ..
 rm -rf flower-test

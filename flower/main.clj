@@ -141,7 +141,9 @@
       (do
         ; TODO: this gives quite bad errors for host issues.
         ; maybe check if there are any SCI frames and print a traceback if so?
-        (println (ex-message e))
+        (if (some-> e ex-data :flower/exit)
+          (println (ex-message e))
+          (println (str (pr-str (class e)) ":") (ex-message e)))
         ; (st/print-stack-trace e)
         (ex-cause e))))
 
@@ -151,7 +153,8 @@
     (when (not first-loop)
       (print " Caused by: "))
     (when-let [cause (print-stack-trace e)]
-      (recur cause false))))
+      (recur cause false)))
+  (print "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"))
 
 (defn main [& args]
   (try
@@ -163,6 +166,8 @@
         ; TODO: env variables suck lmao, do something else
         (if-not (System/getenv "FLOWER_HOST_TRACE")
           (print-cause-trace e)
+          ; TODO: pretty-printer that hides `invoke` if it's not relevant
+          ; maybe do this for apply and LazySeq too?
           (st/print-cause-trace e))
         (println))
       1)

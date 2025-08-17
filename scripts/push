@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-here=$(dirname $0)/..
+here=$(dirname $0)
 $here/pre-push
 jj bookmark move -t @- dev && jj git push -b dev
 

@@ -25,6 +25,7 @@
             *reader* (make-reader)]
     (let [flower-eval (if template
                         #(eval/render-file % "<repl>")
+                        ; TODO: bind *e
                         #(eval/eval-form % (eval/parse-string %)))]
           (clojure.main/repl :prompt (fn []) ; handled by readline
                              :eval flower-eval

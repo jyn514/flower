@@ -29,7 +29,7 @@
 
 (defn watch-files
   [cb paths]
-  (let [abs-paths (set (map fs/real-path paths))
+  (let [abs-paths (set (map #(fs/real-path % {:nofollow-links true}) paths))
         dirs (set (map to-dir abs-paths))]
     (apply behold/watch #(on-file-change cb abs-paths %) dirs)))
 
