@@ -9,12 +9,12 @@
     [babashka.fs :as fs]
     [jq.api :as jq]
     [flower.reflect]
-    [flower.build :as build]
+    [flower.frontmatter :refer [split-frontmatter]]
     [flower.eval :as eval]))
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
-        split (build/split-frontmatter {:filename f :content content})]
+        split (split-frontmatter {:filename f :content content})]
    [(str f) (:frontmatter split)]))
 
 (defn- load-all-meta [dir]
@@ -35,12 +35,12 @@
         template-meta (load-all-meta "templates")
         frontmatter {:pages page-meta :templates template-meta}
         dst (fs/path out)]
-    (binding [flower.build/*ninja* ninja-writer
-              flower.build/*frontmatter* frontmatter]
+    (binding [flower.reflect/*ninja* ninja-writer
+              flower.reflect/*frontmatter* frontmatter]
       (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
             lisp (eval/parse-string cx embedded)]
-        (eval/eval-form cx "" lisp)))
+        (eval/eval-form cx embedded lisp)))
     (->> ninja-writer str .getBytes (fs/write-bytes dst))))
 
 ; template embedding
@@ -54,7 +54,7 @@
         ; and then merge the two.
   (let [template-contents (-> template-name slurp)
         {template-frontmatter :frontmatter template :content}
-          (build/split-frontmatter {:filename template-name :content template-contents})
+          (split-frontmatter {:filename template-name :content template-contents})
         frontmatter (merge-deep template-frontmatter (:frontmatter embed))
         locals {'content (:content embed)
                 'frontmatter frontmatter}
@@ -89,7 +89,7 @@
 
 (defn- get-meta
   [out all-meta]
-  (let [orig_path (fs/path "pages" (build/remove-parent out))
+  (let [orig_path (fs/path "pages" (remove-parent out))
         frontmatter (get all-meta orig_path {})]
     {:frontmatter frontmatter :path out}))
 
@@ -108,7 +108,7 @@
         out (:out (run {:out :string} "ninja -t targets rule transform"))
         ; handle empty string
         pages (if (seq out)
-                (map #(update (get-meta % meta) :path build/remove-parent)
+                (map #(update (get-meta % meta) :path remove-parent)
                      (str/split out #"\n"))
                 {})]
     (render-page parsed {:locals {'pages pages}})))
@@ -142,7 +142,7 @@
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]
   (let [[parsed deps] (split-map parsed :dependencies)
-        joined (build/join (:dependencies deps))
+        joined (join-ninja (:dependencies deps))
         formatted (fmt "${out-file}: ${joined}")]
     (spit depfile formatted)
     ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
@@ -154,6 +154,6 @@
   (let [out-dir "public"
         deps (:sources parsed)
         relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)
-        joined (build/join relative-deps)]
+        joined (join-ninja relative-deps)]
     (fmt "${source-file}: ${joined}")))
 

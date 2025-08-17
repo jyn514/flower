@@ -2,8 +2,11 @@
 
 (ns flower.internal.utils
   (:require [babashka.process :as ps]
+            [babashka.fs :as fs]
             [clojure.set :refer [union]]
             [clojure.string :as str]))
+
+(def ^:dynamic *site* ".")
 
 (defmacro reexport [& syms]
   (let [defs (for [sym syms]
@@ -33,8 +36,6 @@
            (apply str (interpose " " msg))
            {:flower/exit true})))
 
-(def ^:dynamic *site* ".")
-
 (defn run [opts & rest]
   (let [[opts rest] (if (map? opts)
                       [(assoc opts :dir *site*) rest]
@@ -59,12 +60,36 @@
         prefix (re-pattern (str "^" quoted))]
     (str/replace-first s prefix "")))
 
+(defn remove-parent
+  "Given an file path, remove the first N directories.
+   If N is not given, assume N=1."
+  ([path] (remove-parent path 1))
+  ([path n] (->> path fs/components (drop n) (apply fs/path))))
+
 (defn parse-ninja [args]
   (let [out (:out (run {:out :string} args))]
     ; handle empty string
     (if (seq out)
       (str/split out #"\n")
       [])))
+
+(defn escape-ninja
+  "Escape a string for use as a ninja file path.
+   See https://ninja-build.org/manual.html#ref_lexer"
+  [s] 
+  (-> s str
+      (str/replace "\n" "$n")
+      (str/replace " " "$ ")
+      (str/replace ":" "$:")
+      (str/replace "$" "$$")))
+
+(defn join-ninja
+  "Given a list of file paths, format them as a ninja dependency set."
+  [xs]
+  (let [xs (if (or (nil? xs) (sequential? xs))
+             xs
+             [xs])]
+    (->> xs (map escape-ninja) (str/join " "))))
 
 ; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
 (defn merge-deep [& xs]

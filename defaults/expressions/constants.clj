@@ -1,0 +1,5 @@
+(def title "the website of jyn")
+(def email "blog@jyn.dev")
+(def github "jyn514")
+(def linkedin "jynelson514")
+(def global-desc "i write about code, and things that bring me joy, and sometimes other things too")

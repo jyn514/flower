@@ -290,6 +290,5 @@
   [filename]
   (let [override {:namespaces
                   ; TODO: sandboxing
-                  {'babashka.fs (copy-ns 'babashka.fs)
-                   'flower.build (copy-ns 'flower.build)}}]
+                  {'babashka.fs (copy-ns 'babashka.fs)}}]
     (create-sci-cx filename override)))

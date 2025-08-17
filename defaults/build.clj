@@ -1,8 +1,8 @@
 ; TODO: expose this as flower.defaults.build
-(require 'flower.build
-         '(babashka [fs :as fs])
-         '[clojure.set :refer [union]]
-         '(clojure [string :as str]))
+(require
+  'expressions.ninja
+  '(babashka [fs :as fs])
+  '(clojure [string :as str]))
 (use 'flower.utils)
 
 ; TODO: configuration mechanism using ninja phony targets
@@ -19,7 +19,7 @@
   (-> path fs/path fs/file-name (str "." ext)))
 
 (defn all-dirs [root]
-  (let [dirs (atom #{root})
+  (let [dirs (atom (if (fs/exists? root) #{root} #{}))
         update #(swap! dirs conj %)
         visitor (fn [path _attrs] (update path) :continue)]
     (fs/walk-file-tree root {:pre-visit-dir visitor})
@@ -44,15 +44,15 @@
 (defn build-page
   ([rule page] (build-page rule page []))
   ([rule page implicits]
-   (let [page-frontmatter (get flower.build/*frontmatter* :pages)
+   (let [page-frontmatter (get flower.reflect/*frontmatter* :pages)
          template (-> (get page-frontmatter (str page)) :template (or "default.html"))
          template_path (/ templates template)
          json_frontmatter (/ builddir (add-ext page "json"))
+         ; can be different than processed_html if e.g. the template ends in .md
          processed_markdown (/ builddir (add-ext page "rendered.json"))
-         ; can be different than embedded_html if e.g. the template ends in .md
-         embedded_markdown (/ builddir (replace-ext page (str (fs/extension template) ".embed")))
-         embedded_html (/ builddir (replace-ext page "html.embed"))
-         depfile (/ builddir (replace-ext page "html.embed.d"))
+         ; embedded_markdown (/ builddir (replace-ext page (str (fs/extension template) ".embed")))
+         processed_html (/ builddir (replace-ext page "html.rendered.json"))
+         depfile (/ builddir (replace-ext page "html.rendered.d"))
          final_html (/ public (replace-ext page "html"))
          rules [{:rule "frontmatter"
                  :inputs (str page)
@@ -62,7 +62,7 @@
                  :inputs json_frontmatter
                  :outputs processed_markdown
                  :implicit (concat implicits expressions)}
-                {:rule "template"
+                #_{:rule "template"
                  :inputs processed_markdown
                  :outputs embedded_markdown
                  :implicit (concat (conj ff template_path) expressions)
@@ -73,14 +73,14 @@
                 ; wait no dispatch-file only runs on pages
                 ; ok never mind, if you have a custom build command you have to add a :build yourself
                 {:rule "transform"
-                 :inputs embedded_html
+                 :inputs processed_html
                  :outputs final_html
                  :implicit (concat (fs/glob "transformers" "*") expressions)
-                 :depfile depfile
-                 :html embedded_html}]]
+                 :depfile depfile}]]
      ; TODO: this will break for md->html generation because it will also copy .embed to public/
-     (if (= embedded_markdown embedded_html) {:rules rules}  {:rules rules :out embedded_markdown})
-     ) ))
+     (if (= processed_markdown processed_html)
+       {:rules rules}
+       {:rules rules :out processed_markdown}))))
 
 (defn markdown-page [page]
   (let [html (/ builddir (replace-ext page "html"))]
@@ -140,6 +140,7 @@
 
 (def base
   {:variables {:builddir builddir}
+   :transformers {"clj" (str flower_cli " transform")}
    :rules
    [{:name "ninja-meta"
      :command (fmt "${flower_cli} configure")
@@ -147,6 +148,9 @@
     {:name "flower-meta"
      :command (if use-jar "cd .. && clojure -T:build uberjar" "cd .. && clojure -T:build native-dev")
      :description "rebuild flower itself"}
+    {:name "flower-defaults"
+     :command (fmt "cd ../defaults && ${flower_cli} configure")
+     :description "rebuild default build.ninja"}
     {:name "tmpdir"
      :command (str "mkdir -p " builddir)
      :description "create build dir"}
@@ -168,7 +172,7 @@
      ; TODO: maybe add an `--arg` equivalent idk
      :command (fmt "${flower_cli} jq -R \"{filename: \\\"$in\\\", content: .}\" < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
-     :command "sass $in $out; ${flower_cli} <$source-map >$depfile"
+     :command (fmt "sass --quiet $in $out; ${flower_cli} split-sass-dependencies $out <$source-map >$depfile")
      :description "compile Sass file $in to CSS"}
     {:name "markdown"
      ; TODO: use flower builtins
@@ -183,13 +187,16 @@
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"
-      :outputs ff
-      :inputs (conj (fs/glob "../flower" "**") "../flower")})
+        :outputs ff
+        :inputs (concat (fs/glob "../flower" "**") (fs/glob "../defaults" "**") ["../flower" "../deps.edn"])})
+    (when rebuild-flower
+       {:rule "flower-defaults"
+        :outputs "../defaults/build.ninja"
+        :inputs "../defaults/build.clj"})
     {:rule "tmpdir"
      :outputs builddir}]})
 
-; TODO: needs to register `depfile`
-; see /home/jyn/src/example/example-edbf02f84e934656.d for example
+; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
 (defn transform [{runners :all-transformers}]
   (let [pps (fs/glob "transformers" "*")
         cmds (map #(str (get runners (fs/extension %)) " " %) pps)
@@ -199,8 +206,6 @@
             :command cmd
             :description "run all transformers on $in"}]}))
 
-(flower.build/register-transformer-runners
-  {"clj" (str flower_cli " transform")})
-(flower.build/generate
+(expressions.ninja/generate
   (update base :builds #(concat % (map sass->build sass-files)))
   pages transform)

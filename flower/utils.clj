@@ -20,7 +20,10 @@
 (def bindings
   {'inspect inspect
    'strip-prefix strip-prefix
+   'remove-parent remove-parent
    'merge-deep merge-deep
+   'escape-ninja escape-ninja
+   'join-ninja join-ninja
    'fmt (sci/copy-var fmt utils-ns)
    'md->html md->html})
 

@@ -9,10 +9,10 @@
  [clojure.stacktrace :as st]
  [clojure.string :as str]
  [flower.beholder]
- [flower.build :as build]
  [flower.cmd :as cmd]
  [flower.defaults]
  [flower.eval :as eval]
+ [flower.frontmatter :refer [split-frontmatter]]
  [flower.hiccup]
  [flower.internal.utils]
  [flower.reflect]
@@ -73,7 +73,7 @@
 
 (def dispatch-table
   {"configure" (no-args cmd/configure)
-   "split-frontmatter" (no-args #(map-json build/split-frontmatter))
+   "split-frontmatter" (no-args #(map-json split-frontmatter))
    "render-page" (no-args #(map-json cmd/render-page {}))
    "render-index" (no-args #( map-json cmd/render-index ))
    "embed-template" {:fn #( map-json cmd/embed-template %)
