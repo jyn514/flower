@@ -82,19 +82,26 @@
 ; see comment on render-file
 (defn render-page
   "Preprocess and render a JSON blob"
-  ([parsed {:keys [locals] :or {locals {}}}]
-   (let [locals (merge-deep {'frontmatter (:frontmatter parsed)} locals)
-         rendered (eval/render-file (:content parsed) (:filename parsed) locals)]
+  ([parsed {:keys [bindings] :or {bindings {}}}]
+   (let [all-bindings (merge-deep {'frontmatter (:frontmatter parsed)} bindings)
+         rendered (eval/render-file (:content parsed) (:filename parsed) all-bindings)]
      {:content rendered
       :frontmatter (:frontmatter parsed)})))
 
 ; index preprocessing
 
-(defn- get-meta
-  [out all-meta]
-  (let [orig_path (fs/path "pages" (remove-parent out))
-        frontmatter (get all-meta orig_path {})]
-    {:frontmatter frontmatter :path out}))
+; TODO: horrible layering violation, doesn't handle expressions/constants.clj
+; TODO: probably we should get this from stdin somehow?
+(defn- get-src-dst
+  [frontmatter]
+  (let [base (-> frontmatter remove-parent remove-ext)]
+    [(str "pages/" base) (str (remove-ext base) ".html")]))
+
+(defn- index-page-meta
+  [frontmatter all-meta]
+  (let [[src dst] (get-src-dst frontmatter)
+        base-meta (get all-meta src)]
+    (update base-meta :path (constantly dst))))
 
 (defn render-index
   "Preprocess and render a JSON blob as an index page (i.e. with access to `pages` local)"
@@ -106,15 +113,10 @@
   ; document that you should use `include` if you want that.
   ; TODO: document that custom commands cannot generate the same output file as a page
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
-  (let [meta (load-all-meta "pages")
-        ; TODO: use parse-ninja here
-        out (:out (run {:out :string} "ninja -t targets rule transform"))
-        ; handle empty string
-        pages (if (seq out)
-                (map #(update (get-meta % meta) :path remove-parent)
-                     (str/split out #"\n"))
-                {})]
-    (render-page parsed {:locals {'pages pages}})))
+  (let [all-meta (load-all-meta "pages")
+        all-targets (parse-ninja "ninja -t targets rule frontmatter")
+        pages (map #(index-page-meta % all-meta) all-targets)]
+    (render-page parsed {:bindings {'pages pages}})))
 
 ; TODO: this is silly lol, is this really the easiest way?
 ; maybe we can have `transformers/preprocessors` and `transformers/renderers` or something

@@ -19,6 +19,9 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
+(defn eprint [& msg]
+  (binding [*out* *err*]
+    (apply print msg)))
 (defn eprintln [& msg]
   (binding [*out* *err*]
     (apply println msg)))
@@ -65,6 +68,10 @@
    If N is not given, assume N=1."
   ([path] (remove-parent path 1))
   ([path n] (->> path fs/components (drop n) (apply fs/path))))
+
+(defn remove-ext
+  [path]
+  (first (fs/split-ext path)))
 
 (defn parse-ninja [args]
   (let [out (:out (run {:out :string} args))]

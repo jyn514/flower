@@ -1,13 +1,23 @@
-{% extends "default.html" %}
-{% block content %}
++++
+index = true
++++
+
+◊(println pages)
+
+◊def[content]{
 <nav class="home">
 
-  <h1 class="page-heading">{{ section.title }}</h1>
+  <h1 class="page-heading">posts</h1>
 
   <ul class="post-list">
-    {% for post in section.pages %}
-      {% if post.extra.unlisted or post.extra.stub %}{% continue %}{% endif %}
-      {% if post.extra.rss_only %}{% continue %}{% endif %}
+    ◊(println pages)
+    ◊for[[post pages
+          :let [extra (:extra post)]
+          should-list (not (or (:unlisted extra) (:stub extra) (:rss_only extra)))
+          :when should-list]]{
+    <!-- {% for post in section.pages %} -->
+    <!--   {% if post.extra.unlisted or post.extra.stub %}{% continue %}{% endif %} -->
+    <!--   {% if post.extra.rss_only %}{% continue %}{% endif %} -->
       <li>
         {% set date_format = site.minima.date_format | default(value = "%b %-d, %Y") %}
         <span class="post-meta">
@@ -27,7 +37,7 @@
           <a {%if post.description%}title="{{post.description}}"{%endif%} class="post-link" href="{{ post.path }}">{{ post.title | safe }}</a>
         </h2>
       </li>
-    {% endfor %}
+    }
   </ul>
 
   <p class="rss-subscribe">subscribe <a type="application/atom+xml" href="{{ "/atom.xml" }}">via RSS</a></p>

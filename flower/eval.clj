@@ -203,6 +203,9 @@
   "form eval. innermost function; use this instead of sci/eval-form directly."
   ([src form] (eval-form *cx* src form))
   ([cx src form]
+   (when (System/getenv "FLOWER_DEBUG_EVAL")
+     (eprint "eval-form: ")
+     (eprn form))
    (binding [flower.reflect/*dependencies* #{}]
      (let [cx (with-meta cx (merge (meta cx)
                                    {:flower/span (insta/span form)
@@ -267,12 +270,25 @@
      :NestedRender #(identity `((str ~@%&)))
      } tree))
 
+; you can see all fields with `(into {} err)`
+(defn- render-parse-error [cx ex]
+  (let [filename (-> cx meta :flower/filename)
+        base (fmt "failed to parse ${filename}:\n" )
+        lines (->> ex pr-str str/split-lines)
+        indented (str/join "\n" (map #(str "  " %) lines))]
+    (str base indented)))
+
+(defn- on-parse-event [cx src ev]
+  (if (string? ev) ev
+    (eval-form cx src ev)))
+
 (defn teval
   "tree eval"
   ([tree src cx]
-   (let [form (transformer tree src cx)
-         strs (map #(if (string? %) % (eval-form cx src %)) form)]
-     (apply str strs))))
+   (let [events (transformer tree src cx)]
+     (when (instance? instaparse.gll.Failure events)
+      (fatal (render-parse-error cx events)))
+     (apply str (map #(on-parse-event cx src %) events)))))
 
 ; TODO: needs to account for pages not in clojure
 ; TODO: should include metadata parsed from frontmatter
@@ -293,6 +309,7 @@
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
    (binding [*cx* (if (some? *cx*)
+                    ; TODO: this ignores `locals`
                     (with-meta *cx* {:flower/filename filename})
                     (create-sci-cx filename {:bindings locals}))]
      (teval (parse src) src *cx*))))
