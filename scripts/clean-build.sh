@@ -13,4 +13,6 @@ rm -rf flower-test
 mkdir flower-test
 cd flower-test
 flower new
+# TODO: find a way to make sure defaults are up to date, maybe in CI
+flower configure
 flower watch

@@ -149,8 +149,8 @@
                  ; TODO: this only catches the clojure runtime,
                  ; not bound flower functions
                  (if (:sci/built-in f)
-                   "<host code>"
-                   "<BUG: unknown file>")) 
+                   "<clojure-runtime>"
+                   "<bound-host-function>")) 
         [relative-line relative-column] [(:line f) (:column f)]
         [line column] (if (and relative-line relative-column (= default-file file))
                         [(+ relative-line start-line)
@@ -202,15 +202,15 @@
   "form eval. innermost function; use this instead of sci/eval-form directly."
   ([src form] (eval-form *cx* src form))
   ([cx src form]
-  (binding [flower.reflect/*dependencies* #{}]
-    (let [cx (with-meta cx (merge (meta cx)
-                                  {:flower/span (insta/span form)
-                                   :flower/source src}))]
-      (sci/binding [sci/out *err*
-                    sci/err *err*
-                    sci/ns userns
-                    sci/file (-> cx meta :flower/filename)]
-        (try-sci cx #(sci/eval-form cx form)))))))
+   (binding [flower.reflect/*dependencies* #{}]
+     (let [cx (with-meta cx (merge (meta cx)
+                                   {:flower/span (insta/span form)
+                                    :flower/source src}))]
+       (sci/binding [sci/out *err*
+                     sci/err *err*
+                     sci/ns userns
+                     sci/file (-> cx meta :flower/filename)]
+         (try-sci cx #(sci/eval-form cx form)))))))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))
