@@ -1,0 +1,224 @@
+
+[34mΔ ]8;;file:///tmp/jj-diff-NQ0bVp/left/deps.edn\left/deps.edn]8;;\ ⟶   ]8;;file:///tmp/jj-diff-NQ0bVp/right/deps.edn\right/deps.edn]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m─────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/deps.edn\[34m3[0m]8;;\: [34m│[0m
+[34m─────[0m[34m┘[0m
+[38;2;248;248;242m    com.github.clj-easy/graal-build-time {[38;2;190;132;255m:mvn/version[38;2;248;248;242m [38;2;230;219;116m"1.0.5"[38;2;248;248;242m}[0m
+[38;2;248;248;242m    [38;2;117;113;94m; CLI parsing[0m
+[38;2;248;248;242m    org.babashka/cli {[38;2;190;132;255m:mvn/version[38;2;248;248;242m [38;2;230;219;116m"0.8.66"[38;2;248;248;242m}[0m
+[48;2;0;40;0;38;2;248;248;242m    [38;2;117;113;94m; repl[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    org.jline/jline {[38;2;190;132;255m:mvn/version[38;2;248;248;242m [38;2;230;219;116m"3.30.0"[38;2;248;248;242m}[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m    [38;2;117;113;94m; live-reload server[0m
+[38;2;248;248;242m    http-kit/http-kit {[38;2;190;132;255m:mvn/version[38;2;248;248;242m [38;2;230;219;116m"2.8.0"[38;2;248;248;242m}[0m
+[38;2;248;248;242m    com.nextjournal/beholder {[38;2;190;132;255m:mvn/version[38;2;248;248;242m [38;2;230;219;116m"1.0.3"[38;2;248;248;242m }[0m
+
+[34mΔ ]8;;file:///tmp/jj-diff-NQ0bVp/left/flower/cmd.clj\left/flower/cmd.clj]8;;\ ⟶   ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/cmd.clj\right/flower/cmd.clj]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m─────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/cmd.clj\[34m6[0m]8;;\: [34m│[0m
+[34m─────[0m[34m┘[0m
+[38;2;248;248;242m    [clojure.data.json [38;2;190;132;255m:as[38;2;248;248;242m json][0m
+[38;2;248;248;242m    [clojure.string [38;2;190;132;255m:as[38;2;248;248;242m str][0m
+[38;2;248;248;242m    [clojure.set [38;2;190;132;255m:refer[38;2;248;248;242m [union]][0m
+[48;2;0;40;0;38;2;248;248;242m    [clojure.main][0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m    [babashka.fs [38;2;190;132;255m:as[38;2;248;248;242m fs][0m
+[38;2;248;248;242m    [jq.api [38;2;190;132;255m:as[38;2;248;248;242m jq][0m
+[38;2;248;248;242m    [flower.reflect][0m
+
+[34m──────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/cmd.clj\[34m25[0m]8;;\: [34m│[0m
+[34m──────[0m[34m┘[0m
+
+[38;2;117;113;94m; meta-build system[0m
+
+[48;2;63;0;1m(defn- create-fs-cx[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  [filename][0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  (let [fs (eval/copy-ns 'babashka.fs)[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m        build (eval/copy-ns 'flower.build)][0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m    (eval/create-sci-cx filename[0m[48;2;63;0;1m[0K[0m
+[2m      {:namespaces[0m
+[2m       ; TODO: sandboxing[0m
+[2m       {'babashka.fs fs[0m
+[2m        'flower.build build}})))[0m
+[48;2;63;0;1m[0K[0m
+[38;2;248;248;242m([38;2;249;38;114mdefn[38;2;248;248;242m [38;2;166;226;46mconfigure[0m
+[38;2;248;248;242m  [38;2;230;219;116m"Run `build.clj` to generate a build.ninja and save the output to disk."[0m
+[38;2;248;248;242m  [][0m
+
+[34m──────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/cmd.clj\[34m38[0m]8;;\: [34m│[0m
+[34m──────[0m[34m┘[0m
+[38;2;248;248;242m        dst (fs/path out)[38;2;248;248;240m][0m
+[38;2;248;248;242m    (binding [flower.build/*ninja* ninja-writer[0m
+[38;2;248;248;242m              flower.build/*frontmatter* frontmatter][0m
+[48;2;63;0;1m      (let [cx (create-fs-cx in)[0m[48;2;63;0;1m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m      (let [cx ([48;2;0;96;0meval/[48;2;0;40;0mcreate-fs-cx in)[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m            embedded (str [38;2;230;219;116m"(do"[38;2;248;248;242m (slurp in) [38;2;230;219;116m")"[38;2;248;248;242m)[0m
+[38;2;248;248;242m            lisp (eval/parse-string cx embedded)][0m
+[38;2;248;248;242m        (eval/eval-form cx lisp)))[0m
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/cmd.clj\[34m155[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m        relative-deps (map [38;2;249;38;114m#[38;2;248;248;242m(fs/relativize [38;2;230;219;116m"."[38;2;248;248;242m (str out-dir [38;2;230;219;116m"/"[38;2;248;248;242m %)) deps)[0m
+[38;2;248;248;242m        joined (build/join relative-deps)[38;2;248;248;240m][0m
+[38;2;248;248;242m    (fmt [38;2;230;219;116m"${source-file}: ${joined}"[38;2;248;248;242m)[38;2;248;248;240m))[0m
+
+
+[34mΔ ]8;;file:///tmp/jj-diff-NQ0bVp/left/flower/eval.clj\left/flower/eval.clj]8;;\ ⟶   ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\right/flower/eval.clj]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\[34m168[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m  [cx s][0m
+[38;2;248;248;242m  (try-sci cx [38;2;249;38;114m#[38;2;248;248;242m(sci/parse-string cx s))[38;2;248;248;240m)[0m
+
+[48;2;63;0;1m(defn[48;2;144;16;17m-[48;2;63;0;1m eval-[48;2;144;16;17minner-[48;2;63;0;1mform[0m[48;2;63;0;1m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdefn[38;2;248;248;242m [38;2;166;226;46meval-form[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m  [38;2;230;219;116m"form eval. innermost function; use this instead of sci/eval-form directly."[0m
+[38;2;248;248;242m  [cx form][0m
+[38;2;248;248;242m  (binding [flower.reflect/*dependencies* #{}[0m
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\[34m189[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m          (eprn form)[0m
+[38;2;248;248;242m          (try-sci cx [38;2;249;38;114m#[38;2;248;248;242m(sci/eval-form cx form))[38;2;248;248;240m))))[0m
+
+[48;2;63;0;1m(defn eval-form[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  "Evaluate a quoted form as if it had been loaded with `load-file`."[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  [cx form][0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  ; can't just use normal dequoting here. if there is a `(require)` that is used later,[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  ; it won't be evaluated eagerly and we will get a resolution error.[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  ; use `eval` to delay resolution.[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  ; this has to be at the outermost level because eval doesn't see local bindings[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  ; (e.g. from let, for)[0m[48;2;63;0;1m[0K[0m
+[48;2;63;0;1m  (eval-inner-form cx `(flower.eval/pprint (eval '~form))))[0m[48;2;63;0;1m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m(defn eval-form[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  "Evaluate a quoted form as if it had been loaded with `load-file`."[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  [cx form][0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  ; can't just use normal dequoting here. if there is a `(require)` that is used later,[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  ; it won't be evaluated eagerly and we will get a resolution error.[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  ; use `eval` to delay resolution.[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  ; this has to be at the outermost level because eval doesn't see local bindings[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  ; (e.g. from let, for)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m  (eval-inner-form cx `(flower.eval/pprint (eval '~form))))[0m[48;2;0;40;0m[0K[0m
+[38;2;117;113;94m; (defn embed-custom [cx s f][0m
+[38;2;117;113;94m;   (f (parse-string cx s)) [0m
+
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\[34m216[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m([38;2;249;38;114mdefn[38;2;248;248;242m [38;2;166;226;46minline-render[0m
+[38;2;248;248;242m  ([cx src ident body] (apply inline-render cx src ident [38;2;249;38;114m'[38;2;248;248;242m[] body))[0m
+[38;2;248;248;242m  ([cx src ident args body][0m
+[48;2;63;0;1m    (eprn body)[0m[48;2;63;0;1m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    [48;2;0;96;0;38;2;117;113;94m; [48;2;0;40;0m(eprn body)[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m    (let [[38;2;117;113;94m;inline-body #(identity `(str ~@%))[0m
+[38;2;248;248;242m          [38;2;117;113;94m; rendered (inline-body (map #(parse-string cx %) body))[0m
+[38;2;248;248;242m          [38;2;117;113;94m; rendered (inline-body body)[0m
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\[34m277[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m  ([tree src] (teval tree src (create-sci-cx (-> src meta [38;2;190;132;255m:filename[38;2;248;248;242m))))[0m
+[38;2;248;248;242m  ([tree src cx][0m
+[38;2;248;248;242m   (let [form (transformer tree src cx)[0m
+[48;2;0;40;0;38;2;248;248;242m         [38;2;117;113;94m; TODO: maybe wrong? do we need to wrap this in pprint/eval?[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m         strs (map [38;2;249;38;114m#[38;2;248;248;242m(if (string? %) % (eval-form cx %)) form)][0m
+[38;2;248;248;242m     (apply str strs)))[38;2;248;248;240m)[0m
+
+
+[34m───────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/eval.clj\[34m293[0m]8;;\: [34m│[0m
+[34m───────[0m[34m┘[0m
+[38;2;248;248;242m   (let [cx (if (some? *cx*) *cx*[0m
+[38;2;248;248;242m              (create-sci-cx filename {[38;2;190;132;255m:bindings[38;2;248;248;242m locals}))][0m
+[38;2;248;248;242m     (teval (parse src) src cx))[38;2;248;248;240m))[0m
+[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdefn[38;2;248;248;242m [38;2;166;226;46mcreate-fs-cx[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  [filename][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  (let [fs (copy-ns [38;2;249;38;114m'[38;2;248;248;242mbabashka.fs)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m        build (copy-ns [38;2;249;38;114m'[38;2;248;248;242mflower.build)][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    (create-sci-cx filename[0m[48;2;0;40;0m[0K[0m
+[2m      {:namespaces[0m
+[2m       ; TODO: sandboxing[0m
+[2m       {'babashka.fs fs[0m
+[2m        'flower.build build}})))[0m
+
+[34mΔ ]8;;file:///tmp/jj-diff-NQ0bVp/left/flower/main.clj\left/flower/main.clj]8;;\ ⟶   ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/main.clj\right/flower/main.clj]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m──────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/main.clj\[34m11[0m]8;;\: [34m│[0m
+[34m──────[0m[34m┘[0m
+[38;2;248;248;242m  [flower.build [38;2;190;132;255m:as[38;2;248;248;242m build][0m
+[38;2;248;248;242m  [flower.cmd [38;2;190;132;255m:as[38;2;248;248;242m cmd][0m
+[38;2;248;248;242m  [flower.eval][0m
+[48;2;0;40;0;38;2;248;248;242m  [flower.repl][0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m  [flower.hiccup][0m
+[38;2;248;248;242m  [flower.reflect][0m
+[38;2;248;248;242m  [flower.defaults][0m
+
+[34m──────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/main.clj\[34m88[0m]8;;\: [34m│[0m
+[34m──────[0m[34m┘[0m
+[38;2;248;248;242m      [38;2;190;132;255m:coerce[38;2;248;248;242m {[38;2;190;132;255m:source-file[38;2;248;248;242m [38;2;190;132;255m:string[38;2;248;248;242m}[0m
+[38;2;248;248;242m      [38;2;190;132;255m:args->opts[38;2;248;248;242m [[38;2;190;132;255m:source-file[38;2;248;248;242m][38;2;248;248;240m}[0m
+[38;2;248;248;242m   [38;2;230;219;116m"watch"[38;2;248;248;242m flower.watch/watch[0m
+[48;2;0;40;0;38;2;248;248;242m   [38;2;230;219;116m"repl"[38;2;248;248;242m (no-args flower.repl/repl)[0m[48;2;0;40;0m[0K[0m
+[38;2;248;248;242m   [38;2;230;219;116m"new"[38;2;248;248;242m (no-args flower.defaults/materialize-all)[0m
+[38;2;248;248;242m   [38;2;117;113;94m; TODO: this overrides --data[0m
+[38;2;248;248;242m   [38;2;230;219;116m"jq"[38;2;248;248;242m {[38;2;190;132;255m:fn[38;2;248;248;242m [38;2;249;38;114m#[38;2;248;248;242m(println (cmd/jq (assoc % [38;2;190;132;255m:data[38;2;248;248;242m (slurp *in*))))[0m
+
+[34madded: ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/repl.clj\right/flower/repl.clj]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m─────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/flower/repl.clj\[34m1[0m]8;;\: [34m│[0m
+[34m─────[0m[34m┘[0m
+[48;2;0;40;0;38;2;248;248;242m(ns flower.repl[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  ([38;2;190;132;255m:import[38;2;248;248;242m (org.jline.terminal TerminalBuilder)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m           (org.jline.reader LineReaderBuilder))[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  ([38;2;190;132;255m:require[0m[7;35m [0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    [clojure.main][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    [flower.eval [38;2;190;132;255m:as[38;2;248;248;242m eval]))[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdef[38;2;248;248;242m [38;2;249;38;114m^[38;2;190;132;255m:dynamic[38;2;248;248;242m [38;2;166;226;46mreader[38;2;248;248;242m)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdefn-[38;2;248;248;242m [38;2;166;226;46mmake-reader[38;2;248;248;242m [][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  (let [term (.. TerminalBuilder builder (system [38;2;190;132;255mtrue[38;2;248;248;242m) build)][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    (.. LineReaderBuilder builder (terminal term) build)))[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdefn-[38;2;248;248;242m [38;2;166;226;46mreadline[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  [fresh exit][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  [38;2;117;113;94m; TODO: line-aware[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  (try (.readLine reader [38;2;230;219;116m"flower=>"[38;2;248;248;242m)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m       (catch org.jline.reader.EndOfFileException _ exit)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m       (catch org.jline.reader.UserInterruptException _ fresh)))[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m([38;2;249;38;114mdefn[38;2;248;248;242m [38;2;166;226;46mrepl[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  [][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m  (binding [eval/*cx* (eval/create-fs-cx [38;2;230;219;116m"<repl>"[38;2;248;248;242m)[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m            reader (make-reader)][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m    (let [flower-eval [38;2;249;38;114m#[38;2;248;248;242m(eval/render-file % [38;2;230;219;116m"<repl>"[38;2;248;248;242m)][0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m          (clojure.main/repl [38;2;190;132;255m:prompt[38;2;248;248;242m ([38;2;249;38;114mfn[38;2;248;248;242m []) [38;2;117;113;94m; handled by readline[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m                             [38;2;190;132;255m:eval[38;2;248;248;242m flower-eval[0m[48;2;0;40;0m[0K[0m
+[48;2;0;40;0;38;2;248;248;242m                             [38;2;190;132;255m:read[38;2;248;248;242m readline))))[0m[48;2;0;40;0m[0K[0m
+
+[34mΔ ]8;;file:///tmp/jj-diff-NQ0bVp/left/scripts/run-jar.sh\left/scripts/run-jar.sh]8;;\ ⟶   ]8;;file:///tmp/jj-diff-NQ0bVp/right/scripts/run-jar.sh\right/scripts/run-jar.sh]8;;\[0m
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+
+[34m─────[0m[34m┐[0m
+[34m•[0m ]8;;file:///tmp/jj-diff-NQ0bVp/right/scripts/run-jar.sh\[34m1[0m]8;;\: [34m│[0m
+[34m─────[0m[34m┘[0m
+[38;2;124;120;101m#!/bin/sh[0m
+[38;2;255;255;255mhere[38;2;249;38;114m=[38;2;255;255;255m$[38;2;230;219;116m([38;2;255;255;255mdirname[38;2;230;219;116m [38;2;255;255;255m$0[38;2;230;219;116m)/..[0m
+[48;2;63;0;1mjava -jar "$here"/target/flower.jar "$@"[0m[48;2;63;0;1m[0K[0m
+[48;2;0;40;0;38;2;255;255;255mjava[38;2;253;151;31m -[48;2;0;96;0m-enable-native-access[38;2;249;38;114m=[38;2;255;255;255mALL-UNNAMED[38;2;253;151;31m -[48;2;0;40;0mjar[38;2;255;255;255m "$here"/target/flower.jar "$@"[0m[48;2;0;40;0m[0K[0m
+[1m[38;5;3mWarning: [39mTool exited with exit status: 1 (run with --debug to see the exact invocation)[0m
