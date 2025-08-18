@@ -1,10 +1,8 @@
 +++
 index = true
 +++
+◊(require '[java-time.api :as jt])
 
-◊(println pages)
-
-◊def[content]{
 <nav class="home">
 
   <h1 class="page-heading">posts</h1>
@@ -13,52 +11,39 @@ index = true
     ◊(println pages)
     ◊for[[post pages
           :let [extra (:extra post)]
-          should-list (not (or (:unlisted extra) (:stub extra) (:rss_only extra)))
-          :when should-list]]{
-    <!-- {% for post in section.pages %} -->
-    <!--   {% if post.extra.unlisted or post.extra.stub %}{% continue %}{% endif %} -->
-    <!--   {% if post.extra.rss_only %}{% continue %}{% endif %} -->
+          :when (not (or (:unlisted extra) (:stub extra) (:rss_only extra)))]]{
       <li>
-        {% set date_format = site.minima.date_format | default(value = "%b %-d, %Y") %}
         <span class="post-meta">
-          {{ post.date | date(value = date_format) }}
-          {% if post.extra.audience %}
-            • audience—{{ post.extra.audience | default(value = "everyone") }}
-          {% endif %}
-          {% for term, tags in post.taxonomies %}
-            {% if term != "tags" %}{% continue %}{% endif %}
-            {% for tag in tags %}
-          • <a href="{{ get_taxonomy_url(kind=term, name=tag) }}">{{ tag }}</a>
-            {% endfor %}
-          {% endfor %}
+          ◊(jt/format "yyyy-MM-dd" (:date post))
+          ◊when-let[[audience (:audience extra)]]{
+            • audience—◊audience
+          }
+          ◊for[[[term tags] (:taxonomies post)
+                :when (= "tags" term)
+                tag tags]]{
+            • <a href="/tags/◊tag">◊tag</a>
+          }
         </span>
 
         <h2>
-          <a {%if post.description%}title="{{post.description}}"{%endif%} class="post-link" href="{{ post.path }}">{{ post.title | safe }}</a>
+          <a ◊(when-let [d (:description post)] d) class="post-link" href="◊(:path post)">◊(:title post)</a>
         </h2>
       </li>
     }
   </ul>
 
-  <p class="rss-subscribe">subscribe <a type="application/atom+xml" href="{{ "/atom.xml" }}">via RSS</a></p>
+  <p class="rss-subscribe">subscribe <a type="application/atom+xml" href="/atom.xml">via RSS</a></p>
 
-{% set all_tags = [] %}
-{% for post in section.pages %}
-  {% for term, tags in post.taxonomies %}
-      {% if term != "tags" %}{% continue %}{% endif %}
-      {% for tag in tags %}
-        {% set_global all_tags = all_tags | concat(with=tag) | unique %}
-      {% endfor %}
-  {% endfor %}
-{% endfor %}
+◊(def all-tags
+  (set (for [post pages
+             [term tags] (:taxonomies post)
+             :when (= "tags" term)
+             tag tags])))
 
-{% if all_tags %}
+◊when[(seq all-tags)]{
 <nav class=all-tags>all tags:<ul>
-{% for tag in all_tags | sort %}
-<li><a href="{{ get_taxonomy_url(kind="tags", name=tag) }}">{{ tag }}</a></li>
-{% endfor %}
-</ul></div>
-
-</nav>
-{%endif%}
-{% endblock content %}
+    ◊for[[tag all-tags]]{
+      <li><a href="/tags/◊tag">◊tag</a></li>
+    }
+</ul></nav>
+}
