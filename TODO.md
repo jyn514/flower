@@ -16,7 +16,7 @@
     - ◊ is option+shift+v on macOS
     - ⋄ is compose+<> on linux
     - point people to https://github.com/samhocevar/wincompose on windows
-    - document how to set this up in common editors (vim, vscode, helix, zed)
+    - document how to set this up in common editors (vscode, vim, emacs, helix, zed)
 
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
 - `flower help` is broken lol lmao

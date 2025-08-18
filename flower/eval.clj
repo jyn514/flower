@@ -3,6 +3,7 @@
   (:require
    [babashka.fs]
    [clj-commons.digest]
+   [java-time.api]
    [clojure.repl :as repl]
    [clojure.string :as str]
    [flower.hiccup]
@@ -103,6 +104,7 @@
                                        'render-file render-file)
                 'flower.eval {'pprint pprint}
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
+                'java-time.api (copy-ns 'java-time.api)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
@@ -164,7 +166,7 @@
                :else "")]
     (fmt " [${var} ${file}${span}]\n")))
 
-(defn print-sci-trace [e stacktrace]
+(defn print-sci-trace [e stacktrace dup]
   (let [useful? #(or (:name %) (:line %) (not= (:ns %) 'user))
         ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
         useful-frames (dedupe (filter useful? stacktrace))
@@ -172,17 +174,20 @@
         src (-> e ex-data :flower/source)
         ; TODO: this doesn't handle InlineRender; *something* is going wrong
         start (-> e ex-data :flower/span (span->start src))]
+    (when (and dup (not (instance? clojure.lang.ExceptionInfo dup)))
+      (-> dup type pr-str (str ": ") print))
     (apply println
-      (ex-message e )
+      (ex-message e)
       "\n"
       (map #(print-sci-frame % file start) useful-frames))))
 
 (defn print-stack-trace [e]
   (if-let [sci-ex (sci/stacktrace e)]
       ; skip the inner error, sci duplicates messages >:(
-      (let [inner (some-> e ex-cause ex-message)]
-        (print-sci-trace e sci-ex)
-        (when (= inner (ex-message e))
+      (let [inner (some-> e ex-cause ex-message)
+            dup (= inner (ex-message e))]
+        (print-sci-trace e sci-ex (when dup (ex-cause e)))
+        (when dup
           (-> e ex-cause ex-cause)))
       (do
         (if (some-> e ex-data :flower/exit)
