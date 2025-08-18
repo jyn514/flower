@@ -30,7 +30,7 @@
   (fs/read-all-bytes path))
 
 (defn write-ninja! [str]
-  (StringWriter/.write *ninja* str))
+  (StringWriter/.write *ninja* ^String str))
 
 ; TODO: this sucks! i don't like having things only available in the guest :(
 (declare render-file)

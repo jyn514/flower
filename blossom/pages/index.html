@@ -11,10 +11,17 @@ index = true
     ◊(println pages)
     ◊for[[post pages
           :let [extra (:extra post)]
-          :when (not (or (:unlisted extra) (:stub extra) (:rss_only extra)))]]{
+          :when (not (or
+            (:unlisted extra)
+            (:stub extra)
+            (:rss_only extra)
+            (= "index.html" (:path post))))]]{
       <li>
         <span class="post-meta">
-          ◊(jt/format "yyyy-MM-dd" (:date post))
+          ◊(println post)
+          ◊(when-let [d (:date post)]
+            (println (type d))
+            (->> d jt/local-date (jt/format "yyy-MM-dd")))
           ◊when-let[[audience (:audience extra)]]{
             • audience—◊audience
           }

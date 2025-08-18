@@ -7,7 +7,7 @@
 
 ; TODO: configuration mechanism using ninja phony targets
 ; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
-(def use-jar true)
+(def use-jar false)
 (def rebuild-flower true)
 
 (defn / [x & more]
@@ -190,7 +190,7 @@
     (when rebuild-flower
       {:rule "flower-meta"
         :outputs ff
-        :inputs (concat (fs/glob "../flower" "**") defaults ["../flower" "../deps.edn"])})
+        :inputs (concat (fs/glob "../flower" "**") defaults ["../flower" "../deps.edn" "../native.clj"])})
     (when rebuild-flower
        {:rule "flower-defaults"
         :outputs "../defaults/build.ninja"

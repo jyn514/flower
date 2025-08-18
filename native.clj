@@ -49,9 +49,10 @@
      :allDeclaredMethods true
      :allPublicMethods true}))
 ; keep this in sync with :classes in flower.eval
-(def dynamic
+(def all-dynamic
   (all-public
     "java.lang.Class"
+    "java.lang.String"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"
     "org.jsoup.nodes.Node"
@@ -63,9 +64,10 @@
     "org.jsoup.nodes.Attribute"
     "org.jsoup.nodes.Attributes"
     "org.jsoup.parser.Parser"))
+(def dynamic
+  [{:type "org.yaml.snakeyaml.Yaml" ctors true}])
 (def reachable
-  {:reflection
-   (concat [{:type "org.yaml.snakeyaml.Yaml" ctors true}] dynamic)
+  {:reflection (concat all-dynamic dynamic)
    :resources
    [{:glob "META-INF/resources/flower/live-reload/**"}
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}

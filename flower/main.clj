@@ -4,7 +4,8 @@
   (:use flower.internal.utils)
 (:require
  [babashka.cli :as cli]
- [babashka.process.pprint] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+ ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+ [babashka.process.pprint]
  [clojure.data.json :as json]
  [clojure.string :as str]
  [flower.beholder]
@@ -87,7 +88,8 @@
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
       :args->opts [:source-file]}
-   "watch" flower.watch/watch
+   "watch" {:fn flower.watch/watch
+            :coerce {:port :number}}
    "repl" {:fn flower.repl/repl
            :coerce {:template :boolean}
            :args->opts [:template]}
@@ -135,7 +137,7 @@
     0
     (catch java.lang.Exception e
       (binding [*out* *err*]
-        (repl/print-trace e))
+        (repl/print-trace e false))
       1)
     (finally
       (shutdown-agents)

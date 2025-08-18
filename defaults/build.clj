@@ -7,8 +7,8 @@
 
 ; TODO: configuration mechanism using ninja phony targets
 ; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
-(def use-jar true)
-(def rebuild-flower true)
+(def use-jar false)
+(def rebuild-flower false)
 
 (defn / [x & more]
   (apply fs/path x more))

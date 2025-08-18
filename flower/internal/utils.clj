@@ -112,10 +112,36 @@
    (select-keys m ks)])
 
 ; https://github.com/clojure/clojure-contrib/blob/b8d2743d3a89e13fc9deb2844ca2167b34aaa9b6/src/main/clojure/clojure/contrib/seq.clj#L51
-(defn indexed
+(defn enumerate
   "Returns a lazy sequence of [index, item] pairs, where items come
   from 's' and indexes count up from zero.
 
   (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
   [s]
   (map vector (iterate inc 0) s))
+
+(def env System/getenv)
+
+(defn home [] (System/getProperty "user.home"))
+
+; https://github.com/NetLogo/NetLogo/blob/de24f273963a18cf42c257301f2921b90a4efd1b/build.sbt#L187
+(defn platform []
+  (condp str/starts-with? (System/getProperty "os.name")
+    "Windows" :win
+    "Mac" :mac
+    "Linux" :linux
+    :unknown))
+
+; https://codeberg.org/dirs/directories-jvm#basedirectories
+; https://forum.atuin.sh/t/xdg-state-home-for-the-location-of-history-data/67/2
+(defn platform-state-dir []
+  (case (platform)
+    :win (or (env "LocalAppData")
+             (str (home) "\\AppData\\Local"))
+    ; https://stackoverflow.com/a/14108036/7669110
+    ; NOTE: wrong when running sandboxed :(
+    :mac (str (home) "/Library/Application Support")
+    (:linux :unknown) (or (env "XDG_STATE_HOME")
+                          (str (home) "/.local/state"))))
+
+(defn state-dir [] (fs/path (platform-state-dir) "flower"))

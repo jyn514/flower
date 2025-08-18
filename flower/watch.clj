@@ -129,8 +129,8 @@
 ; api
 
 (defn watch
-  [& {:keys [static-port out-dir build-dir]
-      :or {static-port 8090
+  [& {:keys [port out-dir build-dir]
+      :or {port 8090
            out-dir "public"
            build-dir ".build"}}]
   (println "Rerun `flower configure`")
@@ -144,5 +144,5 @@
   (println "Starting live reload watcher for" out-dir)
   ; TODO: this needs to be async oops
   (live-reload {:dir out-dir :port 35729})
-  (http-server/exec {:dir out-dir :port static-port}))
+  (http-server/exec {:dir out-dir :port port}))
 

@@ -141,7 +141,7 @@
                                 StringReader.
                                 BufferedReader.
                                 line-seq
-                                indexed
+                                enumerate
                                 last)]
       [line-zero (dec (count line))])
     [0 0]))
@@ -176,7 +176,7 @@
         start (-> e ex-data :flower/span (span->start src))]
     (when (and dup (not (instance? clojure.lang.ExceptionInfo dup)))
       (-> dup type pr-str (str ": ") print))
-    (apply println
+    (apply print
       (ex-message e)
       "\n"
       (map #(print-sci-frame % file start) useful-frames))))
@@ -190,7 +190,7 @@
         (when dup
           (-> e ex-cause ex-cause)))
       (do
-        (if (some-> e ex-data :flower/exit)
+        (if (instance? clojure.lang.ExceptionInfo e)
           (println (ex-message e))
           (println (str (pr-str (class e)) ":") (ex-message e)))
         ; (st/print-stack-trace e)
@@ -202,8 +202,7 @@
     (when (not first-loop)
       (print " Caused by: "))
     (when-let [cause (print-stack-trace e)]
-      (recur cause false)))
-  (print "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"))
+      (recur cause false))))
 
 (defn try-sci
   [cx f]
@@ -220,7 +219,8 @@
                                :flower/span span
                                :flower/source src)
                new-cause (ex-info (ex-message cause) new-info (ex-cause cause))
-               ex (ex-info msg {:flower/exit true} new-cause)]
+               ex (ex-info msg {:flower/exit true
+                                :flower/eval true} new-cause)]
            (throw ex)))))
 
 (defn parse-string
