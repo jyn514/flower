@@ -26,7 +26,7 @@
               yaml)))
 
 (defn- parse-toml [s]
-  (let [toml (toml/read-string s)]
+  (let [toml (toml/read-string s {:key-fn keyword})]
     (postwalk #(if-not (instance? java.time.LocalDate %) %
                  (-> % LocalDate/.atStartOfDay (LocalDateTime/.toInstant ZoneOffset/UTC) str))
               toml)))
@@ -43,8 +43,8 @@
   (case first-line
     "---" parse-yaml
     "+++" parse-toml
-    ";;;" parse-json ; TODO: just use {} like hugo
-    "###" parse-edn
+    "===" parse-json ; TODO: just use {} like hugo
+    ";;;" parse-edn
     nil))
 
 ; NOTE: maps use strings as keys, not keywords

@@ -259,7 +259,7 @@
 ; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
 ; TODO: allow escaping ] and } in InlineRender
 ; TODO: don't actually need to disallow whitespace in Atom now that InlineRender handles Vec properly
-; TODO: this renders nested InlineRender eagerly, it needs to delay evaluation
+; TODO: there's some bug around backslashes here
 (def parse
    (insta/parser
      "Start = (Text | Lisp)*

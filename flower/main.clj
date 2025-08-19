@@ -124,7 +124,8 @@
 
 (defn init-fn [cmd-fn args]
   (binding [*site* (or (get-in args [:opts :C]) ".")
-            flower.reflect/*watching* (boolean (= "watch" (:dispatch args)))]
+            flower.reflect/*watching* (boolean (or (= "watch" (:dispatch args))
+                                                   (env "FLOWER_WATCH")))]
     (cmd-fn args)))
 
 (defn dispatch-cmd

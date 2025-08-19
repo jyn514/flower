@@ -54,7 +54,8 @@
   (try (apply run opts rest)
        (catch clojure.lang.ExceptionInfo e
          (if (= (:type (ex-data e)) :babashka.process/error)
-           (error (fmt "failed to run ${opts}: exit code") (:exit (ex-data e)))
+           (let [cmd (if (map? opts) (str/join " " rest) opts)]
+               (error "failed to run ${cmd}: exit code " (:exit (ex-data e))))
            (throw e)))))
 
 (defn strip-prefix
@@ -74,6 +75,7 @@
   (first (fs/split-ext path)))
 
 ; you can see all fields with `(into {} err)`
+; TODO: see if we can use :total to get a partial parse
 (defn- render-parse-error [ex description]
   (let [base (fmt "failed to parse ${description}:\n" )
         lines (->> ex pr-str str/split-lines)
@@ -83,8 +85,8 @@
 (defn parse-or-fatal
   [parser input description]
   (let [ev (parser input)]
-    (if (instance? instaparse.gll.Failure ev)
-      (fatal (render-parse-error ev description))
+    (if-let [err (insta/get-failure ev)]
+      (fatal (render-parse-error err description))
       ev)))
 
 (def ^:private bs "\\")

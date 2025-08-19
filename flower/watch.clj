@@ -11,8 +11,8 @@
    [clojure.java.io :as io]
    [clojure.stacktrace]
    [clojure.string :as str]
-   [flower.cmd :as cmd]
    [flower.beholder :as behold]
+   [flower.cmd :as cmd]
    [org.httpkit.server :as wss]))
 
 ; file watcher
@@ -109,7 +109,7 @@
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
   ; TODO: don't rebuild immediately if ninja modifies a bunch of intermediate files, it looks weird
   (when (= :delete type) (run-non-fatal "flower configure"))
-  (run-non-fatal "ninja"))
+  (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
 
 (defn watch-ninja [build-dir]
   ; TODO: decide whether to interrupt ninja on changes

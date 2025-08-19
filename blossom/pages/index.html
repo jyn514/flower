@@ -4,12 +4,16 @@ index = true
 ◊(require '[java-time.api :as jt]
           '[expressions.title :refer [title]])
 
+◊(def sorted-pages
+   ; sorted descending
+   (sort #(compare (:date %2) (:date %1)) pages))
+◊(println (sort (map :date pages)))
 <nav class="home">
 
   <h1 class="page-heading">posts</h1>
 
   <ul class="post-list">
-    ◊for[[post pages
+    ◊for[[post sorted-pages
           :let [extra (:extra post)]
           :when (not (or
             (:unlisted extra)
@@ -34,7 +38,7 @@ index = true
           ◊(let [attrs {:class "post-link" :href (:path post)}
                  more-attrs (if-let [d (:description post)]
                               (assoc attrs :description d) attrs)]
-              (html [:a more-attrs (title post)]))
+              (html [:a more-attrs (hiccup.util/raw-string (title post))]))
         </h2>
       </li>
     }

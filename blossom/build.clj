@@ -108,7 +108,7 @@
 
 (def page-builds
   (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
-        [indexes pages] (split-all (fn [[_ meta]] (get meta "index")) page-frontmatter)
+        [indexes pages] (split-all (fn [[_ meta]] (:index meta)) page-frontmatter)
         index-paths (map first indexes)
         page-paths (map first pages)
         index-builds (chain-page index-paths #(build-page "index" % (conj page-paths "build.ninja")))
@@ -190,7 +190,7 @@
     (when rebuild-flower
       {:rule "flower-meta"
         :outputs ff
-        :inputs (concat (fs/glob "../flower" "**") defaults ["../flower" "../deps.edn"])})
+        :inputs (concat (fs/glob "../flower" "**") defaults ["../native.clj" "../flower" "../deps.edn"])})
     (when rebuild-flower
        {:rule "flower-defaults"
         :outputs "../defaults/build.ninja"

@@ -3,15 +3,18 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
-- test in CI that `scripts/clean-build.sh` works
-
 - (compile) so startup time is better
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)
     - reload vfs itself when flower changes using ninja
     - custom merge isn't *that* hard https://github.com/mystor/git-revise/blob/main/gitrevise/merge.py
 - write lots of tests
+    - test in CI that `scripts/clean-build.sh` works
     - pprint
+    - repl works without warnings
+    - can build jyn.dev
+    - incremental builds do nothing if no file has changed
+    - incremental builds rebuild if necessary
 - document how to type lozenge
     - ◊ is option+shift+v on macOS
     - ⋄ is compose+<> on linux
@@ -20,6 +23,9 @@
 - auto-escaping with `hiccup.util/escape-html`
   - opt-out with `hiccup/raw`
 
+- some things don't work with `(doc)` in the repl
+  - TODO make a list
+- backslash escape parsing seems broken
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
 - `transformers/redirect.clj`
   - allows relative paths with /foo.html
@@ -51,6 +57,7 @@
 - render needs to not blindly assume that the preprocessing language is clojure
 - dependencies between index pages and rendered pages
   - if we want "leads", they need to depend on contents also
+    - actually wait depfiles solve this owo
   - if we want titles, we need them to be frontmatter
 
   <!-- - maybe `transformers/index.clj`, present by default, returns list of strings -->

@@ -7,7 +7,8 @@
 
 (defn title
   [post]
-  (or (-> post :frontmatter :title)
+  (println post)
+  (or (:title post)
       (-> post :path unslugify)))
       ; this is cursed and easily leads to dependency cycles
       ;(-> post :content meta/render (html/select "title") html/text)))

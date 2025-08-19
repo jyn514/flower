@@ -71,7 +71,7 @@
 (def reachable
   {:reflection all-dynamic
    :resources
-   [{:glob "META-INF/resources/flower/live-reload/**"}
+   [{:glob "META-INF/resources/flower/**"}
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
     {:glob "simplelogger.properties"}]})
 
