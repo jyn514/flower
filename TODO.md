@@ -19,10 +19,10 @@
     - document how to set this up in common editors (vscode, vim, emacs, helix, zed)
 
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
+- `transformers/redirect.clj`
+  - allows relative paths with /foo.html
 - `flower help` is broken lol lmao
 - fix spans for SCI eval
-- clojure.repl doesn't get loaded into SCI
-    - add `flower repl`?
 - template defaults
 - add the rest of the HTML selector apis lol
 - allow configuring build dirs in `flower.toml`
@@ -39,9 +39,6 @@
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
   - note that `ninja -t browse` defaults to `all`. hm.
 - flower emojis
-- `index = true` doesn't work in pages
-- templates can end with .md
-- render-page for each template
 - should not lose `page` with `embed-template`
 - maybe `◊include` should be relative to `includes` instead of `templates`?
 - allow more things to be dynamic with depfiles?
@@ -50,7 +47,6 @@
 - bundle asciidoc; suggest for highly nested md->clj->md->clj
 - allow preprocessors to edit frontmatter
 - render needs to not blindly assume that the preprocessing language is clojure
-- `embed` is the fixed point algorithm, calls render
 - dependencies between index pages and rendered pages
   - if we want "leads", they need to depend on contents also
   - if we want titles, we need them to be frontmatter

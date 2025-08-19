@@ -110,7 +110,9 @@
        :QuoteMark identity}
       parsed)))
 
-(defn parse-ninja [args quoted]
+(defn parse-ninja
+  ([args] (parse-ninja args false))
+  ([args quoted]
   (let [out (:out (run {:out :string} args))
         ; ;-;;;;;
         ; https://github.com/ninja-build/ninja/issues/2658
@@ -119,7 +121,7 @@
     ; handle empty string
     (if (seq out)
       (map parse (str/split out #"\n"))
-      [])))
+      []))))
 
 (defn escape-ninja
   "Escape a string for use as a ninja file path.

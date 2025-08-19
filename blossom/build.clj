@@ -81,7 +81,7 @@
     {:rules [{:rule "transform"
                :inputs rendered
                :outputs final
-               :implicit [:transformers :expressions]
+               :implicit (concat transformers expressions)
                :depfile depfile}]
       :out nil}))
 
@@ -138,10 +138,9 @@
           (fs/glob "../defaults" "**")))
 
 (def base
-  {:variables {:builddir builddir
-               :pages all-pages
-               :expressions expressions
-               :transformers transformers}
+  ; NOTE: we can't put lists here, ninja interprets them as literal strings
+  ; https://codeberg.org/jyn514/flower/issues/16
+  {:variables {:builddir builddir}
    :phony [{:name "flower" :depends ff}]
    :rules
    [{:name "ninja-meta"
@@ -184,7 +183,7 @@
    [{:rule "ninja-meta"
      :restat true
      :outputs "build.ninja"
-     :inputs (concat [:pages "build.clj"] ff
+     :inputs (concat all-pages ["build.clj"] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"

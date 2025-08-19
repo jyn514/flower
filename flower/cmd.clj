@@ -152,11 +152,28 @@
     ; also allow returning just a string to inherit existing metadata
     {:content (eval/eval-form cx "" lisp)}))
 
+; The following is quoted from ninja/src/depfile_parser.in.cc:
+;
+; Rather than implement all of above, we follow what GCC/Clang produces:
+; Backslashes escape a space or hash sign.
+; When a space is preceded by 2N+1 backslashes, it is represents N backslashes
+; followed by space.
+; When a space is preceded by 2N backslashes, it represents 2N backslashes at
+; the end of a filename.
+; A hash sign is escaped by a single backslash. All other backslashes remain
+; unchanged.
+(defn escape-depfile
+  [s]
+  ; NOTE: \ has to come first
+  (let [specials "\\ #:%*~$"]
+    (reduce #(str/replace %1 (str %2) (str "\\" %2)) s specials)))
+
 (defn split-dependencies
   [parsed {:keys [depfile out-file]}]
   (let [[parsed deps] (split-map parsed :dependencies)
-        joined (join-ninja (:dependencies deps))
-        formatted (fmt "${out-file}: ${joined}")]
+        out (escape-depfile out-file)
+        deps (->> deps :dependencies (map escape-depfile) (str/join " "))
+        formatted (fmt "${out}: ${deps}")]
     (spit depfile formatted)
     ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
     parsed))
