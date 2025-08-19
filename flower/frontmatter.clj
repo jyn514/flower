@@ -51,7 +51,10 @@
   (let [[first-line & rest-lines] (str/split-lines content)
         [frontmatter body]        (split-lines rest-lines first-line)]
     (if-let [parser (select-parse-fn first-line)]
-      {:content (str/join "\n" body)
-       :filename filename
-       :frontmatter (parser (str/join "\n" frontmatter))}
+      (try
+        {:content (str/join "\n" body)
+         :filename filename
+         :frontmatter (parser (str/join "\n" frontmatter))}
+        (catch java.lang.Exception e
+          (throw (ex-info (str "failed to parse frontmatter for " filename) {} e))))
       {:content content :filename filename :frontmatter {}})))

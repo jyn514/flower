@@ -84,11 +84,13 @@
   "Escape a string for use as a ninja file path.
    See https://ninja-build.org/manual.html#ref_lexer"
   [s] 
+  ; https://github.com/ninja-build/ninja/blob/370edd49a47379d0c3ff0c0ae9d825e627fd37c3/misc/ninja_syntax.py#L30
   (-> s str
-      (str/replace "\n" "$n")
+      ; NOTE: $ has to come first
+      (str/replace "$" "$$")
+      (str/replace "\n" "$\n")
       (str/replace " " "$ ")
-      (str/replace ":" "$:")
-      (str/replace "$" "$$")))
+      (str/replace ":" "$:")))
 
 (defn join-ninja
   "Given a list of file paths, format them as a ninja dependency set."
