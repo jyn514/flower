@@ -17,6 +17,8 @@
     - ⋄ is compose+<> on linux
     - point people to https://github.com/samhocevar/wincompose on windows
     - document how to set this up in common editors (vscode, vim, emacs, helix, zed)
+- auto-escaping with `hiccup.util/escape-html`
+  - opt-out with `hiccup/raw`
 
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
 - `transformers/redirect.clj`

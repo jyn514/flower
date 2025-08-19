@@ -234,15 +234,14 @@
    (when (env "FLOWER_DEBUG_EVAL")
      (eprint "eval-form: ")
      (eprn form))
-   (binding [flower.reflect/*dependencies* #{}]
-     (let [cx (with-meta cx (merge (meta cx)
+   (let [cx (with-meta cx (merge (meta cx)
                                    {:flower/span (insta/span form)
                                     :flower/source src}))]
        (sci/binding [sci/out *err*
                      sci/err *err*
                      sci/ns userns
                      sci/file (-> cx meta :flower/filename)]
-         (try-sci cx #(sci/eval-form cx form)))))))
+         (try-sci cx #(sci/eval-form cx form))))))
 
 (defn ->source [src node]
   (apply subs src (insta/span node)))
@@ -327,8 +326,10 @@
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
    (binding [*cx* (if (some? *cx*)
-                    ; TODO: this ignores `locals`
-                    (with-meta *cx* {:flower/filename filename})
+                    ; NOTE: state changes in the inner template are not visible in the outside context
+                    ; NOTE: :bindings doesn't work here, upstream bug
+                    (let [new-cx (sci/merge-opts *cx* {:namespaces {'user locals}})]
+                      (with-meta new-cx {:flower/filename filename}))
                     (create-sci-cx filename {:bindings locals}))]
      (teval (parse-or-fatal parse src filename) src *cx*))))
 

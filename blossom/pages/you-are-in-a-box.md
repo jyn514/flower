@@ -25,10 +25,8 @@ this is true of languages too. any new programming language makes an implicit cl
 once you start using a tool for one purpose, due to switching costs, you want to keep using that tool. so you start using it for things that wasn’t designed for, and as a result, tools tend to grow and grow and grow until they [stagnate][tech-risk]. in a sense, we have replicated the business boom-and-bust cycle in our own tools.
 
 [tech-risk]: /technical-debt-is-different-from-technical-risk/#what-to-do-about-risk
-
 <!-- /technical-debt-is-different-from-technical-risk/#technical-risk-means-a-program-is-hard-to-modify -->
 <!--## escaping the boom and bust cycle-->
-
 ## interoperability
 there are two possible ways to escape this trap. the first is to [impose a limit on growth](https://graydon2.dreamwidth.org/263429.html), so that tools can’t grow until they bust. this makes a lot of people very unhappy and is generally regarded as a bad idea.
 
@@ -126,8 +124,3 @@ in my next post, i will discuss how we can escape this box.
 - [Siderea, "Procrustean Epistemologies"](https://siderea.dreamwidth.org/1540620.html)
 
 [^1]: blog post forthcoming
-hi
-hi
-hi
-hi
-hi

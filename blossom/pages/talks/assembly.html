@@ -1,0 +1,675 @@
+---
+title: Intro to Reverse Engineering
+date: 2019-11-11
+---
+
+<!doctype html>
+<html>
+        <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+                <title>Intro to Reverse Engineering</title>
+
+                <link rel="stylesheet" href="/talks/css/reveal.css">
+                <link rel="stylesheet" href="/talks/css/theme/black.css">
+
+                <!-- styling for asciinema -->
+                <link rel="stylesheet" type="text/css" href="/talks/css/asciinema-player.css" />
+
+                <!-- Theme used for syntax highlighting of code -->
+                <link rel="stylesheet" href="/talks/lib/css/zenburn.css">
+
+                <!-- Printing and PDF exports -->
+                <script>
+                        var link = document.createElement( 'link' );
+                        link.rel = 'stylesheet';
+                        link.type = 'text/css';
+                        link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
+                        document.getElementsByTagName( 'head' )[0].appendChild( link );
+                </script>
+        </head>
+        <body>
+                <div class="reveal">
+                  <div class="slides">
+                    <section>
+                      <h1>Reverse Engineering</h1>
+                      <h3>How to read programs without the source code</h3>
+                      <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
+                    </section>
+                    <section>
+                      <h1>Bookkeeping</h1>
+                      <p>This talk:
+                      <a href="https://github.com/jyn514/reverse-engineering-talk/archive/master.zip">https://github.com/jyn514/reverse-engineering-talk/</a></p>
+                      <p>Cyber security groupme:</p>
+                      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIEAAAAADYoy0BAAAETUlEQVR4nOydUY5bMQgAkyr3v3L6m0bFggXezpNm/rrN2t6MLCGM8ev9fgiI1+PxfM4PG2nOzPX5u9HnM5/JkFln52+pr+fP/KDSQSEwFAJDITAUAuP17z87QfBGtNOZKzNmNYqLxpz73twhMBQCQyEwFAJDITBe8X9tRzJVqvmrTAS1Qe97c4fAUAgMhcBQCAyFwDhEWRtUT9+qkVVm/Exu6vdwh8BQCAyFwFAIDIXAuDjK6kRKmVO8Tv4qGvPaSMwdAkMhMBQCQyEwFALjEGVtRBcbY1Yjq+oJZjX31fsb3SEwFAJDITAUAkMhML6irI17cxGZfNTGzz+Zuqs49725Q2AoBIZCYCgEhkJgPPfPw6q5oGoXhSvvRe5/W+4QGAqBoRAYCoGhEBjP97ta45RhKhrprK3THWL77qR3DG+DQmAoBIZCYCgExleU1aGad5rqtLARiXW6knYiVbuS4lAIDIXAUAgMhcA4dCXd7tN+Zd/1aA2de4WdqNJc1m1QCAyFwFAIDIXAOFS/T/WemspldcapdjGdqgerz+sOgaEQGAqBoRAYCoGRfGFnKkqJ5urkl6ZO9LYr7XPzukNgKASGQmAoBIZCYCS7kk69M3hlt4TtiLEaxWW+E3NZOBQCQyEwFAJDITCa1e8b1ebVeSM6J4lT68zMay4LjUJgKASGQmAoBMahX9ZvVap/stFfqzrvRg7N6vfboBAYCoGhEBgKgfEVZW33ztq4t/hJ737fz8eZ6xrhDoGhEBgKgaEQGAqB8arXUE1FHdGYmbky69x4LahztzG3HncIDIXAUAgMhcBQCIxk7/epvNYn2x0bNvJdUyePnhjeBoXAUAgMhcBQCIzXXO1T5vOdE8PtF3Om5o3WkFubOwSGQmAoBIZCYCgExuHEcDuqiX6385lqDqozb6fDQ4w7BIZCYCgEhkJgKATGoV9WNaqZeiF6493Ajderd6JTdwgMhcBQCAyFwFAIjOQ7htWK7mo1+1QH0cwapurQOpX58TrdITAUAkMhMBQCQyEwktXvGTbqlzrzblTCd/JXubncITAUAkMhMBQCQyEwki/sZNjvJfX/n1ffPYzm7ax/qg+YOwSHQmAoBIZCYCgExuGO4VQtUzRmNX91ZRTU+UwvN+gOgaEQGAqBoRAYCoFxuGPYIZNTyuSROh0+t6Oyzp1K+2XdBoXAUAgMhcBQCIxD9XuVam+oqdqnTnV6ZpyIzovV8ZrdITAUAkMhMBQCQyEwBjs5VJm6xzcVfWXG2X/P0R0CQyEwFAJDITAUAmOw+j1D547eVDeJas5tqvtELnfnDoGhEBgKgaEQGAqBcXGUVe0xVa3M74wZ0XlNO4P9stAoBIZCYCgEhkJgHKKs7V7uU+8ndt5YrDLXFyv6bXcIDIXAUAgMhcBQCIyvKGvjvuFUj/eIaiQztYZO3ZevRd8GhcBQCAyFwFAIjOdGVyz5OX8DAAD//0uG7cmvII8pAAAAAElFTkSuQmCC">
+                    </section>
+                    <section>
+                      <h2>What is Reverse Engineering?</h2>
+                      <p>Taking a binary executable and figuring out what it does</p>
+                    </section>
+                    <section>
+                      <h1>Why RE?</h1>
+                      <p><sub>(ordered from least to most sketchy)</sub></p>
+                      <ol>
+                        <li>Debug compiler output</li>
+                        <li>Figure out what a virus is doing</li>
+                        <li>Mod a game not designed to be modded
+                          (e.g. <a href="https://github.com/Col-E/Recaf">Minecraft</a>)</li>
+                        <li>Exploit a program</li>
+                        <li>Steal information from a competitor</li>
+                      </ol>
+                    </section>
+                    <section>
+                      <section>
+                        <h1>Examples</h1>
+                        <h3>If you have source code</h3>
+                        <asciinema-player src="/talks/examples/printf-src/how-to.cast"></asciinema-player>
+                      </section>
+                      <section>
+                        <h3>If you're looking at strings</h3>
+                        <asciinema-player src="/talks/examples/printf/how-to.cast"></asciinema-player>
+                      </section>
+                      <section>
+                        <h2>What if it's not that simple?</h2>
+                        <asciinema-player src="/talks/examples/if/help.cast"></asciinema-player>
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                      <h2>Memory Models</h2>
+                      <p>Stack, heap, and static memory</p>
+                      <img src="https://i.stack.imgur.com/HOY4C.png">
+                      </section>
+                      <section>
+                        <h3>How do compilers use the stack?</h3>
+                        <img src="/talks/img/stack.png">
+                      </section>
+                      <section>
+                        <h2>What is linking?</h2>
+                        <p>The standard library needs to be compiled in somehow</p>
+                        <p>A program called a 'linker' merges your code with the standard library</p>
+                        <img src="/talks/img/linker.jpg">
+                      </section>
+                      <section>
+                        <h2>What is dynamic linking?</h2>
+                        <p>Putting the standard library in every program is expensive. What if we could avoid that?</p>
+                        <img src="/talks/img/dynamic-linking.gif">
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                      <h2>What's an ABI?</h2>
+                      <p>Keeping the expected data format the same</p>
+                      <p>Like an API but for binaries</p>
+                      <a href="https://gankra.github.io/blah/swift-abi/#what-is-abi-stability-and-dynamic-linking">There's a much better writeup here</a>
+                      </section>
+                      <section>
+                        <h3>ABI Examples</h3>
+                        <p>IP Packets</p>
+                        <img src="/talks/img/ip-abi.jpg">
+                      </section>
+                      <section>
+                        <h3>ABI Examples</h3>
+                        <p>Linux Kernel</p>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Linux_kernel_interfaces.svg/640px-Linux_kernel_interfaces.svg.png">
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                        <h2>Assembly Crash Course</h2>
+                        <p>Remember 212?</p>
+                        <img src="https://i.stack.imgur.com/4I3jv.png">
+                      </section>
+                      <section>
+                        <h3>Registers</h3>
+                        <img src="/talks/img/registers.jpg">
+                      </section>
+                      <section>
+                        <h3>CISC vs RISC</h3>
+                        <p>Complex Instruction Set Computer vs Reduced</p>
+                        <p>You may have heard of <a href="https://riscv.org/">RISC-V</a>. x86 is the exact opposite:</p>
+                        <ul>
+                          <li>Hundreds of instructions</li>
+                          <li>Variable length instructions</li>
+                          <li>Same mnemonic for different encodings</li>
+                          <li>Many addressing modes</li>
+                          <li>Backwards compatible over several decades</li>
+                        </ul>
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                        <h2>Common x86 Instructions</h2>
+                        <p><a href="https://www.felixcloutier.com/x86/">More instructions</a></p>
+                      </section>
+                      <section>
+                        <h3>Common x86 Instructions</h3>
+                        <ul>
+                          <li><code>mov/movq/movl</code> - move some data from {register,memory,immediate} to {register,memory}.
+                            <pre><code>movl $0,%edi  # move 0 into index register</code></pre>
+                          </li>
+                          <li><code>add</code> - add data to a register
+                            <pre><code>addl $8, %edi  # add 8 to the index register</code></pre>
+                          </li>
+                          <li><code>cmp</code> and <code>je</code> - Compare two values and jump if they're equal
+                            <pre><code>loop:
+ cmpl $10,%eax  # check if we hit the end
+ je exit
+ addl $1, %eax
+ jmp loop
+exit:
+ movl $1,%eax
+</code></pre></li>
+                        </ul>
+                      </section>
+                      <section>
+                        <h3>Common x86 Instructions</h3>
+                        <ul>
+                          <li><code>xor</code> - acts on two registers or register and immediate
+                            <pre><code>xor %eax, %eax  # fast way to set eax to 0</code></pre>
+                          </li>
+                          <li><code>push</code> and <code>pop</code> - store or load things onto the stack
+                            <pre><code>pushl %eax  # save the contents of eax
+mov $5, %eax  # do something with eax
+pop %eax  # restore eax to former glory</code></pre>
+                          </li>
+                        </ul>
+                      </section>
+                      <section>
+                        <ul>
+                        <h3>Common x86 Instructions</h3>
+                          <li><code>call</code> and <code>ret</code> - function instructions
+                          <pre><code>_start:
+ call power
+ mov %eax, %ebx  # return code
+ movl $1, %eax   # syscall number
+ syscall
+
+power:
+ movl 4(%esp), %ebx  # put first argument in %ebx
+ movl 8(%esp), %ecx  # put second argument in %ecx
+ movl $1,%eax  # result = 1
+ ret</code></pre></li>
+                        </ul>
+                      </section>
+                      <section>
+                        <h3>Common x86 Instructions</h3>
+                        <ul>
+                          <li><code>lea</code> - load effective address
+                          <pre><code>lea    0x4(%rsp),%rcx</code></pre></li>
+                          <li><code>nop</code> - no operation</li>
+                        </ul>
+                      </section>
+                      <section>
+                        <h3>Addressing modes</h3>
+                        <ul>
+                          <li>Immediate: <code>mov $10, %eax</code><br> (assigning a constant to a variable)</li>
+                          <li>Direct: <code>mov %esi, %eax</code><br /> (assigning a variable to a variable)</li>
+                          <li>Indirect: <code>mov (%esi), %eax</code><br /> (dereferencing a pointer)</li>
+                          <li>Offset: <code>mov 0x2000(%eax), %eax</code> <br />(accessing an array, no pointer math)</li>
+                          <li>Scaled offset: <code>mov 0x3113(,%eax,4), %ebx</code><br /> (array indexing, pointer math)</li>
+                        </ul>
+                      </section>
+                      <section>
+                        <h3>Example</h3>
+<pre><code># printf.c:15:   size_t len = 0;
+        movq    $0, -16(%rbp)   #, len
+# printf.c:16:   fputs("Enter the password: ", stdout);
+        movq    stdout(%rip), %rax      # stdout, stdout.0_1
+        movq    %rax, %rcx      # stdout.0_1,
+        movl    $20, %edx       #,
+        movl    $1, %esi        #,
+        leaq    .LC1(%rip), %rdi        #,
+        call    fwrite@PLT      #
+# printf.c:17:   getline(&amp;line, &amp;len, stdin);
+        movq    stdin(%rip), %rdx       # stdin, stdin.1_2
+        leaq    -16(%rbp), %rcx #, tmp93
+        leaq    -24(%rbp), %rax #, tmp94
+        movq    %rcx, %rsi      # tmp93,
+        movq    %rax, %rdi      # tmp94,
+        call    getline@PLT     #
+# printf.c:18:   if (strcmp(line, "Magic super secret constant\n")) {
+        movq    -24(%rbp), %rax # line, line.2_3
+        leaq    .LC2(%rip), %rsi        #,
+        movq    %rax, %rdi      # line.2_3,
+        call    strcmp@PLT      #
+        testl   %eax, %eax      # _4
+        je      .L3     #,
+# printf.c:19:     error();
+        call    error   #
+.L3:
+# printf.c:21:   puts("You won!");
+        leaq    .LC3(%rip), %rdi        #,
+        call    puts@PLT        #
+        movl    $0, %eax        #, _14
+</code></pre>
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                        <h3>Let's figure this one out</h3>
+  <pre><code>0000000000000894 &lt;main>:
+   894:   55                      push   %rbp
+   895:   48 89 e5                mov    %rsp,%rbp
+   898:   48 83 ec 20             sub    $0x20,%rsp
+   89c:   64 48 8b 04 25 28 00    mov    %fs:0x28,%rax
+   8a3:   00 00
+   8a5:   48 89 45 f8             mov    %rax,-0x8(%rbp)
+   8a9:   31 c0                   xor    %eax,%eax
+   8ab:   48 c7 45 f0 00 00 00    movq   $0x0,-0x10(%rbp)
+   8b2:   00
+   8b3:   48 8b 05 56 07 20 00    mov    0x200756(%rip),%rax        # 201010 &lt;stdout@@GLIBC_2.2.5>
+   8ba:   48 89 c1                mov    %rax,%rcx
+   8bd:   ba 14 00 00 00          mov    $0x14,%edx
+   8c2:   be 01 00 00 00          mov    $0x1,%esi
+   8c7:   48 8d 3d fd 00 00 00    lea    0xfd(%rip),%rdi        # 9cb &lt;_IO_stdin_used+0x1b>
+   8ce:   e8 7d fe ff ff          callq  750 &lt;fwrite@plt>
+   8d3:   48 8b 15 46 07 20 00    mov    0x200746(%rip),%rdx        # 201020 &lt;stdin@@GLIBC_2.2.5>
+   8da:   48 8d 4d f0             lea    -0x10(%rbp),%rcx
+   8de:   48 8d 45 e8             lea    -0x18(%rbp),%rax
+   8e2:   48 89 ce                mov    %rcx,%rsi
+   8e5:   48 89 c7                mov    %rax,%rdi
+   8e8:   e8 43 fe ff ff          callq  730 &lt;getline@plt>
+   8ed:   48 8b 45 e8             mov    -0x18(%rbp),%rax
+   8f1:   48 8d 35 e8 00 00 00    lea    0xe8(%rip),%rsi        # 9e0 &lt;_IO_stdin_used+0x30>
+   8f8:   48 89 c7                mov    %rax,%rdi
+   8fb:   e8 20 fe ff ff          callq  720 &lt;strcmp@plt>
+   900:   85 c0                   test   %eax,%eax
+   902:   74 05                   je     909 &lt;main+0x75>
+   904:   e8 71 ff ff ff          callq  87a &lt;error>
+   909:   48 8d 3d e9 00 00 00    lea    0xe9(%rip),%rdi        # 9f9 &lt;_IO_stdin_used+0x49>
+   910:   e8 eb fd ff ff          callq  700 &lt;puts@plt>
+   915:   b8 00 00 00 00          mov    $0x0,%eax
+   91a:   48 8b 4d f8             mov    -0x8(%rbp),%rcx
+   91e:   64 48 33 0c 25 28 00    xor    %fs:0x28,%rcx
+   925:   00 00
+   927:   74 05                   je     92e &lt;main+0x9a>
+   929:   e8 e2 fd ff ff          callq  710 &lt;__stack_chk_fail@plt>
+   92e:   c9                      leaveq
+   92f:   c3                      retq
+  </code></pre>
+                      </section>
+                      <section>
+                        <h3>Can we make this easier?</h3>
+                        <asciinema-player src="/talks/examples/printf/gdb.cast"></asciinema-player>
+                      </section>
+                    </section>
+                    <section>
+                      <section>
+                        <h2>Common C idioms</h2>
+                        <ol>
+                          <li><code>if/then/else</code></li>
+                          <li><code>while</code></li>
+                          <li><code>argv</code></li>
+                          <li><code>for</code></li>
+                          <li><code>switch</code></li>
+                          <li><code>recursion</code></li>
+                        </ol>
+                      </section>
+                      <section>
+                        <h3>If</h3>
+                        <p>Hint: look for <code>cmp</code></p>
+<pre><code>0000000000000864 &lt;main>:
+ 864:   55                      push   %rbp
+ 865:   48 89 e5                mov    %rsp,%rbp
+ 868:   48 83 ec 20             sub    $0x20,%rsp
+ 86c:   64 48 8b 04 25 28 00    mov    %fs:0x28,%rax
+ 873:   00 00
+ 875:   48 89 45 f8             mov    %rax,-0x8(%rbp)
+ 879:   31 c0                   xor    %eax,%eax
+ 87b:   48 c7 45 f0 00 00 00    movq   $0x0,-0x10(%rbp)
+ 882:   00
+ 883:   48 8b 05 86 07 20 00    mov    0x200786(%rip),%rax        # 201010 &lt;stdout@@GLIBC_2.2.5>
+ 88a:   48 89 c1                mov    %rax,%rcx
+ 88d:   ba 12 00 00 00          mov    $0x12,%edx
+ 892:   be 01 00 00 00          mov    $0x1,%esi
+ 897:   48 8d 3d fd 00 00 00    lea    0xfd(%rip),%rdi        # 99b &lt;_IO_stdin_used+0x1b>
+ 89e:   e8 7d fe ff ff          callq  720 &lt;fwrite@plt>
+ 8a3:   48 8b 05 76 07 20 00    mov    0x200776(%rip),%rax        # 201020 &lt;stdin@@GLIBC_2.2.5>
+ 8aa:   48 8d 55 ec             lea    -0x14(%rbp),%rdx
+ 8ae:   48 8d 35 f9 00 00 00    lea    0xf9(%rip),%rsi        # 9ae &lt;_IO_stdin_used+0x2e>
+ 8b5:   48 89 c7                mov    %rax,%rdi
+ 8b8:   b8 00 00 00 00          mov    $0x0,%eax
+ 8bd:   e8 1e fe ff ff          callq  6e0 &lt;__isoc99_fscanf@plt>
+ 8c2:   8b 45 ec                mov    -0x14(%rbp),%eax
+ 8c5:   3d 8f a8 00 00          cmp    $0xa88f,%eax
+ 8ca:   74 05                   je     8d1 &lt;main+0x6d>
+ 8cc:   e8 79 ff ff ff          callq  84a &lt;error>
+ 8d1:   48 8d 3d d9 00 00 00    lea    0xd9(%rip),%rdi        # 9b1 &lt;_IO_stdin_used+0x31>
+ 8d8:   e8 13 fe ff ff          callq  6f0 &lt;puts@plt>
+ 8dd:   b8 00 00 00 00          mov    $0x0,%eax
+ 8e2:   48 8b 4d f8             mov    -0x8(%rbp),%rcx
+ 8e6:   64 48 33 0c 25 28 00    xor    %fs:0x28,%rcx
+ 8ed:   00 00
+ 8ef:   74 05                   je     8f6 &lt;main+0x92>
+ 8f1:   e8 0a fe ff ff          callq  700 &lt;__stack_chk_fail@plt>
+ 8f6:   c9                      leaveq
+ 8f7:   c3                      retq
+ 8f8:   0f 1f 84 00 00 00 00    nopl   0x0(%rax,%rax,1)
+ 8ff:   00</code></pre>
+                      </section>
+                      <section>
+                        <h3>The answer:</h3>
+                        <asciinema-player src="/talks/examples/if/how-to.cast"></asciinema-player>
+                      </section>
+                      <section>
+                        <h3><code>while</code></h3>
+<pre><code>   0x000000000000083b &lt;+23>:    movl   $0x4,-0xc(%rbp)
+                        ...
+   0x0000000000000862 &lt;+62>:    lea    -0x10(%rbp),%rax
+   0x0000000000000866 &lt;+66>:    mov    %rax,%rsi
+   0x0000000000000869 &lt;+69>:    lea    0x110(%rip),%rdi        # 0x980
+   0x0000000000000870 &lt;+76>:    mov    $0x0,%eax
+   0x0000000000000875 &lt;+81>:    callq  0x6c0 &lt;__isoc99_scanf@plt>
+   0x000000000000087a &lt;+86>:    jmp    0x889 &lt;main+101>   # check condition immmediately
+   0x000000000000087c &lt;+88>:    mov    -0x10(%rbp),%eax   # loop body
+   0x000000000000087f &lt;+91>:    add    $0x5,%eax
+   0x0000000000000882 &lt;+94>:    mov    %eax,-0x10(%rbp)
+   0x0000000000000885 &lt;+97>:    subl   $0x1,-0xc(%rbp)    # where have we seen this?
+   0x0000000000000889 &lt;+101>:   mov    -0x10(%rbp),%eax   # jump target
+   0x000000000000088c &lt;+104>:   cmp    $0x31,%eax         # while comparison
+   0x000000000000088f &lt;+107>:   jle    0x87c &lt;main+88>    # goes backwards to loop
+   0x0000000000000891 &lt;+109>:   mov    -0x10(%rbp),%eax
+   0x0000000000000894 &lt;+112>:   cmp    $0x34,%eax
+   0x0000000000000897 &lt;+115>:   jne    0x89f &lt;main+123>
+   0x0000000000000899 &lt;+117>:   cmpl   $0x0,-0xc(%rbp)    # two comparisons!
+   0x000000000000089d &lt;+121>:   je     0x8a4 &lt;main+128>
+   0x000000000000089f &lt;+123>:   callq  0x80a &lt;error>
+   0x00000000000008a4 &lt;+128>:   lea    0xd8(%rip),%rdi        # 0x983
+   0x00000000000008ab &lt;+135>:   callq  0x6a0 &lt;puts@plt></code></pre>
+                      </section>
+                      <section>
+                        <h3>Answer</h3>
+                        <asciinema-player src="/talks/examples/while/how-to.cast"></asciinema-player>
+                      </section>
+                      <section>
+                        <h3>argv</h3>
+                        <p>a.k.a command-line arguments</p>
+<pre><code>0000000000000714 &lt;main>:
+ 714:   55                      push   %rbp
+ 715:   48 89 e5                mov    %rsp,%rbp
+ 718:   48 83 ec 10             sub    $0x10,%rsp
+ 71c:   89 7d fc                mov    %edi,-0x4(%rbp)
+ 71f:   48 89 75 f0             mov    %rsi,-0x10(%rbp)
+ 723:   83 7d fc 02             cmpl   $0x2,-0x4(%rbp)
+ 727:   75 1e                   jne    747 &lt;main+0x33>
+ 729:   48 8b 45 f0             mov    -0x10(%rbp),%rax
+ 72d:   48 83 c0 08             add    $0x8,%rax
+ 731:   48 8b 00                mov    (%rax),%rax
+ 734:   48 8d 35 c0 00 00 00    lea    0xc0(%rip),%rsi        # 7fb &lt;_IO_stdin_used+0x1b>
+ 73b:   48 89 c7                mov    %rax,%rdi
+ 73e:   e8 7d fe ff ff          callq  5c0 &lt;strcmp@plt>
+ 743:   85 c0                   test   %eax,%eax
+ 745:   74 05                   je     74c &lt;main+0x38>
+ 747:   e8 ae ff ff ff          callq  6fa &lt;error>
+ 74c:   48 8d 3d bf 00 00 00    lea    0xbf(%rip),%rdi        # 812 &lt;_IO_stdin_used+0x32>
+ 753:   e8 58 fe ff ff          callq  5b0 &lt;puts@plt>
+ 758:   b8 00 00 00 00          mov    $0x0,%eax
+ 75d:   c9                      leaveq
+ 75e:   c3                      retq
+ 75f:   90                      nop
+</code></pre>
+                      </section>
+                      <section>
+                        <h3>Answer</h3>
+                        <asciinema-player src="/talks/examples/argv/how-to.cast"></asciinema-player>
+                      </section>
+                      <section>
+                        <h3><code>for</code></h3>
+                        <p>Guess what? It's the same as a while loop</p>
+                        <pre><code>839:   31 c0                   xor    %eax,%eax
+ 83b:   48 8b 05 ce 07 20 00    mov    0x2007ce(%rip),%rax        # 201010 &lt;stdout@@GLIBC_2.2.5>
+ 842:   48 89 c1                mov    %rax,%rcx
+ 845:   ba 14 00 00 00          mov    $0x14,%edx
+ 84a:   be 01 00 00 00          mov    $0x1,%esi
+ 84f:   48 8d 3d 15 01 00 00    lea    0x115(%rip),%rdi        # 96b &lt;_IO_stdin_used+0x1b>
+ 856:   e8 85 fe ff ff          callq  6e0 &lt;fwrite@plt>
+ 85b:   48 8d 45 f0             lea    -0x10(%rbp),%rax
+ 85f:   48 89 c6                mov    %rax,%rsi
+ 862:   48 8d 3d 17 01 00 00    lea    0x117(%rip),%rdi        # 980 &lt;_IO_stdin_used+0x30>
+ 869:   b8 00 00 00 00          mov    $0x0,%eax
+ 86e:   e8 4d fe ff ff          callq  6c0 &lt;__isoc99_scanf@plt>
+ 873:   c7 45 f4 04 00 00 00    movl   $0x4,-0xc(%rbp)
+ 87a:   eb 0d                   jmp    889 &lt;main+0x65>
+ 87c:   8b 45 f0                mov    -0x10(%rbp),%eax
+ 87f:   83 c0 05                add    $0x5,%eax
+ 882:   89 45 f0                mov    %eax,-0x10(%rbp)
+ 885:   83 6d f4 01             subl   $0x1,-0xc(%rbp)
+ 889:   83 7d f4 00             cmpl   $0x0,-0xc(%rbp)
+ 88d:   7f ed                   jg     87c &lt;main+0x58>
+ 88f:   8b 45 f0                mov    -0x10(%rbp),%eax
+ 892:   83 f8 34                cmp    $0x34,%eax
+ 895:   74 05                   je     89c &lt;main+0x78>
+ 897:   e8 6e ff ff ff          callq  80a &lt;error>
+ 89c:   48 8d 3d e0 00 00 00    lea    0xe0(%rip),%rdi        # 983 &lt;_IO_stdin_used+0x33>
+ 8a3:   e8 f8 fd ff ff          callq  6a0 &lt;puts@plt>
+ 8a8:   b8 00 00 00 00          mov    $0x0,%eax</code></pre>
+                      </section>
+                      <section>
+                        <h3><code>switch</code></h3>
+                        <p>Same as a series of if/else statements, right?</p>
+                        <pre><code> 71b:   48 89 44 24 08          mov    %rax,0x8(%rsp)
+ 720:   31 c0                   xor    %eax,%eax
+ 722:   e8 99 ff ff ff          callq  6c0 &lt;fputs@plt>
+ 727:   48 8d 74 24 04          lea    0x4(%rsp),%rsi
+ 72c:   48 8d 3d 5d 02 00 00    lea    0x25d(%rip),%rdi        # 990 &lt;_IO_stdin_used+0x30>
+ 733:   31 c0                   xor    %eax,%eax
+ 735:   e8 96 ff ff ff          callq  6d0 &lt;__isoc99_scanf@plt>
+ 73a:   8b 44 24 04             mov    0x4(%rsp),%eax
+ 73e:   83 f8 01                cmp    $0x1,%eax
+ 741:   74 22                   je     765 &lt;main+0x65>
+ 743:   7f 0d                   jg     752 &lt;main+0x52>
+ 745:   85 c0                   test   %eax,%eax
+ 747:   48 8d 3d 45 02 00 00    lea    0x245(%rip),%rdi        # 993 &lt;_IO_stdin_used+0x33>
+ 74e:   74 31                   je     781 &lt;main+0x81>
+ 750:   eb 28                   jmp    77a &lt;main+0x7a>
+ 752:   83 f8 02                cmp    $0x2,%eax
+ 755:   74 1a                   je     771 &lt;main+0x71>
+ 757:   83 f8 03                cmp    $0x3,%eax
+ 75a:   48 8d 3d 64 02 00 00    lea    0x264(%rip),%rdi        # 9c5 &lt;_IO_stdin_used+0x65>
+ 761:   74 1e                   je     781 &lt;main+0x81>
+ 763:   eb 15                   jmp    77a &lt;main+0x7a>
+ 765:   48 8d 3d 36 02 00 00    lea    0x236(%rip),%rdi        # 9a2 &lt;_IO_stdin_used+0x42>
+ 76c:   e8 2f ff ff ff          callq  6a0 &lt;puts@plt>
+ 771:   48 8d 3d 40 02 00 00    lea    0x240(%rip),%rdi        # 9b8 &lt;_IO_stdin_used+0x58>
+ 778:   eb 07                   jmp    781 &lt;main+0x81>
+ 77a:   48 8d 3d 4d 02 00 00    lea    0x24d(%rip),%rdi        # 9ce &lt;_IO_stdin_used+0x6e>
+ 781:   e8 1a ff ff ff          callq  6a0 &lt;puts@plt>
+ 786:   31 c0                   xor    %eax,%eax
+ 788:   48 8b 54 24 08          mov    0x8(%rsp),%rdx
+ 78d:   64 48 33 14 25 28 00    xor    %fs:0x28,%rdx
+ 794:   00 00
+ 796:   74 05                   je     79d &lt;main+0x9d>
+ 798:   e8 13 ff ff ff          callq  6b0 &lt;__stack_chk_fail@plt>
+ 79d:   48 83 c4 18             add    $0x18,%rsp
+ 7a1:   c3                      retq
+                        </code></pre>
+                      </section>
+                      <section>
+                        <p><b>BUT</b> could be a jump to an offset table<sup>*</sup></p>
+                        <pre><code>   0x0000000000400f29 &lt;+28>:    mov    $0x40258f,%esi
+   0x0000000000400f2e &lt;+33>:    callq  0x400bb0 &lt;__isoc99_sscanf@plt>
+   0x0000000000400f33 &lt;+38>:    cmp    $0x1,%eax
+   0x0000000000400f36 &lt;+41>:    jg     0x400f3d &lt;phase_3+48>
+   0x0000000000400f38 &lt;+43>:    callq  0x4013f2 &lt;explode_bomb>
+   0x0000000000400f3d &lt;+48>:    cmpl   $0x7,(%rsp)
+   0x0000000000400f41 &lt;+52>:    ja     0x400f7e &lt;phase_3+113>
+   0x0000000000400f43 &lt;+54>:    mov    (%rsp),%eax
+   0x0000000000400f46 &lt;+57>:    jmpq   *0x402400(,%rax,8)
+   0x0000000000400f4d &lt;+64>:    mov    $0x1e2,%eax
+   0x0000000000400f52 &lt;+69>:    jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f54 &lt;+71>:    mov    $0x318,%eax
+   0x0000000000400f59 &lt;+76>:    jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f5b &lt;+78>:    mov    $0x8d,%eax
+   0x0000000000400f60 &lt;+83>:    jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f62 &lt;+85>:    mov    $0x2f7,%eax
+   0x0000000000400f67 &lt;+90>:    jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f69 &lt;+92>:    mov    $0x2e9,%eax
+   0x0000000000400f6e &lt;+97>:    jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f70 &lt;+99>:    mov    $0x225,%eax
+   0x0000000000400f75 &lt;+104>:   jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f77 &lt;+106>:   mov    $0xdb,%eax
+   0x0000000000400f7c &lt;+111>:   jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f7e &lt;+113>:   callq  0x4013f2 &lt;explode_bomb>
+   0x0000000000400f83 &lt;+118>:   mov    $0x0,%eax
+   0x0000000000400f88 &lt;+123>:   jmp    0x400f8f &lt;phase_3+130>
+   0x0000000000400f8a &lt;+125>:   mov    $0x3b9,%eax
+   0x0000000000400f8f &lt;+130>:   cmp    0x4(%rsp),%eax
+   0x0000000000400f93 &lt;+134>:   je     0x400f9a &lt;phase_3+141>
+   0x0000000000400f95 &lt;+136>:   callq  0x4013f2 &lt;explode_bomb>
+   0x0000000000400f9a &lt;+141>:   mov    0x8(%rsp),%rax
+   0x0000000000400f9f &lt;+146>:   xor    %fs:0x28,%rax
+   0x0000000000400fa8 &lt;+155>:   je     0x400faf &lt;phase_3+162>
+   0x0000000000400faa &lt;+157>:   callq  0x400b00 &lt;__stack_chk_fail@plt>
+   0x0000000000400faf &lt;+162>:   add    $0x18,%rsp
+   0x0000000000400fb3 &lt;+166>:   retq</code></pre>
+                        <p><a href="https://eli.thegreenplace.net/2012/07/12/computed-goto-for-efficient-dispatch-tables">More info</a></p>
+                        <small>*disclaimer: I have not been able to replicate this output with gcc</small>
+                      </section>
+                      <section>
+                        <h3>Recursion</h3>
+                        <p>Good news: This isn't harder than recursion in any other language</p>
+                        <p>Bad news: This is as hard as recursion in any other language</p>
+                        <pre><code>000000000000068a &lt;recursive>:
+ 68a:   55                      push   %rbp
+ 68b:   48 89 e5                mov    %rsp,%rbp
+ 68e:   53                      push   %rbx
+ 68f:   48 83 ec 18             sub    $0x18,%rsp
+ 693:   89 7d ec                mov    %edi,-0x14(%rbp)
+ 696:   83 7d ec 00             cmpl   $0x0,-0x14(%rbp)
+ 69a:   74 06                   je     6a2 &lt;recursive+0x18>
+ 69c:   83 7d ec 01             cmpl   $0x1,-0x14(%rbp)
+ 6a0:   75 07                   jne    6a9 &lt;recursive+0x1f>
+ 6a2:   b8 01 00 00 00          mov    $0x1,%eax
+ 6a7:   eb 1e                   jmp    6c7 &lt;recursive+0x3d>
+ 6a9:   8b 45 ec                mov    -0x14(%rbp),%eax
+ 6ac:   83 e8 01                sub    $0x1,%eax
+ 6af:   89 c7                   mov    %eax,%edi
+ 6b1:   e8 d4 ff ff ff          callq  68a &lt;recursive>
+ 6b6:   89 c3                   mov    %eax,%ebx
+ 6b8:   8b 45 ec                mov    -0x14(%rbp),%eax
+ 6bb:   83 e8 02                sub    $0x2,%eax
+ 6be:   89 c7                   mov    %eax,%edi
+ 6c0:   e8 c5 ff ff ff          callq  68a &lt;recursive>
+ 6c5:   01 d8                   add    %ebx,%eax
+ 6c7:   48 83 c4 18             add    $0x18,%rsp
+ 6cb:   5b                      pop    %rbx
+ 6cc:   5d                      pop    %rbp
+ 6cd:   c3                      retq
+
+00000000000006ce &lt;main>:
+ 6ce:   55                      push   %rbp
+ 6cf:   48 89 e5                mov    %rsp,%rbp
+ 6d2:   48 83 ec 10             sub    $0x10,%rsp
+ 6d6:   89 7d fc                mov    %edi,-0x4(%rbp)
+ 6d9:   48 89 75 f0             mov    %rsi,-0x10(%rbp)
+ 6dd:   8b 45 fc                mov    -0x4(%rbp),%eax
+ 6e0:   89 c7                   mov    %eax,%edi
+ 6e2:   e8 a3 ff ff ff          callq  68a &lt;recursive>
+ 6e7:   83 f8 37                cmp    $0x37,%eax
+ 6ea:   75 37                   jne    723 &lt;main+0x55>
+ 6ec:   48 8b 45 f0             mov    -0x10(%rbp),%rax
+ 6f0:   48 83 c0 08             add    $0x8,%rax
+ 6f4:   48 8b 00                mov    (%rax),%rax
+ 6f7:   ba 0a 00 00 00          mov    $0xa,%edx
+ 6fc:   be 00 00 00 00          mov    $0x0,%esi
+ 701:   48 89 c7                mov    %rax,%rdi
+ 704:   e8 57 fe ff ff          callq  560 &lt;strtol@plt>
+ 709:   89 c7                   mov    %eax,%edi
+ 70b:   e8 7a ff ff ff          callq  68a &lt;recursive>
+ 710:   83 f8 08                cmp    $0x8,%eax
+ 713:   75 0e                   jne    723 &lt;main+0x55>
+ 715:   48 8d 3d a8 00 00 00    lea    0xa8(%rip),%rdi        # 7c4 &lt;_IO_stdin_used+0x4>
+ 71c:   e8 2f fe ff ff          callq  550 &lt;puts@plt>
+ 721:   eb 0c                   jmp    72f &lt;main+0x61>
+ 723:   48 8d 3d ac 00 00 00    lea    0xac(%rip),%rdi        # 7d6 &lt;_IO_stdin_used+0x16>
+ 72a:   e8 21 fe ff ff          callq  550 &lt;puts@plt>
+ 72f:   b8 00 00 00 00          mov    $0x0,%eax
+ 734:   c9                      leaveq
+ 735:   c3                      retq
+                        </code></pre>
+                      </section>
+                  </section>
+                  <section>
+                    <section>
+                      <h3>Bonus</h3>
+                      <p>Why do I keep running the program before disassembling it?</p>
+                      <p><b>Relocatable code and virtual memory</b></p>
+                      <ul>
+                        <li>Programs run in <i>virtual memory</i></li>
+                        <li>The address of constants and instructions <i>changes at load time</i></li>
+                        <li>GDB can't load static data until it's loaded in memory</li>
+                      </ul>
+                    </section>
+                    <section>
+                      <p><a href="https://davidad.github.io/blog/2014/02/19/relocatable-vs-position-independent-code-or/">Good summary</a></p>
+                      <p><a href="http://www-inst.eecs.berkeley.edu/~cs162/sp06/hand-outs/p149-presser-linker-loader.pdf">Way too much detail</a></p>
+                    </section>
+                    <section>
+                      <h3>Bonus</h3>
+                      <p>Why do I keep seeing <pre><code>push %rbp
+mov %rsp,%rbp
+sub $n, %esp
+...
+mov %ebp, %esp
+pop %ebp</code></pre> at the start and end of functions?</p>
+                      <p>That's how you allocate memory on the stack at the assembly level. Every variable you declare (int x;) has to have an address.
+                      If you don't use malloc, it uses an address on the stack.
+                      This is saving, allocating, and then restoring the stack pointer for the previous function.</p>
+                    </section>
+                  </section>
+                  <section>
+                    <h2>Help my brain is exploding</h2>
+                    <h5>a.k.a. more resources</h5>
+                    <ul>
+                      <li><a href="https://www.cs.princeton.edu/courses/archive/spr08/cos217/reading/ProgrammingGroundUp-1-0-lettersize.pdf">Programming from the Ground Up</a></li>
+                      <li>Bombs by Dr. Matthews (in <code>/class/csce212h/bombs</code>)</li>
+                      <li><a href="https://sourceware.org/gdb/current/onlinedocs/gdb/">More about GDB</a></li>
+                      <li><a href="https://github.com/longld/peda">Make GDB nicer</a></li>
+                      <li><a href="https://beginners.re/">RE for Beginners</a></li>
+                    </ul>
+                  </section>
+                  <section>
+                    <h2>The boring stuff</h2>
+                    <h5>a.k.a acknowledgments</h5>
+                    <p>Many thanks to the following people</p>
+                    <ul>
+                      <li><a href="https://hakim.se/">Hakim</a>, creator of <a href="https://github.com/hakimel/reveal.js">reveal.js</a></li>
+                      <li><a href="http://ku1ik.com/">sickill</a>, creator of <a href="https://asciinema.org/">asciinema</a></li>
+                      <li><a href="https://cse.sc.edu/~matthews/">Dr. Matthews</a>, whose binaries I used to learn reverse engineering in the first place</li>
+                    </ul>
+                  </section>
+                  </div>
+                </div>
+
+                <script src="/talks/lib/js/head.min.js"></script>
+                <script src="/talks/dist/reveal.js"></script>
+                <script src="/talks/js/asciinema-player.js"></script>
+
+                <script>
+                        // More info about config & dependencies:
+                        // - https://github.com/hakimel/reveal.js#configuration
+                        // - https://github.com/hakimel/reveal.js#dependencies
+                        Reveal.initialize({
+                                dependencies: [
+                                        { src: '/talks/plugin/zoom-js/zoom.js', async: true },
+                                        { src: '/talks/plugin/markdown/marked.js' },
+                                        { src: '/talks/plugin/markdown/markdown.js' },
+                                        { src: '/talks/plugin/notes/notes.js', async: true },
+                                        { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+                                ],
+                                margin: .05,
+                                minScale: 0.2,
+                                history: true
+                        });
+                </script>
+                <style>
+                /* fix overflow going off the page */
+                .scrollable {
+                    overflow-y: auto  !important;
+                    overflow-x: hidden !important;                    height: 675px;
+                }
+                </style>
+        </body>
+</html>

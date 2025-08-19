@@ -34,7 +34,7 @@
     [(if use-jar "../target/flower.jar" "../target/flower")]))
 (def flower_cli
   (if rebuild-flower "../target/flower" "flower"))
-(defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
+(defn flow [cmd] (fmt "${flower_cli} ${cmd} < $in > $out"))
 
 (def expressions  (fs/glob "expressions" "**.clj"))
 (def transformers (fs/glob "transformers" "**"))
@@ -179,10 +179,12 @@
      :command (flow "render-markdown")
      :description "render markdown -> HTML: $in -> $out"}]
    :builds
-   ; TODO: this should be in flower/build.clj so it can do proper dependency tracking
    [{:rule "ninja-meta"
      :restat true
      :outputs "build.ninja"
+     ; TODO: maybe we need to nest pages in builddir so they don't conflict?
+     :depfile (/ builddir "build.clj.d")
+     ; TODO: remove all-pages once we get rid of render-index
      :inputs (concat all-pages ["build.clj"] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower

@@ -1,0 +1,160 @@
+---
+title: async() => { await }
+date: 2022-02-09
+---
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>async() => { await }</title>
+
+		<link rel="stylesheet" href="/talks/dist/reset.css">
+		<link rel="stylesheet" href="/talks/dist/reveal.css">
+		<link rel="stylesheet" href="/talks/dist/theme/black.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="/talks/plugin/highlight/monokai.css">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section><h3><code>async() => { await }</code></h3>
+					<small>by jyn</small>
+				</section>
+				<section><h3>This is a talk about websites</h3>
+					<p>Most of the internet is websites!</p>
+					<img src="/talks/./assets/internet traffic.png">
+					<small>source: https://radar.cloudflare.com</small>
+				</section>
+				<section>
+					<section><h3>A brief, incomplete, and mostly wrong history of websites</h3>
+						<ol>
+							<li>Computers were invented. This has made a lot of people very angry and has been widely regarded as a bad move.</li>
+							<li>ARPANET nearly destroys humanity, as shown in the documentary <em>War Games</em>.</li>
+							<li>Brandon Eich gets blackout drunk for a full week. When he wakes up he discovers he took Adderall and created JavaScript.</li>
+						</ol>
+					</section>
+					<section><h3>A brief, incomplete, and mostly wrong history of websites</h3>
+						<ol>
+							<li>Computers were invented. This has made a lot of people very angry and has been widely regarded as a bad move.</li>
+							<li>ARPANET nearly destroys humanity, as shown in the documentary <em>War Games</em>.</li>
+							<li>Brandon Eich gets blackout drunk for a full week. When he wakes up he discovers he took Adderall and created JavaScript.</li>
+							<li>Most of the internet is websites <b><== you are here</b></li>
+						</ol>
+					</section>
+				</section>
+				<section>
+					<section><h3>How do websites work?</h3>
+						<p>A client sends HTTP requests to a server. Servers send a response back.</p>
+						<img src="/talks/./assets/client-server-1.png">
+					</section>
+					<section><h3>How do websites work?</h3>
+						<p>Usually there are many clients.</p>
+						<img src="/talks/./assets/client-server-2.png" class="r-stretch">
+					</section>
+				</section>
+				<section><h3>How do big websites serve so many clients?</h3>
+					<p>One of the services I work on at Cloudflare handles 300,000+ requests per second.</p>
+					<p>Serving one client at a time doesn't scale, no matter how fast the server is.</p>
+					<p>Solution: serve multiple clients at once.</p>
+				</section>
+				<section><h3>Serving multiple clients at once: parallelism</h3>
+					<p>Operating system threads run at the same time.</p>
+					<img src="/talks/./assets/threads.jpg">
+				</section>
+				<section>
+					<section><h3>Digression: JS on the backend</h3>
+						<p>JS is used a lot!</p>
+						<p>It would be nice to use it on the backend too.</p>
+						<img src="/talks/./assets/node.png" class="r-stretch">
+					</section>
+					<section><h3>Digression: JS on the backend</h3>
+						<p>Problem: JS doesn't have threads</p>
+					</section>
+					<section><h3>Digression: JS on the backend</h3>
+						<p>Solution: concurrency using callbacks</p>
+						<img src="/talks/./assets/event loop.png">
+					</section>
+				</section>
+				<section>
+					<section><h3>Serving multiple clients at once: concurrency</h3>
+						<p>In ~2010, async code looked like this ("callback hell")</p>
+						<pre><code class="language-javascript">fs.readdir(source, function (err, files) {
+		if (err) {
+			console.log('Error finding files: ' + err)
+		} else {
+			files.forEach(function (filename, fileIndex) {
+				console.log(filename)
+				gm(source + filename).size(function (err, values) {
+					if (err) {
+						console.log('Error identifying file size: ' + err)
+					} else {
+						console.log(filename + ' : ' + values)
+						aspect = (values.width / values.height)
+						widths.forEach(function (width, widthIndex) {
+							height = Math.round(width / aspect)
+							console.log('resizing ' + filename + 'to ' + height + 'x' + height)
+							this.resize(width, height).write(dest + 'w' + width + '_' + filename, function(err) {
+								if (err) console.log('Error writing file: ' + err)
+							})
+						}.bind(this))
+					}
+				})
+			})
+		}
+	})
+</code></pre>
+					</section>	
+					<section><h3>Serving multiple clients at once: concurrency</h3>
+						<p>Solution: <code>async</code>/<code>await</code></p>
+						<pre><code class="language-javascript">try {
+	let files = await fs.readdir;
+	for (let filename of files) {
+		console.log(filename)
+		let values = await gm(source + filename).size()
+		console.log(filename + ' : ' + values)
+		aspect = (values.width / values.height)
+		widths.forEach(async function (width, widthIndex) {
+			height = Math.round(width / aspect)
+			console.log('resizing ' + filename + 'to ' + height + 'x' + height)
+			await this.resize(width, height).write(dest + 'w' + width + '_' + filename)
+		}.bind(this))
+	}
+} catch(err) {
+	console.log('Error finding files: ' + err)
+	return;
+}
+</code></pre>
+					</section>	
+				</section>
+				<section><h3>Questions?</h3>
+				</section>
+				<section><h3>Learn More</h3>
+					<ul>
+						<li><a href="https://www.nginx.com/resources/glossary/load-balancing">Load balancing with software</a></li>
+						<li><a href="https://blog.cloudflare.com/cloudflares-architecture-eliminating-single-p/">Load balancing with anycast</a></li>
+						<li><a href="https://docs.rs/dtolnay/latest/dtolnay/macro._01__await_a_minute.html">More on why callbacks are hard</a></li>
+					</ul>
+				</section>
+			</div>
+		</div>
+
+		<script src="/talks/dist/reveal.js"></script>
+		<script src="/talks/plugin/notes/notes.js"></script>
+		<script src="/talks/plugin/markdown/markdown.js"></script>
+		<script src="/talks/plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>

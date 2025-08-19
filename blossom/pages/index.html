@@ -9,7 +9,6 @@ index = true
   <h1 class="page-heading">posts</h1>
 
   <ul class="post-list">
-    ◊(println pages)
     ◊for[[post pages
           :let [extra (:extra post)]
           :when (not (or
@@ -19,9 +18,7 @@ index = true
             (= "index.html" (:path post))))]]{
       <li>
         <span class="post-meta">
-          ◊(println post)
           ◊(when-let [d (:date post)]
-            (println (type d))
             (->> d jt/offset-date-time (jt/format "yyyy-MM-dd")))
           ◊when-let[[audience (:audience extra)]]{
             • audience—◊audience
@@ -34,7 +31,10 @@ index = true
         </span>
 
         <h2>
-          <a ◊(when-let [d (:description post)] d) class="post-link" href="◊(:path post)">◊(title post)</a>
+          ◊(let [attrs {:class "post-link" :href (:path post)}
+                 more-attrs (if-let [d (:description post)]
+                              (assoc attrs :description d) attrs)]
+              (html [:a more-attrs (title post)]))
         </h2>
       </li>
     }
@@ -42,10 +42,12 @@ index = true
 
   <p class="rss-subscribe">subscribe <a type="application/atom+xml" href="/atom.xml">via RSS</a></p>
 
+</nav>
+
 ◊(def all-tags
   (set (for [post pages
              [term tags] (:taxonomies post)
-             :when (= "tags" term)
+             :when (= :tags term)
              tag tags] tag)))
 
 ◊when[(seq all-tags)]{

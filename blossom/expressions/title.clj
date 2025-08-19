@@ -7,7 +7,6 @@
 
 (defn title
   [post]
-  (println post)
   (or (-> post :frontmatter :title)
       (-> post :path unslugify)))
       ; this is cursed and easily leads to dependency cycles

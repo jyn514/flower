@@ -13,6 +13,8 @@
   (:import
    (java.io StringWriter)))
 
+; utils
+
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
         split (split-frontmatter {:filename f :content content})]
@@ -22,6 +24,46 @@
   (let [paths (fs/glob dir "**")
         files (filter #(not (fs/directory? %)) paths)]
     (into {} (map load-meta files))))
+
+; dependency tracking
+
+; The following is quoted from ninja/src/depfile_parser.in.cc:
+;
+; Rather than implement all of above, we follow what GCC/Clang produces:
+; Backslashes escape a space or hash sign.
+; When a space is preceded by 2N+1 backslashes, it is represents N backslashes
+; followed by space.
+; When a space is preceded by 2N backslashes, it represents 2N backslashes at
+; the end of a filename.
+; A hash sign is escaped by a single backslash. All other backslashes remain
+; unchanged.
+(defn escape-depfile
+  [s]
+  ; NOTE: \ has to come first
+  (let [specials "\\ #:%*~$"]
+    (reduce #(str/replace %1 (str %2) (str "\\" %2)) s specials)))
+
+(defn gen-depfile
+  [out deps]
+  (let [out (escape-depfile out)
+        deps (->> deps (map escape-depfile) (str/join " "))]
+        (fmt "${out}: ${deps}")))
+
+(defn split-dependencies
+  [parsed {:keys [depfile out-file]}]
+  (let [[parsed deps] (split-map parsed :dependencies)
+        formatted (gen-depfile out-file (:dependencies deps))]
+    (spit depfile formatted)
+    ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
+    parsed))
+
+; TODO: take out-dir as an arg
+(defn split-sass-dependencies
+  [parsed {:keys [source-file]}]
+  (let [out-dir "public"
+        deps (:sources parsed)
+        relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)]
+    (gen-depfile source-file relative-deps)))
 
 ; meta-build system
 
@@ -37,12 +79,18 @@
         frontmatter {:pages page-meta :templates template-meta}
         dst (fs/path out)]
     (binding [flower.reflect/*ninja* ninja-writer
-              flower.reflect/*frontmatter* frontmatter]
+              flower.reflect/*frontmatter* frontmatter
+              flower.reflect/*dependencies* #{}]
       (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
-            lisp (eval/parse-string cx embedded)]
-        (eval/eval-form cx embedded lisp)))
-    (->> ninja-writer str .getBytes (fs/write-bytes dst))))
+            lisp (eval/parse-string cx embedded)
+            ; TODO: we need a mechanism for build.clj to pass back the builddir.
+            ; maybe we can bind `flower.reflect/*build*` or something idk
+            depfile (fs/path *site* ".build" "build.clj.d")]
+        (eval/eval-form cx embedded lisp)
+        (let [contents (gen-depfile out flower.reflect/*dependencies*)]
+          (fs/write-bytes depfile (String/.getBytes contents))))
+    (->> ninja-writer str .getBytes (fs/write-bytes dst)))))
 
 ; template embedding
 ; TODO: this should happen in transformers/embed.clj
@@ -114,6 +162,10 @@
   ; document that you should use `include` if you want that.
   ; TODO: document that custom commands cannot generate the same output file as a page
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
+  ; TODO: rename this to `render-page` and remove the existing render-page.
+  ; it's fine for all pages to have access to all metadata, and it means we don't need to rebuild build.ninja
+  ; whenever a page changes.
+  ; TODO: once we do that, it's silly to parse this over and over in `get-all-meta`. cache it on disk with build.clj.
   (let [all-meta (load-all-meta "pages")
         all-targets (parse-ninja "ninja -t targets rule frontmatter" false)
         pages (map #(index-page-meta % all-meta) all-targets)]
@@ -151,39 +203,4 @@
     ; TODO: this discards metadata, allow the transformer to mutate metadata
     ; also allow returning just a string to inherit existing metadata
     {:content (eval/eval-form cx "" lisp)}))
-
-; The following is quoted from ninja/src/depfile_parser.in.cc:
-;
-; Rather than implement all of above, we follow what GCC/Clang produces:
-; Backslashes escape a space or hash sign.
-; When a space is preceded by 2N+1 backslashes, it is represents N backslashes
-; followed by space.
-; When a space is preceded by 2N backslashes, it represents 2N backslashes at
-; the end of a filename.
-; A hash sign is escaped by a single backslash. All other backslashes remain
-; unchanged.
-(defn escape-depfile
-  [s]
-  ; NOTE: \ has to come first
-  (let [specials "\\ #:%*~$"]
-    (reduce #(str/replace %1 (str %2) (str "\\" %2)) s specials)))
-
-(defn split-dependencies
-  [parsed {:keys [depfile out-file]}]
-  (let [[parsed deps] (split-map parsed :dependencies)
-        out (escape-depfile out-file)
-        deps (->> deps :dependencies (map escape-depfile) (str/join " "))
-        formatted (fmt "${out}: ${deps}")]
-    (spit depfile formatted)
-    ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
-    parsed))
-
-; TODO: take out-dir as an arg
-(defn split-sass-dependencies
-  [parsed {:keys [source-file]}]
-  (let [out-dir "public"
-        deps (:sources parsed)
-        relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)
-        joined (join-ninja relative-deps)]
-    (fmt "${source-file}: ${joined}")))
 
