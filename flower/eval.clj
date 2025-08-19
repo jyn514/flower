@@ -41,7 +41,7 @@
    (let [binding (sci/create-ns ns)
          vars (if include-private
                 ; TODO: figure out why this filters bb/fs to an empty map lmao
-                (filter #(instance? clojure.lang.IDeref %) (ns-map ns))
+                (filter (fn [[_ v]] (instance? clojure.lang.IDeref v)) (ns-map ns))
                 (ns-publics ns))
          ; copy-var* assumes that it can deref any var; make sure that's true
          bindings (update-vals vars
