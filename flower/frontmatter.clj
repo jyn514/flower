@@ -10,7 +10,7 @@
    [clojure.walk :refer [postwalk]]
    [toml-clj.core :as toml]) 
   (:import
-   [java.time Instant ZoneOffset]
+   [java.time LocalDate LocalDateTime ZoneOffset]
    [java.util Date]))
 
 ; https://github.com/liquidz/frontmatter/blob/34a86ed3c6524f63cb457079c1316d9707be061a/src/frontmatter/core.clj
@@ -19,15 +19,17 @@
   (let [x (take-while #(not= delim %) lines)]
     (list x (drop (+ 1 (count x)) lines))))
 
-(defn- date->utc-str
-  [^Date d]
-  (-> d Date/.toInstant str))
-
 (defn- parse-yaml [s]
   (let [yaml (yaml/parse-string s)]
     (postwalk #(if-not (instance? java.util.Date %) %
-                 (date->utc-str %))
+                (-> % Date/.toInstant str))
               yaml)))
+
+(defn- parse-toml [s]
+  (let [toml (toml/read-string s)]
+    (postwalk #(if-not (instance? java.time.LocalDate %) %
+                 (-> % LocalDate/.atStartOfDay (LocalDateTime/.toInstant ZoneOffset/UTC) str))
+              toml)))
 
 (defn- parse-json [s]
   (json/read-str (str "{" s "}")
@@ -40,7 +42,7 @@
   [first-line]
   (case first-line
     "---" parse-yaml
-    "+++" toml/read-string
+    "+++" parse-toml
     ";;;" parse-json ; TODO: just use {} like hugo
     "###" parse-edn
     nil))

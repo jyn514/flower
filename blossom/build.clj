@@ -14,9 +14,9 @@
   (apply fs/path x more))
 
 (defn replace-ext [path ext]
-  (-> path fs/path fs/file-name fs/strip-ext (str "." ext)))
+  (-> path fs/path fs/strip-ext (str "." ext)))
 (defn add-ext [path ext]
-  (-> path fs/path fs/file-name (str "." ext)))
+  (-> path fs/path (str "." ext)))
 
 (defn all-dirs [root]
   (let [dirs (atom (if (fs/exists? root) #{root} #{}))
@@ -36,7 +36,9 @@
   (if rebuild-flower "../target/flower" "flower"))
 (defn flow [cmd] (fmt "${flower_cli} ${cmd} <$in >$out"))
 
-(def expressions (fs/glob "expressions" "**.clj"))
+(def expressions  (fs/glob "expressions" "**.clj"))
+(def transformers (fs/glob "transformers" "**"))
+(def all-pages (fs/glob "pages" "**"))
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
@@ -44,53 +46,48 @@
 (defn build-page
   ([rule page] (build-page rule page []))
   ([rule page implicits]
-   (let [json_frontmatter (/ builddir (add-ext page "json"))
-         ; can be different than processed_html if e.g. the template ends in .md
-         processed_markdown (/ builddir (replace-ext page (str "rendered." (fs/extension page))))
-         processed_html (/ builddir (replace-ext page "rendered.html"))
-         depfile (/ builddir (replace-ext page "rendered.html.d"))
-         final_html (/ public (replace-ext page "html"))
+   (let [relative-page (remove-parent page)
+         json_frontmatter (/ builddir (add-ext relative-page "json"))
+         rendered (/ builddir (replace-ext relative-page (str "rendered." (fs/extension relative-page))))
          rules [{:rule "frontmatter"
                  :inputs (str page)
                  :outputs json_frontmatter
                  :implicit ff}
                 {:rule rule
                  :inputs json_frontmatter
-                 :outputs processed_markdown
+                 :outputs rendered
                  ; TODO: check if we can remove unconditional dependency on expressions/ now that load-fn does dep tracking
-                 :implicit (concat implicits expressions)}
-                ; TODO: wrong, should run on all html files, not just pages
-                ; maybe we can make transform a dispatch-file rule, output `.processed`,
-                ; and add a dispatch-file rule for .processed?
-                ; wait no dispatch-file only runs on pages
-                ; ok never mind, if you have a custom build command you have to add a :build yourself
-                {:rule "transform"
-                 :inputs processed_html
-                 :outputs final_html
-                 :implicit (concat (fs/glob "transformers" "*") expressions)
-                 :depfile depfile}]]
-     ; TODO: this will break for md->html generation because it will also copy .embed to public/
-     (if (= processed_markdown processed_html)
-       {:rules rules}
-       {:rules rules :out processed_markdown}))))
+                 ; TODO: oh wait we never ran split-dependencies on the rendered lmao
+                 :implicit (concat implicits expressions)}]]
+     {:rules rules :out rendered})))
 
 (defn markdown-page [page]
-  (let [html (/ builddir (replace-ext page "html"))]
+  (let [html (/ builddir (replace-ext (remove-parent page) "html"))]
     {:rules [{:rule "markdown"
               :inputs page
               :outputs html
               :implicit ff}]
      :out html}))
 
-(defn link-page [page]
-  (let [final (/ public (fs/file-name page))]
-    {:rules [{:rule "link"
-              :inputs page
-              :outputs final}]}))
+(defn transform-page [rendered]
+  (let [depfile (add-ext rendered "d")
+        ; a.rendered.html -> a.html
+        [base ext] (fs/split-ext rendered)
+        filename (if (= "rendered" (fs/extension base))
+                   (replace-ext base ext)
+                   base)
+        final (/ public (remove-parent filename))]
+    ; NOTE: if you have a custom build command you have to add a :build yourself
+    {:rules [{:rule "transform"
+               :inputs rendered
+               :outputs final
+               :implicit [:transformers :expressions]
+               :depfile depfile}]
+      :out nil}))
 
 (defmulti dispatch-file fs/extension)
 (defmethod dispatch-file "md" [f] (markdown-page f))
-(defmethod dispatch-file :default [f] (link-page f))
+(defmethod dispatch-file :default [f] (transform-page f))
 (defn chain-commands [in out]
   (let [{new-rules :rules
          new-path :out } (dispatch-file in)
@@ -98,8 +95,6 @@
     (if (nil? new-path)
       all-rules
       (recur new-path all-rules))))
-
-(def all-pages (fs/glob "pages" "**"))
 
 (defn chain-page [pages build-func]
   (mapcat
@@ -111,7 +106,7 @@
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])
 
-(def pages
+(def page-builds
   (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
         [indexes pages] (split-all (fn [[_ meta]] (get meta "index")) page-frontmatter)
         index-paths (map first indexes)
@@ -126,9 +121,10 @@
           (fs/glob "sass" "**.{scss,sass}")))
 
 (defn sass->build [path]
-  (let [out (/ public (replace-ext path "css"))
-        source-map (/ public (add-ext out "map"))
-        depfile (/ builddir (add-ext path "d"))]
+  (let [relative-path (remove-parent path)
+        out (/ public (replace-ext relative-path "css"))
+        source-map (add-ext out "map")
+        depfile (/ builddir (add-ext relative-path "d"))]
     {:rule "sass"
     :inputs (str path)
     :outputs out
@@ -142,7 +138,10 @@
           (fs/glob "../defaults" "**")))
 
 (def base
-  {:variables {:builddir builddir}
+  {:variables {:builddir builddir
+               :pages all-pages
+               :expressions expressions
+               :transformers transformers}
    :phony [{:name "flower" :depends ff}]
    :rules
    [{:name "ninja-meta"
@@ -172,8 +171,7 @@
      :command (fmt "${flower_cli} embed-template $template < $in > $out")
      :description "embed $in into $template using clojure"}
     {:name "frontmatter"
-     ; TODO: maybe add an `--arg` equivalent idk
-     :command (fmt "${flower_cli} jq -R \"{filename: \\\"$in\\\", content: .}\" < $in | ${flower_cli} split-frontmatter > $out")}
+     :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
      :command (fmt "sass --quiet $in $out; ${flower_cli} split-sass-dependencies $out <$source-map >$depfile")
      :description "compile Sass file $in to CSS"}
@@ -186,7 +184,7 @@
    [{:rule "ninja-meta"
      :restat true
      :outputs "build.ninja"
-     :inputs (concat all-pages (fs/glob templates "**") ["build.clj"] ff
+     :inputs (concat [:pages "build.clj"] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"
@@ -199,17 +197,19 @@
     {:rule "tmpdir"
      :outputs builddir}]})
 
-(def transformers {"clj" (str flower_cli " transform")})
+(def trans-map {"clj" (str flower_cli " transform")})
 
 ; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
 (def transform
-  (let [pps (fs/glob "transformers" "*")
-        cmds (map #(str (get transformers (fs/extension %)) " " %) pps)
+  (let [cmds (map #(str (get trans-map (fs/extension %)) " " %) transformers)
         pipe (str/join " | " cmds)
-        cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $depfile $out | ${flower_cli} jq .content -r > $out")]
+        ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
+        ; instead we assume it's always relative to $in.
+        cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $in.d $out | ${flower_cli} jq .content -r > $out")]
     {:rules [{:name "transform"
               :command cmd
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform pages (update base :builds #(concat % (map sass->build sass-files)))))
+  (merge-deep transform page-builds
+              (update base :builds #(concat % (map sass->build sass-files)))))

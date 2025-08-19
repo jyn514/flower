@@ -1,6 +1,6 @@
 (ns expressions.ninja
-  (:use [flower.utils])
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [flower.utils :refer [fmt]]))
 
 ; bound by 'configure
 ; (def ^:dynamic *ninja* "not for public use" *err*)
@@ -20,6 +20,33 @@
 ; ninja utils
 
 (defn- variable [key val] (fmt "  ${key} = ${val}\n"))
+
+(defn escape-ninja
+  "Escape a string for use as a ninja file path.
+   See https://ninja-build.org/manual.html#ref_lexer"
+  [s]
+  ; https://github.com/ninja-build/ninja/blob/370edd49a47379d0c3ff0c0ae9d825e627fd37c3/misc/ninja_syntax.py#L30
+  (-> s str
+      ; NOTE: $ has to come first
+      (str/replace "$" "$$")
+      (str/replace "\n" "$\n")
+      (str/replace " " "$ ")
+      (str/replace ":" "$:")))
+
+(defn format-ninja
+  "Given a string, escape it for use as a ninja path.
+   Given a keyword, treat it as a ninja variable."
+  [spec]
+  (if (keyword? spec)
+     (str "${" (name spec) "}")
+     (escape-ninja spec)))
+
+(defn join-ninja
+  "Given a list of file paths, format them as a ninja dependency set."
+  [xs]
+  (let [xs (if (or (nil? xs) (sequential? xs))
+             xs [xs])]
+    (->> xs (map format-ninja) (str/join " "))))
 
 (defn- map-vars
   [f m]
@@ -58,17 +85,16 @@
     (apply str "build " name ": phony "
            (join-ninja deps))))
 
-(defn- mapper
-  [[k v]]
-  (case k
-    :rules (concat (map gen-rule (filter some? v)) [nl])
-    :builds (concat (map gen-build (filter some? v)) [nl])
-    :phony (concat (map gen-phony (filter some? v)) [nl])
-    :variables (map-vars #(format "%s = %s\n" %1 %2) v)
-    :transformers []))
+(defn- gen-var [[k v]]
+  (format "%s = %s\n" (name k) (join-ninja v)))
 
+; NOTE: variables are resolved lexically so they have to be generated first.
 (defn generate
   ([ninja]
-   (let [map-with-nl #(concat (mapper %) [nl])
-         contents (->> ninja (map map-with-nl) flatten str/join)]
+   (let [gen-all #(concat (map %1 (filter some? %2)) [nl])
+         vars (gen-all gen-var (:variables ninja))
+         phony (gen-all gen-phony (:phony ninja))
+         rules (gen-all gen-rule (:rules ninja))
+         builds (gen-all gen-build (:builds ninja))
+         contents (str/join (concat vars phony rules builds))]
      (flower.reflect/write-ninja! contents))))

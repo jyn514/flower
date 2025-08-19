@@ -143,7 +143,6 @@
 
 (def base
   {:variables {:builddir builddir}
-   :phony [{:name "flower" :depends ff}]
    :rules
    [{:name "ninja-meta"
      :command (fmt "${flower_cli} configure")
@@ -199,12 +198,12 @@
     {:rule "tmpdir"
      :outputs builddir}]})
 
-(def transformers {"clj" (str flower_cli " transform")})
+(def trans-map {"clj" (str flower_cli " transform")})
 
 ; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
 (def transform
   (let [pps (fs/glob "transformers" "*")
-        cmds (map #(str (get transformers (fs/extension %)) " " %) pps)
+        cmds (map #(str (get trans-map (fs/extension %)) " " %) pps)
         pipe (str/join " | " cmds)
         cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $depfile $out | ${flower_cli} jq .content -r > $out")]
     {:rules [{:name "transform"

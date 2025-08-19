@@ -68,9 +68,10 @@
 ; the clojure library is buggy and the underlying java library is hideously complicated.
 ; rather than try to figure out their api, just parse and reserialize the string.
 (defn jq
-  [{:keys [data query raw-input raw-output]}]
+  [{:keys [data query raw-input raw-output] :as m}]
   (let [in (if raw-input (json/write-str data) data)
-        res (try (jq/execute in query)
+        vars (dissoc m :data :query :raw-input :raw-output)
+        res (try (jq/execute in query {:vars vars})
                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
                    (fatal "failed to run jq query:" (ex-message e))))]
     (if raw-output (json/read-str res) res)))
@@ -114,7 +115,7 @@
   ; TODO: document that custom commands cannot generate the same output file as a page
   ; TODO: this only works for post-processed pages; fix it to run `ninja -t targets | grep ^public`
   (let [all-meta (load-all-meta "pages")
-        all-targets (parse-ninja "ninja -t targets rule frontmatter")
+        all-targets (parse-ninja "ninja -t targets rule frontmatter" false)
         pages (map #(index-page-meta % all-meta) all-targets)]
     (render-page parsed {:bindings {'pages pages}})))
 

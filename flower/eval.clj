@@ -39,11 +39,11 @@
   ([ns] (copy-ns ns false))
   ([ns include-private]
    (let [binding (sci/create-ns ns)
-         vars (if include-private
-                ; TODO: figure out why this filters bb/fs to an empty map lmao
-                (filter (fn [[_ v]] (instance? clojure.lang.IDeref v)) (ns-map ns))
-                (ns-publics ns))
+         considered-vars (if include-private
+                           (ns-map ns)
+                           (ns-publics ns))
          ; copy-var* assumes that it can deref any var; make sure that's true
+         vars (filter (fn [[_ v]] (instance? clojure.lang.IDeref v)) considered-vars)
          bindings (update-vals vars
                                #(sci/copy-var* % binding))]
      (with-meta bindings {:ns binding}))))
@@ -298,14 +298,6 @@
      :NestedRender #(identity `((str ~@%&)))
      } tree))
 
-; you can see all fields with `(into {} err)`
-(defn- render-parse-error [cx ex]
-  (let [filename (-> cx meta :flower/filename)
-        base (fmt "failed to parse ${filename}:\n" )
-        lines (->> ex pr-str str/split-lines)
-        indented (str/join "\n" (map #(str "  " %) lines))]
-    (str base indented)))
-
 (defn- on-parse-event [cx src ev]
   (if (string? ev) ev
     (eval-form cx src ev)))
@@ -314,8 +306,6 @@
   "tree eval"
   ([tree src cx]
    (let [events (transformer tree src cx)]
-     (when (instance? instaparse.gll.Failure events)
-      (fatal (render-parse-error cx events)))
      (apply str (map #(on-parse-event cx src %) events)))))
 
 ; TODO: needs to account for pages not in clojure
@@ -340,7 +330,7 @@
                     ; TODO: this ignores `locals`
                     (with-meta *cx* {:flower/filename filename})
                     (create-sci-cx filename {:bindings locals}))]
-     (teval (parse src) src *cx*))))
+     (teval (parse-or-fatal parse src filename) src *cx*))))
 
 (defn create-fs-cx
   [filename]

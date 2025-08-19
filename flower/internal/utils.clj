@@ -1,10 +1,10 @@
-; NOTE: used from native.clj, so can't depend on anything
-
 (ns flower.internal.utils
-  (:require [babashka.process :as ps]
-            [babashka.fs :as fs]
-            [clojure.set :refer [union]]
-            [clojure.string :as str]))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.process :as ps]
+   [clojure.set :refer [union]]
+   [clojure.string :as str]
+   [instaparse.core :as insta]))
 
 (def ^:dynamic *site* ".")
 
@@ -73,11 +73,52 @@
   [path]
   (first (fs/split-ext path)))
 
-(defn parse-ninja [args]
-  (let [out (:out (run {:out :string} args))]
+; you can see all fields with `(into {} err)`
+(defn- render-parse-error [ex description]
+  (let [base (fmt "failed to parse ${description}:\n" )
+        lines (->> ex pr-str str/split-lines)
+        indented (str/join "\n" (map #(str "  " %) lines))]
+    (str base indented)))
+
+(defn parse-or-fatal
+  [parser input description]
+  (let [ev (parser input)]
+    (if (instance? instaparse.gll.Failure ev)
+      (fatal (render-parse-error ev description))
+      ev)))
+
+(def ^:private bs "\\")
+(def ^:private insta-bs (str bs bs))
+(def ^:private insta-qt (str bs "'"))
+(def ^:private ninja-parser
+  ; NOTE: ninja never emits `\` outside of a quoted atom.
+  (insta/parser (fmt
+    "Start = Atom*
+     Atom = Unquoted | Quoted | QuoteMark
+     Unquoted = #'[^${insta-qt}${insta-bs}]+'
+     Quoted = <'${insta-qt}'> #'[^${insta-qt}]+' <'${insta-qt}'>
+     QuoteMark = <'${insta-bs}'> '${insta-qt}'")))
+(defn shlex-ninja
+  "This is a REALLY REALLY STUPID implementation of shlex that only works for syntax that ninja emits."
+  [path]
+  (let [parsed (ninja-parser path)]
+    (insta/transform
+      {:Start str
+       :Atom identity
+       :Unquoted identity
+       :Quoted identity
+       :QuoteMark identity}
+      parsed)))
+
+(defn parse-ninja [args quoted]
+  (let [out (:out (run {:out :string} args))
+        ; ;-;;;;;
+        ; https://github.com/ninja-build/ninja/issues/2658
+        parse-quoted #(parse-or-fatal shlex-ninja % (fmt "`${args}`"))
+        parse (if quoted parse-quoted identity)]
     ; handle empty string
     (if (seq out)
-      (str/split out #"\n")
+      (map parse (str/split out #"\n"))
       [])))
 
 (defn escape-ninja

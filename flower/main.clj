@@ -96,8 +96,10 @@
    "new" (no-args flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
-         :coerce {:raw-input :boolean :raw-output :boolean
-                  :data :string :query :string}
+         :coerce {:raw-input :boolean
+                  :raw-output :boolean
+                  :data :string
+                  :query :string}
          :aliases {:R :raw-input :r :raw-output}
          :args->opts [:query]}
    ["version" "--version"] (no-args #(println VERSION))
@@ -120,14 +122,16 @@
           bb-map (assoc opts :cmds cmds :fn #(init wrapped-fn %))]
       bb-map)))
 
+(defn init-fn [cmd-fn args]
+  (binding [*site* (or (get-in args [:opts :C]) ".")
+            flower.reflect/*watching* (boolean (= "watch" (:dispatch args)))]
+    (cmd-fn args)))
+
 (defn dispatch-cmd
   "Parse the CLI args and dispatch to the appropriate clojure funciton.
   Also registers global options."
   [args]
-  (let [init #(binding [*site* (or (get-in %2 [:opts :C]) ".")
-                        flower.reflect/*watching* (boolean (= "watch" (:dispatch %2)))]
-                (%1 %2))
-        table (map #(apply ->bb init %) dispatch-table)
+  (let [table (map #(apply ->bb init-fn %) dispatch-table)
         flat-table (flatten table)]
     (cli/dispatch flat-table args {:coerce {:C :string}})))
 

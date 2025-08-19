@@ -1,5 +1,4 @@
 (ns native
-  (:use [flower.internal.utils])
   (:require
    [babashka.fs :as fs]
    [babashka.process :as ps]
@@ -9,6 +8,12 @@
    [clojure.tools.build.api :as b]) 
   (:import
    [java.io FileWriter]))
+
+(defn strip-prefix
+  [s pre]
+  (let [quoted (java.util.regex.Pattern/quote pre)
+        prefix (re-pattern (str "^" quoted))]
+    (str/replace-first s prefix "")))
 
 (def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
 (def is-linux (= (System/getProperty "os.name") "Linux"))
@@ -38,7 +43,6 @@
                  default-files)))
 (def defaults-target (str class-dir "/" defaults))
 
-(def ctors :allPublicConstructors)
 (defn all-public [& names]
   (for [t names]
     {:type t
