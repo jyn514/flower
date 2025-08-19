@@ -1,5 +1,6 @@
-builddir = .build
-
+rule transform
+  command = < $in ../target/flower transform transformers/embed.clj | ../target/flower transform transformers/title.clj | ../target/flower split-dependencies $depfile $out | ../target/flower jq .content -r > $out
+  description = run all transformers on $in
 rule ninja-meta
   command = ../target/flower configure
   description = rebuild build.ninja itself
@@ -32,37 +33,41 @@ rule sass
 rule markdown
   command = ../target/flower render-markdown <$in >$out
   description = render markdown -> HTML: $in -> $out
-rule transform
-  command = < $in ../target/flower transform transformers/embed.clj | ../target/flower transform transformers/title.clj | ../target/flower split-dependencies $depfile $out | ../target/flower jq .content -r > $out
-  description = run all transformers on $in
 
+
+build .build/index.html.json: frontmatter pages/index.html | ../target/flower
+build .build/index.rendered.html: index .build/index.html.json | build.ninja pages/foo.md pages/look-ma-new-site.md pages/you-are-in-a-box.md expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/index.html: transform .build/index.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+  depfile = .build/index.rendered.html.d
+build .build/foo.md.json: frontmatter pages/foo.md | ../target/flower
+build .build/foo.rendered.md: page .build/foo.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/foo.html: transform .build/foo.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+  depfile = .build/foo.rendered.html.d
+build .build/foo.rendered.html: markdown .build/foo.rendered.md | ../target/flower
+build public/foo.rendered.html: link .build/foo.rendered.html
+build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | ../target/flower
+build .build/look-ma-new-site.rendered.md: page .build/look-ma-new-site.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/look-ma-new-site.html: transform .build/look-ma-new-site.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+  depfile = .build/look-ma-new-site.rendered.html.d
+build .build/look-ma-new-site.rendered.html: markdown .build/look-ma-new-site.rendered.md | ../target/flower
+build public/look-ma-new-site.rendered.html: link .build/look-ma-new-site.rendered.html
+build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | ../target/flower
+build .build/you-are-in-a-box.rendered.md: page .build/you-are-in-a-box.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/you-are-in-a-box.html: transform .build/you-are-in-a-box.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+  depfile = .build/you-are-in-a-box.rendered.html.d
+build .build/you-are-in-a-box.rendered.html: markdown .build/you-are-in-a-box.rendered.md | ../target/flower
+build public/you-are-in-a-box.rendered.html: link .build/you-are-in-a-box.rendered.html
 build build.ninja: ninja-meta pages/index.html pages/foo.md pages/look-ma-new-site.md pages/you-are-in-a-box.md templates/main.html templates/default.html templates/skeleton.html templates/icon-linkedin.svg templates/footer.html templates/icon-github.svg build.clj ../target/flower pages pages templates templates expressions expressions sass/minima sass sass
   restat = true
-build ../target/flower: flower-meta ../flower/cmd.clj ../flower/beholder.clj ../flower/main.clj ../flower/reflect.clj ../flower/defaults.clj ../flower/utils.clj ../flower/watch.clj ../flower/hiccup.clj ../flower/internal ../flower/internal/utils.clj ../flower/frontmatter.clj ../flower/eval.clj ../flower/repl.clj ../defaults/pages ../defaults/pages/index.html ../defaults/pages/you-are-in-a-box.md ../defaults/pages/foo.md ../defaults/pages/look-ma-new-site.md ../defaults/expressions ../defaults/expressions/constants.clj ../defaults/expressions/ninja.clj ../defaults/expressions/meta.clj ../defaults/expressions/example.clj ../defaults/expressions/html.clj ../defaults/public ../defaults/public/you-are-in-a-box.html ../defaults/public/index.html ../defaults/public/xxx ../defaults/public/foo.html ../defaults/public/look-ma-new-site.html ../defaults/templates ../defaults/templates/default.html ../defaults/templates/skeleton.html ../defaults/templates/main.html ../defaults/transformers ../defaults/transformers/embed.clj ../defaults/transformers/title.clj ../defaults/build.clj ../defaults/build.ninja ../flower ../deps.edn ../native.clj
+build ../target/flower: flower-meta ../flower/cmd.clj ../flower/beholder.clj ../flower/main.clj ../flower/reflect.clj ../flower/defaults.clj ../flower/utils.clj ../flower/watch.clj ../flower/hiccup.clj ../flower/internal ../flower/internal/utils.clj ../flower/frontmatter.clj ../flower/eval.clj ../flower/repl.clj ../defaults/pages ../defaults/pages/index.html ../defaults/pages/you-are-in-a-box.md ../defaults/pages/foo.md ../defaults/pages/look-ma-new-site.md ../defaults/expressions ../defaults/expressions/constants.clj ../defaults/expressions/ninja.clj ../defaults/expressions/meta.clj ../defaults/expressions/example.clj ../defaults/expressions/html.clj ../defaults/public ../defaults/public/you-are-in-a-box.html ../defaults/public/index.html ../defaults/public/xxx ../defaults/public/foo.html ../defaults/public/look-ma-new-site.html ../defaults/templates ../defaults/templates/default.html ../defaults/templates/skeleton.html ../defaults/templates/main.html ../defaults/transformers ../defaults/transformers/embed.clj ../defaults/transformers/title.clj ../defaults/build.clj ../defaults/build.ninja ../flower ../deps.edn
 build ../defaults/build.ninja: flower-defaults ../defaults/build.clj
 build .build: tmpdir 
 build public/minima.css: sass sass/minima.scss
   source-map = public/minima.css.map
   depfile = .build/minima.scss.d
-build .build/index.html.json: frontmatter pages/index.html | ../target/flower
-build .build/index.rendered.html: index .build/index.html.json | build.ninja pages/foo.md pages/look-ma-new-site.md pages/you-are-in-a-box.md expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-build public/index.html: transform .build/index.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-  depfile = .build/index.rendered.html.d
-build .build/foo.md.json: frontmatter pages/foo.md | ../target/flower
-build .build/foo.rendered.md: page .build/foo.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-build public/foo.html: transform .build/foo.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-  depfile = .build/foo.rendered.html.d
-build .build/foo.rendered.html: markdown .build/foo.rendered.md | ../target/flower
-build public/foo.rendered.html: link .build/foo.rendered.html
-build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | ../target/flower
-build .build/look-ma-new-site.rendered.md: page .build/look-ma-new-site.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-build public/look-ma-new-site.html: transform .build/look-ma-new-site.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-  depfile = .build/look-ma-new-site.rendered.html.d
-build .build/look-ma-new-site.rendered.html: markdown .build/look-ma-new-site.rendered.md | ../target/flower
-build public/look-ma-new-site.rendered.html: link .build/look-ma-new-site.rendered.html
-build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | ../target/flower
-build .build/you-are-in-a-box.rendered.md: page .build/you-are-in-a-box.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-build public/you-are-in-a-box.html: transform .build/you-are-in-a-box.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/meta.clj expressions/example.clj
-  depfile = .build/you-are-in-a-box.rendered.html.d
-build .build/you-are-in-a-box.rendered.html: markdown .build/you-are-in-a-box.rendered.md | ../target/flower
-build public/you-are-in-a-box.rendered.html: link .build/you-are-in-a-box.rendered.html
+
+
+builddir = .build
+
+build flower: phony ../target/flower
+

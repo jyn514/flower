@@ -111,8 +111,9 @@
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])
 
-(defn pages [{frontmatter :all-frontmatter}]
-  (let [[indexes pages] (split-all (fn [[_ meta]] (get meta "index")) (:pages frontmatter))
+(def pages
+  (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
+        [indexes pages] (split-all (fn [[_ meta]] (get meta "index")) page-frontmatter)
         index-paths (map first indexes)
         page-paths (map first pages)
         index-builds (chain-page index-paths #(build-page "index" % (conj page-paths "build.ninja")))
@@ -142,7 +143,7 @@
 
 (def base
   {:variables {:builddir builddir}
-   :transformers {"clj" (str flower_cli " transform")}
+   :phony [{:name "flower" :depends ff}]
    :rules
    [{:name "ninja-meta"
      :command (fmt "${flower_cli} configure")
@@ -198,16 +199,17 @@
     {:rule "tmpdir"
      :outputs builddir}]})
 
+(def transformers {"clj" (str flower_cli " transform")})
+
 ; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
-(defn transform [{runners :all-transformers}]
+(def transform
   (let [pps (fs/glob "transformers" "*")
-        cmds (map #(str (get runners (fs/extension %)) " " %) pps)
+        cmds (map #(str (get transformers (fs/extension %)) " " %) pps)
         pipe (str/join " | " cmds)
         cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $depfile $out | ${flower_cli} jq .content -r > $out")]
-  {:rules [{:name "transform"
-            :command cmd
-            :description "run all transformers on $in"}]}))
+    {:rules [{:name "transform"
+              :command cmd
+              :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (update base :builds #(concat % (map sass->build sass-files)))
-  pages transform)
+  (merge-deep transform pages (update base :builds #(concat % (map sass->build sass-files)))))

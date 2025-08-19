@@ -64,10 +64,8 @@
     "org.jsoup.nodes.Attribute"
     "org.jsoup.nodes.Attributes"
     "org.jsoup.parser.Parser"))
-(def dynamic
-  [{:type "org.yaml.snakeyaml.Yaml" ctors true}])
 (def reachable
-  {:reflection (concat all-dynamic dynamic)
+  {:reflection all-dynamic
    :resources
    [{:glob "META-INF/resources/flower/live-reload/**"}
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}

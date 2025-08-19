@@ -2,19 +2,32 @@
 ; see https://github.com/liquidz/frontmatter
 
 (ns flower.frontmatter
-  (:require 
-    [clojure.string :as str]
-    [clojure.data.json :as json]
-    [clojure.edn       :as edn]
-    [toml-clj.core :as toml]))
-(binding [*warn-on-reflection* false]
-  (require '[yaml.core     :as yaml]))
+  (:require
+   [clj-yaml.core     :as yaml]
+   [clojure.data.json :as json]
+   [clojure.edn       :as edn]
+   [clojure.string :as str]
+   [clojure.walk :refer [postwalk]]
+   [toml-clj.core :as toml]) 
+  (:import
+   [java.time Instant ZoneOffset]
+   [java.util Date]))
 
 ; https://github.com/liquidz/frontmatter/blob/34a86ed3c6524f63cb457079c1316d9707be061a/src/frontmatter/core.clj
 (defn- split-lines
   [lines delim]
   (let [x (take-while #(not= delim %) lines)]
     (list x (drop (+ 1 (count x)) lines))))
+
+(defn- date->utc-str
+  [^Date d]
+  (-> d Date/.toInstant str))
+
+(defn- parse-yaml [s]
+  (let [yaml (yaml/parse-string s)]
+    (postwalk #(if-not (instance? java.util.Date %) %
+                 (date->utc-str %))
+              yaml)))
 
 (defn- parse-json [s]
   (json/read-str (str "{" s "}")
@@ -26,7 +39,7 @@
 (defn- select-parse-fn
   [first-line]
   (case first-line
-    "---" yaml/parse-string
+    "---" parse-yaml
     "+++" toml/read-string
     ";;;" parse-json ; TODO: just use {} like hugo
     "###" parse-edn

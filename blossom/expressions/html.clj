@@ -45,6 +45,12 @@
   [doc ^String selector]
   (Element/.select (->element doc) selector))
 
+(defn text
+  "Given an HTML Element, return the normalized, combined text
+   of this element and all its children."
+  [node]
+  (Element/.text node))
+
 (defn html
   "Given an HTML Element, return its innerHtml() as a string."
   [node]

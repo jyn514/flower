@@ -231,7 +231,7 @@
   "form eval. innermost function; use this instead of sci/eval-form directly."
   ([src form] (eval-form *cx* src form))
   ([cx src form]
-   (when (System/getenv "FLOWER_DEBUG_EVAL")
+   (when (env "FLOWER_DEBUG_EVAL")
      (eprint "eval-form: ")
      (eprn form))
    (binding [flower.reflect/*dependencies* #{}]

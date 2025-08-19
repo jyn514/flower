@@ -52,20 +52,23 @@
                     (dissoc opts :outputs :inputs :implicit :order :rule)))
          )))
 
+(defn- gen-phony [opts]
+  (let [name (:name opts)
+        deps (:depends opts)]
+    (apply str "build " name ": phony "
+           (join-ninja deps))))
+
+(defn- mapper
+  [[k v]]
+  (case k
+    :rules (concat (map gen-rule (filter some? v)) [nl])
+    :builds (concat (map gen-build (filter some? v)) [nl])
+    :phony (concat (map gen-phony (filter some? v)) [nl])
+    :variables (map-vars #(format "%s = %s\n" %1 %2) v)
+    :transformers []))
+
 (defn generate
-  ; TODO: get rid of late-bound, all this information is available fine up-front
-  ([ninja & late-bound]
-   (let [all-maps (map #(% {:all-frontmatter flower.reflect/*frontmatter*
-                            :all-transformers (:transformers ninja)}) late-bound)
-         merged (apply merge-deep ninja all-maps)]
-     (generate merged)))
   ([ninja]
-   (let [mapper (fn [[k v]]
-                  (case k
-                    :rules (conj (map gen-rule (filter some? v)) nl)
-                    :builds (conj (map gen-build (filter some? v)) nl)
-                    :variables (map-vars #(format "%s = %s\n" %1 %2) v)
-                    :transformers []
-                    ))
-         contents (->> ninja (map mapper) flatten str/join)]
+   (let [map-with-nl #(concat (mapper %) [nl])
+         contents (->> ninja (map map-with-nl) flatten str/join)]
      (flower.reflect/write-ninja! contents))))

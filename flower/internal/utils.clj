@@ -120,6 +120,10 @@
   [s]
   (map vector (iterate inc 0) s))
 
+; TODO: i think this won't return the initial `ex` :(
+(defn ex-causes [ex]
+  (iteration ex-cause :initk ex))
+
 (def env System/getenv)
 
 (defn home [] (System/getProperty "user.home"))

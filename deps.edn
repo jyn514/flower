@@ -24,7 +24,7 @@
     lt.jocas/clj-jq {:mvn/version "2.4.0"}
     ; frontmatter
     org.clojure/data.json {:mvn/version "2.5.1"}
-    io.forward/yaml {:mvn/version "1.0.11"}
+    clj-commons/clj-yaml {:mvn/version "1.0.29"}
     io.github.tonsky/toml-clj {:mvn/version "0.1.0"}
 
     ; user-facing

@@ -1,7 +1,8 @@
 +++
 index = true
 +++
-◊(require '[java-time.api :as jt])
+◊(require '[java-time.api :as jt]
+          '[expressions.title :refer [title]])
 
 <nav class="home">
 
@@ -21,7 +22,7 @@ index = true
           ◊(println post)
           ◊(when-let [d (:date post)]
             (println (type d))
-            (->> d jt/local-date (jt/format "yyy-MM-dd")))
+            (->> d jt/offset-date-time (jt/format "yyyy-MM-dd")))
           ◊when-let[[audience (:audience extra)]]{
             • audience—◊audience
           }
@@ -33,7 +34,7 @@ index = true
         </span>
 
         <h2>
-          <a ◊(when-let [d (:description post)] d) class="post-link" href="◊(:path post)">◊(:title post)</a>
+          <a ◊(when-let [d (:description post)] d) class="post-link" href="◊(:path post)">◊(title post)</a>
         </h2>
       </li>
     }
@@ -45,7 +46,7 @@ index = true
   (set (for [post pages
              [term tags] (:taxonomies post)
              :when (= "tags" term)
-             tag tags])))
+             tag tags] tag)))
 
 ◊when[(seq all-tags)]{
 <nav class=all-tags>all tags:<ul>

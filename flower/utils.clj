@@ -21,6 +21,7 @@
   {'inspect inspect
    'strip-prefix strip-prefix
    'remove-parent remove-parent
+   'remove-ext remove-ext
    'merge-deep merge-deep
    'escape-ninja escape-ninja
    'join-ninja join-ninja
