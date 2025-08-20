@@ -167,7 +167,7 @@
            build-dir ".build"
            ; ms
            debounce-period 100}}]
-  (println "Rerun `flower configure`")
+  (println "Run `flower configure`")
   ; TODO: doesn't handle the case where the exception trickles up to main.
   ; probably that's fine though
   (binding [*cmd* "configure"]
@@ -177,6 +177,7 @@
   ; prints its out progress info
   (http-server/serve {:dir out-dir :port port})
   (println "Starting live reload watcher for" out-dir)
+  ; TODO: don't start this until ninja finishes
   (live-reload {:dir out-dir :port 35729 :period debounce-period})
   ; Run this last since ninja emits its own output
   (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"

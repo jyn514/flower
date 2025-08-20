@@ -47,7 +47,7 @@
         false))))
 
 (defn print-trace [ex transform-repl]
-  (print "flower" (str *cmd* ": error: "))
+  (print (str "flower" *cmd* ": error: "))
   ; TODO: env variables suck lmao, do something else
   (if-not (env "FLOWER_HOST_TRACE")
     (do (eval/print-cause-trace ex)

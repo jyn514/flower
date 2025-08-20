@@ -2,7 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as ps]
-   [clojure.set :refer [union]]
+   [clojure.set :as set :refer [union]]
    [clojure.string :as str]
    [instaparse.core :as insta]))
 
@@ -32,9 +32,9 @@
 (defn inspect [x] (eprn x) x)
 
 (defn warn [& msg]
-  (apply eprintln (fmt "flower ${*cmd*}: warning:") msg))
+  (apply eprintln (fmt "flower${*cmd*}: warning:") msg))
 (defn error [& msg]
-  (apply eprintln (fmt "flower ${*cmd*}: error:") msg))
+  (apply eprintln (fmt "flower${*cmd*}: error:") msg))
 (defn fatal [& msg]
   (throw (ex-info
            (apply str (interpose " " msg))
@@ -167,6 +167,9 @@
   (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
   [s]
   (map vector (iterate inc 0) s))
+
+(defn symmmetric-difference [A B]
+  (union (set/difference A B) (set/difference B A)))
 
 ; TODO: i think this won't return the initial `ex` :(
 (defn ex-causes [ex]
