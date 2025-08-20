@@ -56,9 +56,8 @@
                 {:rule rule
                  :inputs json_frontmatter
                  :outputs rendered
-                 ; TODO: check if we can remove unconditional dependency on expressions/ now that load-fn does dep tracking
-                 ; TODO: oh wait we never ran split-dependencies on the rendered lmao
-                 :implicit (concat implicits expressions)}]]
+                 :depfile (add-ext json_frontmatter "d")
+                 :implicit implicits}]]
      {:rules rules :out rendered})))
 
 (defn markdown-page [page]
@@ -81,7 +80,7 @@
     {:rules [{:rule "transform"
                :inputs rendered
                :outputs final
-               :implicit (concat transformers expressions)
+               :implicit transformers
                :depfile depfile}]
       :out nil}))
 
@@ -159,10 +158,10 @@
      :command "ln -f $in $out"
      :description "link $in into build dir"}
     {:name "page"
-     :command (flow "render-page")
+     :command (fmt "${flower_cli} render-page < $in | ${flower_cli} split-dependencies $in.d $out > $out")
      :description "render page $in using clojure"}
     {:name "index"
-     :command (flow "render-index")
+     :command (fmt "${flower_cli} render-index < $in | ${flower_cli} split-dependencies $in.d $out > $out")
      :description "render index page $in using clojure"}
     {:name "template"
      ; NOTE: this means that all templates must depend on all other templates

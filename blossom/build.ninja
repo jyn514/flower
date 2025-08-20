@@ -20,10 +20,10 @@ rule link
   command = ln -f $in $out
   description = link $in into build dir
 rule page
-  command = ../target/flower render-page < $in > $out
+  command = ../target/flower render-page < $in | ../target/flower split-dependencies $in.d $out > $out
   description = render page $in using clojure
 rule index
-  command = ../target/flower render-index < $in > $out
+  command = ../target/flower render-index < $in | ../target/flower split-dependencies $in.d $out > $out
   description = render index page $in using clojure
 rule template
   command = ../target/flower embed-template $template < $in > $out
@@ -38,381 +38,458 @@ rule markdown
   description = render markdown -> HTML: $in -> $out
 
 build .build/index.html.json: frontmatter pages/index.html | ../target/flower
-build .build/index.rendered.html: index .build/index.html.json | build.ninja pages/operators-not-users-and-programmers.md pages/effectively-using-a-time-travel-debugger.md pages/2023-12-04-How-to-maintain-an-open-source-project.md pages/constrained$ languages$ are$ easier$ to$ optimize.md pages/you-are-in-a-box.md pages/about/_index.md pages/complected$ and$ orthogonal$ persistence.md pages/2024-01-16-the-rust-project-has-a-burnout-problem.md pages/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md pages/2022-09-02-git-cheats.md pages/talks/python.html pages/capabilities-service-management-and-generalized-erlang.md pages/strangler-patterning-google.md pages/redirects/_index.md pages/foo.md pages/2020-10-23-the-intra-doc-links-saga.md pages/trustfall-and-query-planning.md pages/2025-05-03-tools.md pages/redirects/keyboard.md pages/2023-12-17-Running-clippy-on-rustc.md pages/2018-03-03-Object-Oriented-Python.md pages/how$ to$ communicate$ with$ intent.md pages/2018-02-11-Using-PGP-Keys.md pages/how-i-use-my-terminal.md pages/2018-02-24-Password-Safety.md pages/2023-12-20-wonder.md pages/2018-06-09-Rewriting-Jython.md pages/follow-up-to-an-engineers-perspective-on-hiring.md pages/talks/bootstrapping.html pages/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md pages/deterministic-concurrent-programs.md pages/operator-controlled-research.md pages/2017-12-23-first-post.md pages/2019-11-26-building-docs.rs.md pages/talks/assembly.html pages/how-i-write-blog-posts.md pages/the$ big$ idea$ of$ wasm.md pages/editable-programs.md pages/talks/C.html pages/ex.md pages/2018-02-14-Speed-Up!.md pages/2019-08-04-Fun-with-gaming-on-Linux.md pages/composable-compilers.md pages/2018-03-29-Copying-Generic-Arrays-in-Java.md pages/computers$ reinforce$ the$ status$ quo.md pages/2020-09-05-Rust-in-2021.md pages/generality-through-systems-thinking.md pages/talks/async-await.html pages/when$ infodumping$ isnt$ communicating.md pages/2018-09-29-Reverse-Engineering-x86-assembly.md pages/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md pages/look-ma-new-site.md pages/2024-12-06-i-want-a-better-operating-system.md pages/redirects/calendar.md pages/an$ engineers$ perspective$ on$ hiring.md pages/2018-01-06-Using-DNSSEC.md pages/2024-10-24-rustc_driver.md pages/2023-01-12-Bootstrapping-Rust-in-2023.md pages/atom.xsl pages/2017-12-28-Setting-up-Jekyll.md pages/sorry-for-the-rss-screwup.md pages/talks/linux.html pages/2025-03-28-terrible-horrible-no-good-very-bad-python.md pages/configuration-is-code-we've-decided-not-to-test.md pages/2021-09-10-I'll-Rust-With-You-the-song.md pages/2025-05-23-technical-debt-is-different-from-technical-risk.md pages/theory$ building$ without$ a$ mentor.md pages/decentralized-build-caching.md pages/2018-08-24-Keepass-on-Linux-and-Android.md pages/i-broke-down-and-wrote-an-SSG.md pages/2021-03-20-borrow-checker-faqs.md pages/2025-05-05-sftp-sandboxing.md pages/the$ computer$ of$ the$ next$ 200$ years.md pages/the-terminal-of-the-future.md pages/2017-12-27-Hosting-an-SSH-Server.md pages/2025-02-22-Do-not-disturb$ in$ GNOME.md expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/index.html: transform .build/index.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/index.rendered.html: index .build/index.html.json | build.ninja pages/operators-not-users-and-programmers.md pages/effectively-using-a-time-travel-debugger.md pages/2023-12-04-How-to-maintain-an-open-source-project.md pages/constrained$ languages$ are$ easier$ to$ optimize.md pages/you-are-in-a-box.md pages/about/_index.md pages/complected$ and$ orthogonal$ persistence.md pages/2024-01-16-the-rust-project-has-a-burnout-problem.md pages/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md pages/2022-09-02-git-cheats.md pages/talks/python.html pages/capabilities-service-management-and-generalized-erlang.md pages/strangler-patterning-google.md pages/redirects/_index.md pages/foo.md pages/2020-10-23-the-intra-doc-links-saga.md pages/trustfall-and-query-planning.md pages/2025-05-03-tools.md pages/redirects/keyboard.md pages/2023-12-17-Running-clippy-on-rustc.md pages/2018-03-03-Object-Oriented-Python.md pages/how$ to$ communicate$ with$ intent.md pages/2018-02-11-Using-PGP-Keys.md pages/how-i-use-my-terminal.md pages/2018-02-24-Password-Safety.md pages/2023-12-20-wonder.md pages/2018-06-09-Rewriting-Jython.md pages/follow-up-to-an-engineers-perspective-on-hiring.md pages/talks/bootstrapping.html pages/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md pages/deterministic-concurrent-programs.md pages/operator-controlled-research.md pages/2017-12-23-first-post.md pages/2019-11-26-building-docs.rs.md pages/talks/assembly.html pages/how-i-write-blog-posts.md pages/the$ big$ idea$ of$ wasm.md pages/editable-programs.md pages/talks/C.html pages/ex.md pages/2018-02-14-Speed-Up!.md pages/2019-08-04-Fun-with-gaming-on-Linux.md pages/composable-compilers.md pages/2018-03-29-Copying-Generic-Arrays-in-Java.md pages/computers$ reinforce$ the$ status$ quo.md pages/2020-09-05-Rust-in-2021.md pages/generality-through-systems-thinking.md pages/talks/async-await.html pages/when$ infodumping$ isnt$ communicating.md pages/2018-09-29-Reverse-Engineering-x86-assembly.md pages/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md pages/look-ma-new-site.md pages/2024-12-06-i-want-a-better-operating-system.md pages/redirects/calendar.md pages/an$ engineers$ perspective$ on$ hiring.md pages/2018-01-06-Using-DNSSEC.md pages/2024-10-24-rustc_driver.md pages/2023-01-12-Bootstrapping-Rust-in-2023.md pages/atom.xsl pages/2017-12-28-Setting-up-Jekyll.md pages/sorry-for-the-rss-screwup.md pages/talks/linux.html pages/2025-03-28-terrible-horrible-no-good-very-bad-python.md pages/configuration-is-code-we've-decided-not-to-test.md pages/2021-09-10-I'll-Rust-With-You-the-song.md pages/2025-05-23-technical-debt-is-different-from-technical-risk.md pages/theory$ building$ without$ a$ mentor.md pages/decentralized-build-caching.md pages/2018-08-24-Keepass-on-Linux-and-Android.md pages/i-broke-down-and-wrote-an-SSG.md pages/2021-03-20-borrow-checker-faqs.md pages/2025-05-05-sftp-sandboxing.md pages/the$ computer$ of$ the$ next$ 200$ years.md pages/the-terminal-of-the-future.md pages/2017-12-27-Hosting-an-SSH-Server.md pages/2025-02-22-Do-not-disturb$ in$ GNOME.md
+  depfile = .build/index.html.json.d
+build public/index.html: transform .build/index.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/index.rendered.html.d
 build .build/operators-not-users-and-programmers.md.json: frontmatter pages/operators-not-users-and-programmers.md | ../target/flower
-build .build/operators-not-users-and-programmers.rendered.md: page .build/operators-not-users-and-programmers.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/operators-not-users-and-programmers.rendered.md: page .build/operators-not-users-and-programmers.md.json
+  depfile = .build/operators-not-users-and-programmers.md.json.d
 build .build/operators-not-users-and-programmers.rendered.html: markdown .build/operators-not-users-and-programmers.rendered.md | ../target/flower
-build public/operators-not-users-and-programmers.html: transform .build/operators-not-users-and-programmers.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/operators-not-users-and-programmers.html: transform .build/operators-not-users-and-programmers.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/operators-not-users-and-programmers.rendered.html.d
 build .build/effectively-using-a-time-travel-debugger.md.json: frontmatter pages/effectively-using-a-time-travel-debugger.md | ../target/flower
-build .build/effectively-using-a-time-travel-debugger.rendered.md: page .build/effectively-using-a-time-travel-debugger.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/effectively-using-a-time-travel-debugger.rendered.md: page .build/effectively-using-a-time-travel-debugger.md.json
+  depfile = .build/effectively-using-a-time-travel-debugger.md.json.d
 build .build/effectively-using-a-time-travel-debugger.rendered.html: markdown .build/effectively-using-a-time-travel-debugger.rendered.md | ../target/flower
-build public/effectively-using-a-time-travel-debugger.html: transform .build/effectively-using-a-time-travel-debugger.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/effectively-using-a-time-travel-debugger.html: transform .build/effectively-using-a-time-travel-debugger.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/effectively-using-a-time-travel-debugger.rendered.html.d
 build .build/2023-12-04-How-to-maintain-an-open-source-project.md.json: frontmatter pages/2023-12-04-How-to-maintain-an-open-source-project.md | ../target/flower
-build .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.md: page .build/2023-12-04-How-to-maintain-an-open-source-project.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.md: page .build/2023-12-04-How-to-maintain-an-open-source-project.md.json
+  depfile = .build/2023-12-04-How-to-maintain-an-open-source-project.md.json.d
 build .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.html: markdown .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.md | ../target/flower
-build public/2023-12-04-How-to-maintain-an-open-source-project.html: transform .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2023-12-04-How-to-maintain-an-open-source-project.html: transform .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2023-12-04-How-to-maintain-an-open-source-project.rendered.html.d
 build .build/constrained$ languages$ are$ easier$ to$ optimize.md.json: frontmatter pages/constrained$ languages$ are$ easier$ to$ optimize.md | ../target/flower
-build .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.md: page .build/constrained$ languages$ are$ easier$ to$ optimize.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.md: page .build/constrained$ languages$ are$ easier$ to$ optimize.md.json
+  depfile = .build/constrained languages are easier to optimize.md.json.d
 build .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.html: markdown .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.md | ../target/flower
-build public/constrained$ languages$ are$ easier$ to$ optimize.html: transform .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/constrained$ languages$ are$ easier$ to$ optimize.html: transform .build/constrained$ languages$ are$ easier$ to$ optimize.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/constrained languages are easier to optimize.rendered.html.d
 build .build/you-are-in-a-box.md.json: frontmatter pages/you-are-in-a-box.md | ../target/flower
-build .build/you-are-in-a-box.rendered.md: page .build/you-are-in-a-box.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/you-are-in-a-box.rendered.md: page .build/you-are-in-a-box.md.json
+  depfile = .build/you-are-in-a-box.md.json.d
 build .build/you-are-in-a-box.rendered.html: markdown .build/you-are-in-a-box.rendered.md | ../target/flower
-build public/you-are-in-a-box.html: transform .build/you-are-in-a-box.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/you-are-in-a-box.html: transform .build/you-are-in-a-box.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/you-are-in-a-box.rendered.html.d
 build .build/about/_index.md.json: frontmatter pages/about/_index.md | ../target/flower
-build .build/about/_index.rendered.md: page .build/about/_index.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/about/_index.rendered.md: page .build/about/_index.md.json
+  depfile = .build/about/_index.md.json.d
 build .build/about/_index.rendered.html: markdown .build/about/_index.rendered.md | ../target/flower
-build public/about/_index.html: transform .build/about/_index.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/about/_index.html: transform .build/about/_index.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/about/_index.rendered.html.d
 build .build/complected$ and$ orthogonal$ persistence.md.json: frontmatter pages/complected$ and$ orthogonal$ persistence.md | ../target/flower
-build .build/complected$ and$ orthogonal$ persistence.rendered.md: page .build/complected$ and$ orthogonal$ persistence.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/complected$ and$ orthogonal$ persistence.rendered.md: page .build/complected$ and$ orthogonal$ persistence.md.json
+  depfile = .build/complected and orthogonal persistence.md.json.d
 build .build/complected$ and$ orthogonal$ persistence.rendered.html: markdown .build/complected$ and$ orthogonal$ persistence.rendered.md | ../target/flower
-build public/complected$ and$ orthogonal$ persistence.html: transform .build/complected$ and$ orthogonal$ persistence.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/complected$ and$ orthogonal$ persistence.html: transform .build/complected$ and$ orthogonal$ persistence.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/complected and orthogonal persistence.rendered.html.d
 build .build/2024-01-16-the-rust-project-has-a-burnout-problem.md.json: frontmatter pages/2024-01-16-the-rust-project-has-a-burnout-problem.md | ../target/flower
-build .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.md: page .build/2024-01-16-the-rust-project-has-a-burnout-problem.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.md: page .build/2024-01-16-the-rust-project-has-a-burnout-problem.md.json
+  depfile = .build/2024-01-16-the-rust-project-has-a-burnout-problem.md.json.d
 build .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.html: markdown .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.md | ../target/flower
-build public/2024-01-16-the-rust-project-has-a-burnout-problem.html: transform .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2024-01-16-the-rust-project-has-a-burnout-problem.html: transform .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2024-01-16-the-rust-project-has-a-burnout-problem.rendered.html.d
 build .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md.json: frontmatter pages/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md | ../target/flower
-build .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.md: page .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.md: page .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md.json
+  depfile = .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md.json.d
 build .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.html: markdown .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.md | ../target/flower
-build public/2018-02-06-THERE-IS-A-CAR-IN-SPACE.html: transform .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-02-06-THERE-IS-A-CAR-IN-SPACE.html: transform .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-02-06-THERE-IS-A-CAR-IN-SPACE.rendered.html.d
 build .build/2022-09-02-git-cheats.md.json: frontmatter pages/2022-09-02-git-cheats.md | ../target/flower
-build .build/2022-09-02-git-cheats.rendered.md: page .build/2022-09-02-git-cheats.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2022-09-02-git-cheats.rendered.md: page .build/2022-09-02-git-cheats.md.json
+  depfile = .build/2022-09-02-git-cheats.md.json.d
 build .build/2022-09-02-git-cheats.rendered.html: markdown .build/2022-09-02-git-cheats.rendered.md | ../target/flower
-build public/2022-09-02-git-cheats.html: transform .build/2022-09-02-git-cheats.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2022-09-02-git-cheats.html: transform .build/2022-09-02-git-cheats.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2022-09-02-git-cheats.rendered.html.d
 build .build/talks/python.html.json: frontmatter pages/talks/python.html | ../target/flower
-build .build/talks/python.rendered.html: page .build/talks/python.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/python.html: transform .build/talks/python.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/python.rendered.html: page .build/talks/python.html.json
+  depfile = .build/talks/python.html.json.d
+build public/talks/python.html: transform .build/talks/python.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/python.rendered.html.d
 build .build/capabilities-service-management-and-generalized-erlang.md.json: frontmatter pages/capabilities-service-management-and-generalized-erlang.md | ../target/flower
-build .build/capabilities-service-management-and-generalized-erlang.rendered.md: page .build/capabilities-service-management-and-generalized-erlang.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/capabilities-service-management-and-generalized-erlang.rendered.md: page .build/capabilities-service-management-and-generalized-erlang.md.json
+  depfile = .build/capabilities-service-management-and-generalized-erlang.md.json.d
 build .build/capabilities-service-management-and-generalized-erlang.rendered.html: markdown .build/capabilities-service-management-and-generalized-erlang.rendered.md | ../target/flower
-build public/capabilities-service-management-and-generalized-erlang.html: transform .build/capabilities-service-management-and-generalized-erlang.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/capabilities-service-management-and-generalized-erlang.html: transform .build/capabilities-service-management-and-generalized-erlang.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/capabilities-service-management-and-generalized-erlang.rendered.html.d
 build .build/strangler-patterning-google.md.json: frontmatter pages/strangler-patterning-google.md | ../target/flower
-build .build/strangler-patterning-google.rendered.md: page .build/strangler-patterning-google.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/strangler-patterning-google.rendered.md: page .build/strangler-patterning-google.md.json
+  depfile = .build/strangler-patterning-google.md.json.d
 build .build/strangler-patterning-google.rendered.html: markdown .build/strangler-patterning-google.rendered.md | ../target/flower
-build public/strangler-patterning-google.html: transform .build/strangler-patterning-google.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/strangler-patterning-google.html: transform .build/strangler-patterning-google.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/strangler-patterning-google.rendered.html.d
 build .build/redirects/_index.md.json: frontmatter pages/redirects/_index.md | ../target/flower
-build .build/redirects/_index.rendered.md: page .build/redirects/_index.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/redirects/_index.rendered.md: page .build/redirects/_index.md.json
+  depfile = .build/redirects/_index.md.json.d
 build .build/redirects/_index.rendered.html: markdown .build/redirects/_index.rendered.md | ../target/flower
-build public/redirects/_index.html: transform .build/redirects/_index.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/redirects/_index.html: transform .build/redirects/_index.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/redirects/_index.rendered.html.d
 build .build/foo.md.json: frontmatter pages/foo.md | ../target/flower
-build .build/foo.rendered.md: page .build/foo.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/foo.rendered.md: page .build/foo.md.json
+  depfile = .build/foo.md.json.d
 build .build/foo.rendered.html: markdown .build/foo.rendered.md | ../target/flower
-build public/foo.html: transform .build/foo.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/foo.html: transform .build/foo.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/foo.rendered.html.d
 build .build/2020-10-23-the-intra-doc-links-saga.md.json: frontmatter pages/2020-10-23-the-intra-doc-links-saga.md | ../target/flower
-build .build/2020-10-23-the-intra-doc-links-saga.rendered.md: page .build/2020-10-23-the-intra-doc-links-saga.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2020-10-23-the-intra-doc-links-saga.rendered.md: page .build/2020-10-23-the-intra-doc-links-saga.md.json
+  depfile = .build/2020-10-23-the-intra-doc-links-saga.md.json.d
 build .build/2020-10-23-the-intra-doc-links-saga.rendered.html: markdown .build/2020-10-23-the-intra-doc-links-saga.rendered.md | ../target/flower
-build public/2020-10-23-the-intra-doc-links-saga.html: transform .build/2020-10-23-the-intra-doc-links-saga.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2020-10-23-the-intra-doc-links-saga.html: transform .build/2020-10-23-the-intra-doc-links-saga.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2020-10-23-the-intra-doc-links-saga.rendered.html.d
 build .build/trustfall-and-query-planning.md.json: frontmatter pages/trustfall-and-query-planning.md | ../target/flower
-build .build/trustfall-and-query-planning.rendered.md: page .build/trustfall-and-query-planning.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/trustfall-and-query-planning.rendered.md: page .build/trustfall-and-query-planning.md.json
+  depfile = .build/trustfall-and-query-planning.md.json.d
 build .build/trustfall-and-query-planning.rendered.html: markdown .build/trustfall-and-query-planning.rendered.md | ../target/flower
-build public/trustfall-and-query-planning.html: transform .build/trustfall-and-query-planning.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/trustfall-and-query-planning.html: transform .build/trustfall-and-query-planning.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/trustfall-and-query-planning.rendered.html.d
 build .build/2025-05-03-tools.md.json: frontmatter pages/2025-05-03-tools.md | ../target/flower
-build .build/2025-05-03-tools.rendered.md: page .build/2025-05-03-tools.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2025-05-03-tools.rendered.md: page .build/2025-05-03-tools.md.json
+  depfile = .build/2025-05-03-tools.md.json.d
 build .build/2025-05-03-tools.rendered.html: markdown .build/2025-05-03-tools.rendered.md | ../target/flower
-build public/2025-05-03-tools.html: transform .build/2025-05-03-tools.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2025-05-03-tools.html: transform .build/2025-05-03-tools.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2025-05-03-tools.rendered.html.d
 build .build/redirects/keyboard.md.json: frontmatter pages/redirects/keyboard.md | ../target/flower
-build .build/redirects/keyboard.rendered.md: page .build/redirects/keyboard.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/redirects/keyboard.rendered.md: page .build/redirects/keyboard.md.json
+  depfile = .build/redirects/keyboard.md.json.d
 build .build/redirects/keyboard.rendered.html: markdown .build/redirects/keyboard.rendered.md | ../target/flower
-build public/redirects/keyboard.html: transform .build/redirects/keyboard.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/redirects/keyboard.html: transform .build/redirects/keyboard.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/redirects/keyboard.rendered.html.d
 build .build/2023-12-17-Running-clippy-on-rustc.md.json: frontmatter pages/2023-12-17-Running-clippy-on-rustc.md | ../target/flower
-build .build/2023-12-17-Running-clippy-on-rustc.rendered.md: page .build/2023-12-17-Running-clippy-on-rustc.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2023-12-17-Running-clippy-on-rustc.rendered.md: page .build/2023-12-17-Running-clippy-on-rustc.md.json
+  depfile = .build/2023-12-17-Running-clippy-on-rustc.md.json.d
 build .build/2023-12-17-Running-clippy-on-rustc.rendered.html: markdown .build/2023-12-17-Running-clippy-on-rustc.rendered.md | ../target/flower
-build public/2023-12-17-Running-clippy-on-rustc.html: transform .build/2023-12-17-Running-clippy-on-rustc.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2023-12-17-Running-clippy-on-rustc.html: transform .build/2023-12-17-Running-clippy-on-rustc.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2023-12-17-Running-clippy-on-rustc.rendered.html.d
 build .build/2018-03-03-Object-Oriented-Python.md.json: frontmatter pages/2018-03-03-Object-Oriented-Python.md | ../target/flower
-build .build/2018-03-03-Object-Oriented-Python.rendered.md: page .build/2018-03-03-Object-Oriented-Python.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-03-03-Object-Oriented-Python.rendered.md: page .build/2018-03-03-Object-Oriented-Python.md.json
+  depfile = .build/2018-03-03-Object-Oriented-Python.md.json.d
 build .build/2018-03-03-Object-Oriented-Python.rendered.html: markdown .build/2018-03-03-Object-Oriented-Python.rendered.md | ../target/flower
-build public/2018-03-03-Object-Oriented-Python.html: transform .build/2018-03-03-Object-Oriented-Python.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-03-03-Object-Oriented-Python.html: transform .build/2018-03-03-Object-Oriented-Python.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-03-03-Object-Oriented-Python.rendered.html.d
 build .build/how$ to$ communicate$ with$ intent.md.json: frontmatter pages/how$ to$ communicate$ with$ intent.md | ../target/flower
-build .build/how$ to$ communicate$ with$ intent.rendered.md: page .build/how$ to$ communicate$ with$ intent.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/how$ to$ communicate$ with$ intent.rendered.md: page .build/how$ to$ communicate$ with$ intent.md.json
+  depfile = .build/how to communicate with intent.md.json.d
 build .build/how$ to$ communicate$ with$ intent.rendered.html: markdown .build/how$ to$ communicate$ with$ intent.rendered.md | ../target/flower
-build public/how$ to$ communicate$ with$ intent.html: transform .build/how$ to$ communicate$ with$ intent.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/how$ to$ communicate$ with$ intent.html: transform .build/how$ to$ communicate$ with$ intent.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/how to communicate with intent.rendered.html.d
 build .build/2018-02-11-Using-PGP-Keys.md.json: frontmatter pages/2018-02-11-Using-PGP-Keys.md | ../target/flower
-build .build/2018-02-11-Using-PGP-Keys.rendered.md: page .build/2018-02-11-Using-PGP-Keys.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-02-11-Using-PGP-Keys.rendered.md: page .build/2018-02-11-Using-PGP-Keys.md.json
+  depfile = .build/2018-02-11-Using-PGP-Keys.md.json.d
 build .build/2018-02-11-Using-PGP-Keys.rendered.html: markdown .build/2018-02-11-Using-PGP-Keys.rendered.md | ../target/flower
-build public/2018-02-11-Using-PGP-Keys.html: transform .build/2018-02-11-Using-PGP-Keys.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-02-11-Using-PGP-Keys.html: transform .build/2018-02-11-Using-PGP-Keys.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-02-11-Using-PGP-Keys.rendered.html.d
 build .build/how-i-use-my-terminal.md.json: frontmatter pages/how-i-use-my-terminal.md | ../target/flower
-build .build/how-i-use-my-terminal.rendered.md: page .build/how-i-use-my-terminal.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/how-i-use-my-terminal.rendered.md: page .build/how-i-use-my-terminal.md.json
+  depfile = .build/how-i-use-my-terminal.md.json.d
 build .build/how-i-use-my-terminal.rendered.html: markdown .build/how-i-use-my-terminal.rendered.md | ../target/flower
-build public/how-i-use-my-terminal.html: transform .build/how-i-use-my-terminal.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/how-i-use-my-terminal.html: transform .build/how-i-use-my-terminal.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/how-i-use-my-terminal.rendered.html.d
 build .build/2018-02-24-Password-Safety.md.json: frontmatter pages/2018-02-24-Password-Safety.md | ../target/flower
-build .build/2018-02-24-Password-Safety.rendered.md: page .build/2018-02-24-Password-Safety.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-02-24-Password-Safety.rendered.md: page .build/2018-02-24-Password-Safety.md.json
+  depfile = .build/2018-02-24-Password-Safety.md.json.d
 build .build/2018-02-24-Password-Safety.rendered.html: markdown .build/2018-02-24-Password-Safety.rendered.md | ../target/flower
-build public/2018-02-24-Password-Safety.html: transform .build/2018-02-24-Password-Safety.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-02-24-Password-Safety.html: transform .build/2018-02-24-Password-Safety.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-02-24-Password-Safety.rendered.html.d
 build .build/2023-12-20-wonder.md.json: frontmatter pages/2023-12-20-wonder.md | ../target/flower
-build .build/2023-12-20-wonder.rendered.md: page .build/2023-12-20-wonder.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2023-12-20-wonder.rendered.md: page .build/2023-12-20-wonder.md.json
+  depfile = .build/2023-12-20-wonder.md.json.d
 build .build/2023-12-20-wonder.rendered.html: markdown .build/2023-12-20-wonder.rendered.md | ../target/flower
-build public/2023-12-20-wonder.html: transform .build/2023-12-20-wonder.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2023-12-20-wonder.html: transform .build/2023-12-20-wonder.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2023-12-20-wonder.rendered.html.d
 build .build/2018-06-09-Rewriting-Jython.md.json: frontmatter pages/2018-06-09-Rewriting-Jython.md | ../target/flower
-build .build/2018-06-09-Rewriting-Jython.rendered.md: page .build/2018-06-09-Rewriting-Jython.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-06-09-Rewriting-Jython.rendered.md: page .build/2018-06-09-Rewriting-Jython.md.json
+  depfile = .build/2018-06-09-Rewriting-Jython.md.json.d
 build .build/2018-06-09-Rewriting-Jython.rendered.html: markdown .build/2018-06-09-Rewriting-Jython.rendered.md | ../target/flower
-build public/2018-06-09-Rewriting-Jython.html: transform .build/2018-06-09-Rewriting-Jython.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-06-09-Rewriting-Jython.html: transform .build/2018-06-09-Rewriting-Jython.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-06-09-Rewriting-Jython.rendered.html.d
 build .build/follow-up-to-an-engineers-perspective-on-hiring.md.json: frontmatter pages/follow-up-to-an-engineers-perspective-on-hiring.md | ../target/flower
-build .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.md: page .build/follow-up-to-an-engineers-perspective-on-hiring.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.md: page .build/follow-up-to-an-engineers-perspective-on-hiring.md.json
+  depfile = .build/follow-up-to-an-engineers-perspective-on-hiring.md.json.d
 build .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.html: markdown .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.md | ../target/flower
-build public/follow-up-to-an-engineers-perspective-on-hiring.html: transform .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/follow-up-to-an-engineers-perspective-on-hiring.html: transform .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/follow-up-to-an-engineers-perspective-on-hiring.rendered.html.d
 build .build/talks/bootstrapping.html.json: frontmatter pages/talks/bootstrapping.html | ../target/flower
-build .build/talks/bootstrapping.rendered.html: page .build/talks/bootstrapping.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/bootstrapping.html: transform .build/talks/bootstrapping.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/bootstrapping.rendered.html: page .build/talks/bootstrapping.html.json
+  depfile = .build/talks/bootstrapping.html.json.d
+build public/talks/bootstrapping.html: transform .build/talks/bootstrapping.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/bootstrapping.rendered.html.d
 build .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md.json: frontmatter pages/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md | ../target/flower
-build .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.md: page .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.md: page .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md.json
+  depfile = .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md.json.d
 build .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.html: markdown .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.md | ../target/flower
-build public/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.html: transform .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.html: transform .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.rendered.html.d
 build .build/deterministic-concurrent-programs.md.json: frontmatter pages/deterministic-concurrent-programs.md | ../target/flower
-build .build/deterministic-concurrent-programs.rendered.md: page .build/deterministic-concurrent-programs.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/deterministic-concurrent-programs.rendered.md: page .build/deterministic-concurrent-programs.md.json
+  depfile = .build/deterministic-concurrent-programs.md.json.d
 build .build/deterministic-concurrent-programs.rendered.html: markdown .build/deterministic-concurrent-programs.rendered.md | ../target/flower
-build public/deterministic-concurrent-programs.html: transform .build/deterministic-concurrent-programs.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/deterministic-concurrent-programs.html: transform .build/deterministic-concurrent-programs.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/deterministic-concurrent-programs.rendered.html.d
 build .build/operator-controlled-research.md.json: frontmatter pages/operator-controlled-research.md | ../target/flower
-build .build/operator-controlled-research.rendered.md: page .build/operator-controlled-research.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/operator-controlled-research.rendered.md: page .build/operator-controlled-research.md.json
+  depfile = .build/operator-controlled-research.md.json.d
 build .build/operator-controlled-research.rendered.html: markdown .build/operator-controlled-research.rendered.md | ../target/flower
-build public/operator-controlled-research.html: transform .build/operator-controlled-research.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/operator-controlled-research.html: transform .build/operator-controlled-research.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/operator-controlled-research.rendered.html.d
 build .build/2017-12-23-first-post.md.json: frontmatter pages/2017-12-23-first-post.md | ../target/flower
-build .build/2017-12-23-first-post.rendered.md: page .build/2017-12-23-first-post.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2017-12-23-first-post.rendered.md: page .build/2017-12-23-first-post.md.json
+  depfile = .build/2017-12-23-first-post.md.json.d
 build .build/2017-12-23-first-post.rendered.html: markdown .build/2017-12-23-first-post.rendered.md | ../target/flower
-build public/2017-12-23-first-post.html: transform .build/2017-12-23-first-post.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2017-12-23-first-post.html: transform .build/2017-12-23-first-post.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2017-12-23-first-post.rendered.html.d
 build .build/2019-11-26-building-docs.rs.md.json: frontmatter pages/2019-11-26-building-docs.rs.md | ../target/flower
-build .build/2019-11-26-building-docs.rs.rendered.md: page .build/2019-11-26-building-docs.rs.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2019-11-26-building-docs.rs.rendered.md: page .build/2019-11-26-building-docs.rs.md.json
+  depfile = .build/2019-11-26-building-docs.rs.md.json.d
 build .build/2019-11-26-building-docs.rs.rendered.html: markdown .build/2019-11-26-building-docs.rs.rendered.md | ../target/flower
-build public/2019-11-26-building-docs.rs.html: transform .build/2019-11-26-building-docs.rs.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2019-11-26-building-docs.rs.html: transform .build/2019-11-26-building-docs.rs.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2019-11-26-building-docs.rs.rendered.html.d
 build .build/talks/assembly.html.json: frontmatter pages/talks/assembly.html | ../target/flower
-build .build/talks/assembly.rendered.html: page .build/talks/assembly.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/assembly.html: transform .build/talks/assembly.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/assembly.rendered.html: page .build/talks/assembly.html.json
+  depfile = .build/talks/assembly.html.json.d
+build public/talks/assembly.html: transform .build/talks/assembly.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/assembly.rendered.html.d
 build .build/how-i-write-blog-posts.md.json: frontmatter pages/how-i-write-blog-posts.md | ../target/flower
-build .build/how-i-write-blog-posts.rendered.md: page .build/how-i-write-blog-posts.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/how-i-write-blog-posts.rendered.md: page .build/how-i-write-blog-posts.md.json
+  depfile = .build/how-i-write-blog-posts.md.json.d
 build .build/how-i-write-blog-posts.rendered.html: markdown .build/how-i-write-blog-posts.rendered.md | ../target/flower
-build public/how-i-write-blog-posts.html: transform .build/how-i-write-blog-posts.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/how-i-write-blog-posts.html: transform .build/how-i-write-blog-posts.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/how-i-write-blog-posts.rendered.html.d
 build .build/the$ big$ idea$ of$ wasm.md.json: frontmatter pages/the$ big$ idea$ of$ wasm.md | ../target/flower
-build .build/the$ big$ idea$ of$ wasm.rendered.md: page .build/the$ big$ idea$ of$ wasm.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/the$ big$ idea$ of$ wasm.rendered.md: page .build/the$ big$ idea$ of$ wasm.md.json
+  depfile = .build/the big idea of wasm.md.json.d
 build .build/the$ big$ idea$ of$ wasm.rendered.html: markdown .build/the$ big$ idea$ of$ wasm.rendered.md | ../target/flower
-build public/the$ big$ idea$ of$ wasm.html: transform .build/the$ big$ idea$ of$ wasm.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/the$ big$ idea$ of$ wasm.html: transform .build/the$ big$ idea$ of$ wasm.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/the big idea of wasm.rendered.html.d
 build .build/editable-programs.md.json: frontmatter pages/editable-programs.md | ../target/flower
-build .build/editable-programs.rendered.md: page .build/editable-programs.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/editable-programs.rendered.md: page .build/editable-programs.md.json
+  depfile = .build/editable-programs.md.json.d
 build .build/editable-programs.rendered.html: markdown .build/editable-programs.rendered.md | ../target/flower
-build public/editable-programs.html: transform .build/editable-programs.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/editable-programs.html: transform .build/editable-programs.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/editable-programs.rendered.html.d
 build .build/talks/C.html.json: frontmatter pages/talks/C.html | ../target/flower
-build .build/talks/C.rendered.html: page .build/talks/C.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/C.html: transform .build/talks/C.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/C.rendered.html: page .build/talks/C.html.json
+  depfile = .build/talks/C.html.json.d
+build public/talks/C.html: transform .build/talks/C.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/C.rendered.html.d
 build .build/ex.md.json: frontmatter pages/ex.md | ../target/flower
-build .build/ex.rendered.md: page .build/ex.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/ex.rendered.md: page .build/ex.md.json
+  depfile = .build/ex.md.json.d
 build .build/ex.rendered.html: markdown .build/ex.rendered.md | ../target/flower
-build public/ex.html: transform .build/ex.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/ex.html: transform .build/ex.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/ex.rendered.html.d
 build .build/2018-02-14-Speed-Up!.md.json: frontmatter pages/2018-02-14-Speed-Up!.md | ../target/flower
-build .build/2018-02-14-Speed-Up!.rendered.md: page .build/2018-02-14-Speed-Up!.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-02-14-Speed-Up!.rendered.md: page .build/2018-02-14-Speed-Up!.md.json
+  depfile = .build/2018-02-14-Speed-Up!.md.json.d
 build .build/2018-02-14-Speed-Up!.rendered.html: markdown .build/2018-02-14-Speed-Up!.rendered.md | ../target/flower
-build public/2018-02-14-Speed-Up!.html: transform .build/2018-02-14-Speed-Up!.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-02-14-Speed-Up!.html: transform .build/2018-02-14-Speed-Up!.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-02-14-Speed-Up!.rendered.html.d
 build .build/2019-08-04-Fun-with-gaming-on-Linux.md.json: frontmatter pages/2019-08-04-Fun-with-gaming-on-Linux.md | ../target/flower
-build .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.md: page .build/2019-08-04-Fun-with-gaming-on-Linux.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.md: page .build/2019-08-04-Fun-with-gaming-on-Linux.md.json
+  depfile = .build/2019-08-04-Fun-with-gaming-on-Linux.md.json.d
 build .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.html: markdown .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.md | ../target/flower
-build public/2019-08-04-Fun-with-gaming-on-Linux.html: transform .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2019-08-04-Fun-with-gaming-on-Linux.html: transform .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2019-08-04-Fun-with-gaming-on-Linux.rendered.html.d
 build .build/composable-compilers.md.json: frontmatter pages/composable-compilers.md | ../target/flower
-build .build/composable-compilers.rendered.md: page .build/composable-compilers.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/composable-compilers.rendered.md: page .build/composable-compilers.md.json
+  depfile = .build/composable-compilers.md.json.d
 build .build/composable-compilers.rendered.html: markdown .build/composable-compilers.rendered.md | ../target/flower
-build public/composable-compilers.html: transform .build/composable-compilers.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/composable-compilers.html: transform .build/composable-compilers.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/composable-compilers.rendered.html.d
 build .build/2018-03-29-Copying-Generic-Arrays-in-Java.md.json: frontmatter pages/2018-03-29-Copying-Generic-Arrays-in-Java.md | ../target/flower
-build .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.md: page .build/2018-03-29-Copying-Generic-Arrays-in-Java.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.md: page .build/2018-03-29-Copying-Generic-Arrays-in-Java.md.json
+  depfile = .build/2018-03-29-Copying-Generic-Arrays-in-Java.md.json.d
 build .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.html: markdown .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.md | ../target/flower
-build public/2018-03-29-Copying-Generic-Arrays-in-Java.html: transform .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-03-29-Copying-Generic-Arrays-in-Java.html: transform .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-03-29-Copying-Generic-Arrays-in-Java.rendered.html.d
 build .build/computers$ reinforce$ the$ status$ quo.md.json: frontmatter pages/computers$ reinforce$ the$ status$ quo.md | ../target/flower
-build .build/computers$ reinforce$ the$ status$ quo.rendered.md: page .build/computers$ reinforce$ the$ status$ quo.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/computers$ reinforce$ the$ status$ quo.rendered.md: page .build/computers$ reinforce$ the$ status$ quo.md.json
+  depfile = .build/computers reinforce the status quo.md.json.d
 build .build/computers$ reinforce$ the$ status$ quo.rendered.html: markdown .build/computers$ reinforce$ the$ status$ quo.rendered.md | ../target/flower
-build public/computers$ reinforce$ the$ status$ quo.html: transform .build/computers$ reinforce$ the$ status$ quo.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/computers$ reinforce$ the$ status$ quo.html: transform .build/computers$ reinforce$ the$ status$ quo.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/computers reinforce the status quo.rendered.html.d
 build .build/2020-09-05-Rust-in-2021.md.json: frontmatter pages/2020-09-05-Rust-in-2021.md | ../target/flower
-build .build/2020-09-05-Rust-in-2021.rendered.md: page .build/2020-09-05-Rust-in-2021.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2020-09-05-Rust-in-2021.rendered.md: page .build/2020-09-05-Rust-in-2021.md.json
+  depfile = .build/2020-09-05-Rust-in-2021.md.json.d
 build .build/2020-09-05-Rust-in-2021.rendered.html: markdown .build/2020-09-05-Rust-in-2021.rendered.md | ../target/flower
-build public/2020-09-05-Rust-in-2021.html: transform .build/2020-09-05-Rust-in-2021.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2020-09-05-Rust-in-2021.html: transform .build/2020-09-05-Rust-in-2021.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2020-09-05-Rust-in-2021.rendered.html.d
 build .build/generality-through-systems-thinking.md.json: frontmatter pages/generality-through-systems-thinking.md | ../target/flower
-build .build/generality-through-systems-thinking.rendered.md: page .build/generality-through-systems-thinking.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/generality-through-systems-thinking.rendered.md: page .build/generality-through-systems-thinking.md.json
+  depfile = .build/generality-through-systems-thinking.md.json.d
 build .build/generality-through-systems-thinking.rendered.html: markdown .build/generality-through-systems-thinking.rendered.md | ../target/flower
-build public/generality-through-systems-thinking.html: transform .build/generality-through-systems-thinking.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/generality-through-systems-thinking.html: transform .build/generality-through-systems-thinking.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/generality-through-systems-thinking.rendered.html.d
 build .build/talks/async-await.html.json: frontmatter pages/talks/async-await.html | ../target/flower
-build .build/talks/async-await.rendered.html: page .build/talks/async-await.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/async-await.html: transform .build/talks/async-await.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/async-await.rendered.html: page .build/talks/async-await.html.json
+  depfile = .build/talks/async-await.html.json.d
+build public/talks/async-await.html: transform .build/talks/async-await.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/async-await.rendered.html.d
 build .build/when$ infodumping$ isnt$ communicating.md.json: frontmatter pages/when$ infodumping$ isnt$ communicating.md | ../target/flower
-build .build/when$ infodumping$ isnt$ communicating.rendered.md: page .build/when$ infodumping$ isnt$ communicating.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/when$ infodumping$ isnt$ communicating.rendered.md: page .build/when$ infodumping$ isnt$ communicating.md.json
+  depfile = .build/when infodumping isnt communicating.md.json.d
 build .build/when$ infodumping$ isnt$ communicating.rendered.html: markdown .build/when$ infodumping$ isnt$ communicating.rendered.md | ../target/flower
-build public/when$ infodumping$ isnt$ communicating.html: transform .build/when$ infodumping$ isnt$ communicating.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/when$ infodumping$ isnt$ communicating.html: transform .build/when$ infodumping$ isnt$ communicating.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/when infodumping isnt communicating.rendered.html.d
 build .build/2018-09-29-Reverse-Engineering-x86-assembly.md.json: frontmatter pages/2018-09-29-Reverse-Engineering-x86-assembly.md | ../target/flower
-build .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.md: page .build/2018-09-29-Reverse-Engineering-x86-assembly.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.md: page .build/2018-09-29-Reverse-Engineering-x86-assembly.md.json
+  depfile = .build/2018-09-29-Reverse-Engineering-x86-assembly.md.json.d
 build .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.html: markdown .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.md | ../target/flower
-build public/2018-09-29-Reverse-Engineering-x86-assembly.html: transform .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-09-29-Reverse-Engineering-x86-assembly.html: transform .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-09-29-Reverse-Engineering-x86-assembly.rendered.html.d
 build .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md.json: frontmatter pages/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md | ../target/flower
-build .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.md: page .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.md: page .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md.json
+  depfile = .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md.json.d
 build .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.html: markdown .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.md | ../target/flower
-build public/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.html: transform .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.html: transform .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.rendered.html.d
 build .build/look-ma-new-site.md.json: frontmatter pages/look-ma-new-site.md | ../target/flower
-build .build/look-ma-new-site.rendered.md: page .build/look-ma-new-site.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/look-ma-new-site.rendered.md: page .build/look-ma-new-site.md.json
+  depfile = .build/look-ma-new-site.md.json.d
 build .build/look-ma-new-site.rendered.html: markdown .build/look-ma-new-site.rendered.md | ../target/flower
-build public/look-ma-new-site.html: transform .build/look-ma-new-site.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/look-ma-new-site.html: transform .build/look-ma-new-site.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/look-ma-new-site.rendered.html.d
 build .build/2024-12-06-i-want-a-better-operating-system.md.json: frontmatter pages/2024-12-06-i-want-a-better-operating-system.md | ../target/flower
-build .build/2024-12-06-i-want-a-better-operating-system.rendered.md: page .build/2024-12-06-i-want-a-better-operating-system.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2024-12-06-i-want-a-better-operating-system.rendered.md: page .build/2024-12-06-i-want-a-better-operating-system.md.json
+  depfile = .build/2024-12-06-i-want-a-better-operating-system.md.json.d
 build .build/2024-12-06-i-want-a-better-operating-system.rendered.html: markdown .build/2024-12-06-i-want-a-better-operating-system.rendered.md | ../target/flower
-build public/2024-12-06-i-want-a-better-operating-system.html: transform .build/2024-12-06-i-want-a-better-operating-system.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2024-12-06-i-want-a-better-operating-system.html: transform .build/2024-12-06-i-want-a-better-operating-system.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2024-12-06-i-want-a-better-operating-system.rendered.html.d
 build .build/redirects/calendar.md.json: frontmatter pages/redirects/calendar.md | ../target/flower
-build .build/redirects/calendar.rendered.md: page .build/redirects/calendar.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/redirects/calendar.rendered.md: page .build/redirects/calendar.md.json
+  depfile = .build/redirects/calendar.md.json.d
 build .build/redirects/calendar.rendered.html: markdown .build/redirects/calendar.rendered.md | ../target/flower
-build public/redirects/calendar.html: transform .build/redirects/calendar.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/redirects/calendar.html: transform .build/redirects/calendar.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/redirects/calendar.rendered.html.d
 build .build/an$ engineers$ perspective$ on$ hiring.md.json: frontmatter pages/an$ engineers$ perspective$ on$ hiring.md | ../target/flower
-build .build/an$ engineers$ perspective$ on$ hiring.rendered.md: page .build/an$ engineers$ perspective$ on$ hiring.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/an$ engineers$ perspective$ on$ hiring.rendered.md: page .build/an$ engineers$ perspective$ on$ hiring.md.json
+  depfile = .build/an engineers perspective on hiring.md.json.d
 build .build/an$ engineers$ perspective$ on$ hiring.rendered.html: markdown .build/an$ engineers$ perspective$ on$ hiring.rendered.md | ../target/flower
-build public/an$ engineers$ perspective$ on$ hiring.html: transform .build/an$ engineers$ perspective$ on$ hiring.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/an$ engineers$ perspective$ on$ hiring.html: transform .build/an$ engineers$ perspective$ on$ hiring.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/an engineers perspective on hiring.rendered.html.d
 build .build/2018-01-06-Using-DNSSEC.md.json: frontmatter pages/2018-01-06-Using-DNSSEC.md | ../target/flower
-build .build/2018-01-06-Using-DNSSEC.rendered.md: page .build/2018-01-06-Using-DNSSEC.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-01-06-Using-DNSSEC.rendered.md: page .build/2018-01-06-Using-DNSSEC.md.json
+  depfile = .build/2018-01-06-Using-DNSSEC.md.json.d
 build .build/2018-01-06-Using-DNSSEC.rendered.html: markdown .build/2018-01-06-Using-DNSSEC.rendered.md | ../target/flower
-build public/2018-01-06-Using-DNSSEC.html: transform .build/2018-01-06-Using-DNSSEC.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-01-06-Using-DNSSEC.html: transform .build/2018-01-06-Using-DNSSEC.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-01-06-Using-DNSSEC.rendered.html.d
 build .build/2024-10-24-rustc_driver.md.json: frontmatter pages/2024-10-24-rustc_driver.md | ../target/flower
-build .build/2024-10-24-rustc_driver.rendered.md: page .build/2024-10-24-rustc_driver.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2024-10-24-rustc_driver.rendered.md: page .build/2024-10-24-rustc_driver.md.json
+  depfile = .build/2024-10-24-rustc_driver.md.json.d
 build .build/2024-10-24-rustc_driver.rendered.html: markdown .build/2024-10-24-rustc_driver.rendered.md | ../target/flower
-build public/2024-10-24-rustc_driver.html: transform .build/2024-10-24-rustc_driver.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2024-10-24-rustc_driver.html: transform .build/2024-10-24-rustc_driver.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2024-10-24-rustc_driver.rendered.html.d
 build .build/2023-01-12-Bootstrapping-Rust-in-2023.md.json: frontmatter pages/2023-01-12-Bootstrapping-Rust-in-2023.md | ../target/flower
-build .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.md: page .build/2023-01-12-Bootstrapping-Rust-in-2023.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.md: page .build/2023-01-12-Bootstrapping-Rust-in-2023.md.json
+  depfile = .build/2023-01-12-Bootstrapping-Rust-in-2023.md.json.d
 build .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.html: markdown .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.md | ../target/flower
-build public/2023-01-12-Bootstrapping-Rust-in-2023.html: transform .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2023-01-12-Bootstrapping-Rust-in-2023.html: transform .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2023-01-12-Bootstrapping-Rust-in-2023.rendered.html.d
 build .build/atom.xsl.json: frontmatter pages/atom.xsl | ../target/flower
-build .build/atom.rendered.xsl: page .build/atom.xsl.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/atom.xsl: transform .build/atom.rendered.xsl | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/atom.rendered.xsl: page .build/atom.xsl.json
+  depfile = .build/atom.xsl.json.d
+build public/atom.xsl: transform .build/atom.rendered.xsl | transformers/embed.clj transformers/title.clj
   depfile = .build/atom.rendered.xsl.d
 build .build/2017-12-28-Setting-up-Jekyll.md.json: frontmatter pages/2017-12-28-Setting-up-Jekyll.md | ../target/flower
-build .build/2017-12-28-Setting-up-Jekyll.rendered.md: page .build/2017-12-28-Setting-up-Jekyll.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2017-12-28-Setting-up-Jekyll.rendered.md: page .build/2017-12-28-Setting-up-Jekyll.md.json
+  depfile = .build/2017-12-28-Setting-up-Jekyll.md.json.d
 build .build/2017-12-28-Setting-up-Jekyll.rendered.html: markdown .build/2017-12-28-Setting-up-Jekyll.rendered.md | ../target/flower
-build public/2017-12-28-Setting-up-Jekyll.html: transform .build/2017-12-28-Setting-up-Jekyll.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2017-12-28-Setting-up-Jekyll.html: transform .build/2017-12-28-Setting-up-Jekyll.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2017-12-28-Setting-up-Jekyll.rendered.html.d
 build .build/sorry-for-the-rss-screwup.md.json: frontmatter pages/sorry-for-the-rss-screwup.md | ../target/flower
-build .build/sorry-for-the-rss-screwup.rendered.md: page .build/sorry-for-the-rss-screwup.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/sorry-for-the-rss-screwup.rendered.md: page .build/sorry-for-the-rss-screwup.md.json
+  depfile = .build/sorry-for-the-rss-screwup.md.json.d
 build .build/sorry-for-the-rss-screwup.rendered.html: markdown .build/sorry-for-the-rss-screwup.rendered.md | ../target/flower
-build public/sorry-for-the-rss-screwup.html: transform .build/sorry-for-the-rss-screwup.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/sorry-for-the-rss-screwup.html: transform .build/sorry-for-the-rss-screwup.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/sorry-for-the-rss-screwup.rendered.html.d
 build .build/talks/linux.html.json: frontmatter pages/talks/linux.html | ../target/flower
-build .build/talks/linux.rendered.html: page .build/talks/linux.html.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
-build public/talks/linux.html: transform .build/talks/linux.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/talks/linux.rendered.html: page .build/talks/linux.html.json
+  depfile = .build/talks/linux.html.json.d
+build public/talks/linux.html: transform .build/talks/linux.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/talks/linux.rendered.html.d
 build .build/2025-03-28-terrible-horrible-no-good-very-bad-python.md.json: frontmatter pages/2025-03-28-terrible-horrible-no-good-very-bad-python.md | ../target/flower
-build .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.md: page .build/2025-03-28-terrible-horrible-no-good-very-bad-python.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.md: page .build/2025-03-28-terrible-horrible-no-good-very-bad-python.md.json
+  depfile = .build/2025-03-28-terrible-horrible-no-good-very-bad-python.md.json.d
 build .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.html: markdown .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.md | ../target/flower
-build public/2025-03-28-terrible-horrible-no-good-very-bad-python.html: transform .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2025-03-28-terrible-horrible-no-good-very-bad-python.html: transform .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2025-03-28-terrible-horrible-no-good-very-bad-python.rendered.html.d
 build .build/configuration-is-code-we've-decided-not-to-test.md.json: frontmatter pages/configuration-is-code-we've-decided-not-to-test.md | ../target/flower
-build .build/configuration-is-code-we've-decided-not-to-test.rendered.md: page .build/configuration-is-code-we've-decided-not-to-test.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/configuration-is-code-we've-decided-not-to-test.rendered.md: page .build/configuration-is-code-we've-decided-not-to-test.md.json
+  depfile = .build/configuration-is-code-we've-decided-not-to-test.md.json.d
 build .build/configuration-is-code-we've-decided-not-to-test.rendered.html: markdown .build/configuration-is-code-we've-decided-not-to-test.rendered.md | ../target/flower
-build public/configuration-is-code-we've-decided-not-to-test.html: transform .build/configuration-is-code-we've-decided-not-to-test.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/configuration-is-code-we've-decided-not-to-test.html: transform .build/configuration-is-code-we've-decided-not-to-test.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/configuration-is-code-we've-decided-not-to-test.rendered.html.d
 build .build/2021-09-10-I'll-Rust-With-You-the-song.md.json: frontmatter pages/2021-09-10-I'll-Rust-With-You-the-song.md | ../target/flower
-build .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.md: page .build/2021-09-10-I'll-Rust-With-You-the-song.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.md: page .build/2021-09-10-I'll-Rust-With-You-the-song.md.json
+  depfile = .build/2021-09-10-I'll-Rust-With-You-the-song.md.json.d
 build .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.html: markdown .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.md | ../target/flower
-build public/2021-09-10-I'll-Rust-With-You-the-song.html: transform .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2021-09-10-I'll-Rust-With-You-the-song.html: transform .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2021-09-10-I'll-Rust-With-You-the-song.rendered.html.d
 build .build/2025-05-23-technical-debt-is-different-from-technical-risk.md.json: frontmatter pages/2025-05-23-technical-debt-is-different-from-technical-risk.md | ../target/flower
-build .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.md: page .build/2025-05-23-technical-debt-is-different-from-technical-risk.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.md: page .build/2025-05-23-technical-debt-is-different-from-technical-risk.md.json
+  depfile = .build/2025-05-23-technical-debt-is-different-from-technical-risk.md.json.d
 build .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.html: markdown .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.md | ../target/flower
-build public/2025-05-23-technical-debt-is-different-from-technical-risk.html: transform .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2025-05-23-technical-debt-is-different-from-technical-risk.html: transform .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2025-05-23-technical-debt-is-different-from-technical-risk.rendered.html.d
 build .build/theory$ building$ without$ a$ mentor.md.json: frontmatter pages/theory$ building$ without$ a$ mentor.md | ../target/flower
-build .build/theory$ building$ without$ a$ mentor.rendered.md: page .build/theory$ building$ without$ a$ mentor.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/theory$ building$ without$ a$ mentor.rendered.md: page .build/theory$ building$ without$ a$ mentor.md.json
+  depfile = .build/theory building without a mentor.md.json.d
 build .build/theory$ building$ without$ a$ mentor.rendered.html: markdown .build/theory$ building$ without$ a$ mentor.rendered.md | ../target/flower
-build public/theory$ building$ without$ a$ mentor.html: transform .build/theory$ building$ without$ a$ mentor.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/theory$ building$ without$ a$ mentor.html: transform .build/theory$ building$ without$ a$ mentor.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/theory building without a mentor.rendered.html.d
 build .build/decentralized-build-caching.md.json: frontmatter pages/decentralized-build-caching.md | ../target/flower
-build .build/decentralized-build-caching.rendered.md: page .build/decentralized-build-caching.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/decentralized-build-caching.rendered.md: page .build/decentralized-build-caching.md.json
+  depfile = .build/decentralized-build-caching.md.json.d
 build .build/decentralized-build-caching.rendered.html: markdown .build/decentralized-build-caching.rendered.md | ../target/flower
-build public/decentralized-build-caching.html: transform .build/decentralized-build-caching.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/decentralized-build-caching.html: transform .build/decentralized-build-caching.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/decentralized-build-caching.rendered.html.d
 build .build/2018-08-24-Keepass-on-Linux-and-Android.md.json: frontmatter pages/2018-08-24-Keepass-on-Linux-and-Android.md | ../target/flower
-build .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.md: page .build/2018-08-24-Keepass-on-Linux-and-Android.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.md: page .build/2018-08-24-Keepass-on-Linux-and-Android.md.json
+  depfile = .build/2018-08-24-Keepass-on-Linux-and-Android.md.json.d
 build .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.html: markdown .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.md | ../target/flower
-build public/2018-08-24-Keepass-on-Linux-and-Android.html: transform .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2018-08-24-Keepass-on-Linux-and-Android.html: transform .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2018-08-24-Keepass-on-Linux-and-Android.rendered.html.d
 build .build/i-broke-down-and-wrote-an-SSG.md.json: frontmatter pages/i-broke-down-and-wrote-an-SSG.md | ../target/flower
-build .build/i-broke-down-and-wrote-an-SSG.rendered.md: page .build/i-broke-down-and-wrote-an-SSG.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/i-broke-down-and-wrote-an-SSG.rendered.md: page .build/i-broke-down-and-wrote-an-SSG.md.json
+  depfile = .build/i-broke-down-and-wrote-an-SSG.md.json.d
 build .build/i-broke-down-and-wrote-an-SSG.rendered.html: markdown .build/i-broke-down-and-wrote-an-SSG.rendered.md | ../target/flower
-build public/i-broke-down-and-wrote-an-SSG.html: transform .build/i-broke-down-and-wrote-an-SSG.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/i-broke-down-and-wrote-an-SSG.html: transform .build/i-broke-down-and-wrote-an-SSG.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/i-broke-down-and-wrote-an-SSG.rendered.html.d
 build .build/2021-03-20-borrow-checker-faqs.md.json: frontmatter pages/2021-03-20-borrow-checker-faqs.md | ../target/flower
-build .build/2021-03-20-borrow-checker-faqs.rendered.md: page .build/2021-03-20-borrow-checker-faqs.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2021-03-20-borrow-checker-faqs.rendered.md: page .build/2021-03-20-borrow-checker-faqs.md.json
+  depfile = .build/2021-03-20-borrow-checker-faqs.md.json.d
 build .build/2021-03-20-borrow-checker-faqs.rendered.html: markdown .build/2021-03-20-borrow-checker-faqs.rendered.md | ../target/flower
-build public/2021-03-20-borrow-checker-faqs.html: transform .build/2021-03-20-borrow-checker-faqs.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2021-03-20-borrow-checker-faqs.html: transform .build/2021-03-20-borrow-checker-faqs.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2021-03-20-borrow-checker-faqs.rendered.html.d
 build .build/2025-05-05-sftp-sandboxing.md.json: frontmatter pages/2025-05-05-sftp-sandboxing.md | ../target/flower
-build .build/2025-05-05-sftp-sandboxing.rendered.md: page .build/2025-05-05-sftp-sandboxing.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2025-05-05-sftp-sandboxing.rendered.md: page .build/2025-05-05-sftp-sandboxing.md.json
+  depfile = .build/2025-05-05-sftp-sandboxing.md.json.d
 build .build/2025-05-05-sftp-sandboxing.rendered.html: markdown .build/2025-05-05-sftp-sandboxing.rendered.md | ../target/flower
-build public/2025-05-05-sftp-sandboxing.html: transform .build/2025-05-05-sftp-sandboxing.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2025-05-05-sftp-sandboxing.html: transform .build/2025-05-05-sftp-sandboxing.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2025-05-05-sftp-sandboxing.rendered.html.d
 build .build/the$ computer$ of$ the$ next$ 200$ years.md.json: frontmatter pages/the$ computer$ of$ the$ next$ 200$ years.md | ../target/flower
-build .build/the$ computer$ of$ the$ next$ 200$ years.rendered.md: page .build/the$ computer$ of$ the$ next$ 200$ years.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/the$ computer$ of$ the$ next$ 200$ years.rendered.md: page .build/the$ computer$ of$ the$ next$ 200$ years.md.json
+  depfile = .build/the computer of the next 200 years.md.json.d
 build .build/the$ computer$ of$ the$ next$ 200$ years.rendered.html: markdown .build/the$ computer$ of$ the$ next$ 200$ years.rendered.md | ../target/flower
-build public/the$ computer$ of$ the$ next$ 200$ years.html: transform .build/the$ computer$ of$ the$ next$ 200$ years.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/the$ computer$ of$ the$ next$ 200$ years.html: transform .build/the$ computer$ of$ the$ next$ 200$ years.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/the computer of the next 200 years.rendered.html.d
 build .build/the-terminal-of-the-future.md.json: frontmatter pages/the-terminal-of-the-future.md | ../target/flower
-build .build/the-terminal-of-the-future.rendered.md: page .build/the-terminal-of-the-future.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/the-terminal-of-the-future.rendered.md: page .build/the-terminal-of-the-future.md.json
+  depfile = .build/the-terminal-of-the-future.md.json.d
 build .build/the-terminal-of-the-future.rendered.html: markdown .build/the-terminal-of-the-future.rendered.md | ../target/flower
-build public/the-terminal-of-the-future.html: transform .build/the-terminal-of-the-future.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/the-terminal-of-the-future.html: transform .build/the-terminal-of-the-future.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/the-terminal-of-the-future.rendered.html.d
 build .build/2017-12-27-Hosting-an-SSH-Server.md.json: frontmatter pages/2017-12-27-Hosting-an-SSH-Server.md | ../target/flower
-build .build/2017-12-27-Hosting-an-SSH-Server.rendered.md: page .build/2017-12-27-Hosting-an-SSH-Server.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2017-12-27-Hosting-an-SSH-Server.rendered.md: page .build/2017-12-27-Hosting-an-SSH-Server.md.json
+  depfile = .build/2017-12-27-Hosting-an-SSH-Server.md.json.d
 build .build/2017-12-27-Hosting-an-SSH-Server.rendered.html: markdown .build/2017-12-27-Hosting-an-SSH-Server.rendered.md | ../target/flower
-build public/2017-12-27-Hosting-an-SSH-Server.html: transform .build/2017-12-27-Hosting-an-SSH-Server.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2017-12-27-Hosting-an-SSH-Server.html: transform .build/2017-12-27-Hosting-an-SSH-Server.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2017-12-27-Hosting-an-SSH-Server.rendered.html.d
 build .build/2025-02-22-Do-not-disturb$ in$ GNOME.md.json: frontmatter pages/2025-02-22-Do-not-disturb$ in$ GNOME.md | ../target/flower
-build .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.md: page .build/2025-02-22-Do-not-disturb$ in$ GNOME.md.json | expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.md: page .build/2025-02-22-Do-not-disturb$ in$ GNOME.md.json
+  depfile = .build/2025-02-22-Do-not-disturb in GNOME.md.json.d
 build .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.html: markdown .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.md | ../target/flower
-build public/2025-02-22-Do-not-disturb$ in$ GNOME.html: transform .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.html | transformers/embed.clj transformers/title.clj expressions/ninja.clj expressions/html.clj expressions/constants.clj expressions/title.clj expressions/meta.clj expressions/example.clj
+build public/2025-02-22-Do-not-disturb$ in$ GNOME.html: transform .build/2025-02-22-Do-not-disturb$ in$ GNOME.rendered.html | transformers/embed.clj transformers/title.clj
   depfile = .build/2025-02-22-Do-not-disturb in GNOME.rendered.html.d
 build build.ninja: ninja-meta pages/2018-02-06-THERE-IS-A-CAR-IN-SPACE.md pages/2023-12-17-Running-clippy-on-rustc.md pages/sorry-for-the-rss-screwup.md pages/2024-01-16-the-rust-project-has-a-burnout-problem.md pages/2020-12-08-borrow-mut-dyn-FnMut-BrokenLink-CowString-and-other-valid-rust-programs.md pages/2020-10-23-the-intra-doc-links-saga.md pages/index.html pages/decentralized-build-caching.md pages/foo.md pages/2017-12-28-Setting-up-Jekyll.md pages/complected$ and$ orthogonal$ persistence.md pages/strangler-patterning-google.md pages/2023-12-20-wonder.md pages/2017-12-27-Hosting-an-SSH-Server.md pages/talks pages/talks/async-await.html pages/talks/C.html pages/talks/linux.html pages/talks/assembly.html pages/talks/bootstrapping.html pages/talks/python.html pages/effectively-using-a-time-travel-debugger.md pages/2019-11-26-building-docs.rs.md pages/2022-09-02-git-cheats.md pages/2019-04-29-Buffer-Overflows-and-Stacks-and-Assembly-Oh-My.md pages/2025-02-22-Do-not-disturb$ in$ GNOME.md pages/operators-not-users-and-programmers.md pages/2018-02-14-Speed-Up!.md pages/operator-controlled-research.md pages/how-i-use-my-terminal.md pages/look-ma-new-site.md pages/2025-05-05-sftp-sandboxing.md pages/2018-03-03-Object-Oriented-Python.md pages/atom.xsl pages/follow-up-to-an-engineers-perspective-on-hiring.md pages/2019-08-04-Fun-with-gaming-on-Linux.md pages/the$ big$ idea$ of$ wasm.md pages/2025-05-23-technical-debt-is-different-from-technical-risk.md pages/generality-through-systems-thinking.md pages/2018-02-11-Using-PGP-Keys.md pages/i-broke-down-and-wrote-an-SSG.md pages/you-are-in-a-box.md pages/about pages/about/_index.md pages/2017-12-23-first-post.md pages/2020-09-05-Rust-in-2021.md pages/trustfall-and-query-planning.md pages/the$ computer$ of$ the$ next$ 200$ years.md pages/2023-12-04-How-to-maintain-an-open-source-project.md pages/2024-12-06-i-want-a-better-operating-system.md pages/capabilities-service-management-and-generalized-erlang.md pages/deterministic-concurrent-programs.md pages/2018-08-24-Keepass-on-Linux-and-Android.md pages/2024-10-24-rustc_driver.md pages/constrained$ languages$ are$ easier$ to$ optimize.md pages/2018-03-29-Copying-Generic-Arrays-in-Java.md pages/2025-03-28-terrible-horrible-no-good-very-bad-python.md pages/redirects pages/redirects/calendar.md pages/redirects/keyboard.md pages/redirects/_index.md pages/2018-06-09-Rewriting-Jython.md pages/editable-programs.md pages/theory$ building$ without$ a$ mentor.md pages/ex.md pages/the-terminal-of-the-future.md pages/2018-01-06-Using-DNSSEC.md pages/when$ infodumping$ isnt$ communicating.md pages/2023-01-12-Bootstrapping-Rust-in-2023.md pages/composable-compilers.md pages/2021-09-10-I'll-Rust-With-You-the-song.md pages/2018-02-24-Password-Safety.md pages/how-i-write-blog-posts.md pages/2025-05-03-tools.md pages/2021-03-20-borrow-checker-faqs.md pages/configuration-is-code-we've-decided-not-to-test.md pages/how$ to$ communicate$ with$ intent.md pages/an$ engineers$ perspective$ on$ hiring.md pages/2018-09-29-Reverse-Engineering-x86-assembly.md pages/computers$ reinforce$ the$ status$ quo.md build.clj ../target/flower pages/about pages pages pages/redirects pages/talks templates templates expressions expressions sass/minima sass sass
   restat = true

@@ -111,15 +111,6 @@
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])
 
-(def pages
-  (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
-        [indexes pages] (split-all (fn [[_ meta]] (get meta "index")) page-frontmatter)
-        index-paths (map first indexes)
-        page-paths (map first pages)
-        index-builds (chain-page index-paths #(build-page "index" % (conj page-paths "build.ninja")))
-        page-builds (chain-page page-paths #(build-page "page" %))]
-    {:builds (concat index-builds page-builds)}))
-
 (def sass-files
   ; excludes /_*.sass
   (filter #(-> % fs/file-name first (= \_) not)
@@ -134,6 +125,19 @@
     :outputs out
     :source-map source-map
     :depfile depfile}))
+
+(def sass-builds (map sass->build sass-files))
+(def sass-outputs (map :outputs sass-builds))
+
+(def pages
+  (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
+        [indexes pages] (split-all (fn [[_ meta]] (get meta "index")) page-frontmatter)
+        index-paths (map first indexes)
+        page-paths (map first pages)
+        ; sass here is a hack until i implement hash-inputs
+        index-builds (chain-page index-paths #(build-page "index" % (concat page-paths sass-outputs ["build.ninja"])))
+        page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
+    {:builds (concat index-builds page-builds)}))
 
 (def defaults
   ; MANIFEST.txt gets rebuilt when we rebuild flower.
@@ -211,4 +215,4 @@
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform pages (update base :builds #(concat % (map sass->build sass-files)))))
+  (merge-deep transform pages (update base :builds #(concat % sass-builds))))

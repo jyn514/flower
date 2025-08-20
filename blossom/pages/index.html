@@ -2,18 +2,22 @@
 index = true
 +++
 ◊(require '[java-time.api :as jt]
+          '[clojure.string :as str]
+          '[expressions.utils :refer [split-all def+]]
           '[expressions.title :refer [title]])
 
-◊(def sorted-pages
+◊(def+ [index-pages regular-pages] (split-all :index pages))
+◊(def+ [talks posts]
+  (split-all #(str/starts-with? (:path %) "talks/") regular-pages))
+◊(def sorted-posts
    ; sorted descending
-   (sort #(compare (:date %2) (:date %1)) pages))
-◊(println (sort (map :date pages)))
+   (sort #(compare (:date %2) (:date %1)) posts))
 <nav class="home">
 
   <h1 class="page-heading">posts</h1>
 
   <ul class="post-list">
-    ◊for[[post sorted-pages
+    ◊for[[post sorted-posts
           :let [extra (:extra post)]
           :when (not (or
             (:unlisted extra)
@@ -28,7 +32,7 @@ index = true
             • audience—◊audience
           }
           ◊for[[[term tags] (:taxonomies post)
-                :when (= "tags" term)
+                :when (= :tags term)
                 tag tags]]{
             • <a href="/tags/◊tag">◊tag</a>
           }
