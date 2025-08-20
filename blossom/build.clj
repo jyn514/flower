@@ -180,6 +180,7 @@
    :builds
    [{:rule "ninja-meta"
      :restat true
+     :generator true
      :outputs "build.ninja"
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")

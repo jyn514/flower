@@ -1,6 +1,6 @@
 (ns expressions.constants)
 
-(def title "the website of jyn")
+(def site-title "the website of jyn")
 (def email "blog@jyn.dev")
 (def github "jyn514")
 (def linkedin "jynelson514")
@@ -9,5 +9,5 @@
 ; TODO: configuration mechanism using ninja phony targets
 ; actually that doesn't fix this case here.
 ; https://codeberg.org/jyn514/flower/issues/19#issuecomment-6605005
-(def use-jar true)
+(def use-jar false)
 (def rebuild-flower true)
