@@ -271,7 +271,7 @@
       InlineRender = Ident ( Vec )? <'{'> NestedRender <'}'>
       NestedRender = ( #'[^}◊]+' | Lisp )*
 
-      ReaderSyntax = #\"[\\[\\;@^#`~']\"
+      ReaderSyntax = #\"[\\[\\;@^#`~'_]\"
       Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
       Form = <#'\\s*'> (Atom | List | Vec) <#'\\s*'>
       List = <'('> Form* <')'>
