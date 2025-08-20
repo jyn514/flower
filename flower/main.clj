@@ -41,8 +41,8 @@
         after (cmd/with-tracked-deps (:dependencies before) #(apply f before args))]
     (json/write after *out*)))
 
-(defn no-args [f]
-  (fn [& _] (f)))
+(defn no-opts [f & args]
+  (fn [& _] (apply f args)))
 
 (defn unknown-command [{:keys [args]}]
   (fatal (str "unrecognized command: '"
@@ -70,11 +70,11 @@
   (-> (->help) cli/format-opts println))
 
 (def dispatch-table
-  {"configure" (no-args cmd/configure)
-   "split-frontmatter" (no-args #(map-json split-frontmatter))
-   "render-page" (no-args #(map-json cmd/render-page {}))
-   "render-index" (no-args #(map-json cmd/render-index))
-   "render-markdown" (no-args #(map-json cmd/render-markdown))
+  {"configure" (no-opts cmd/configure {})
+   "split-frontmatter" (no-opts map-json split-frontmatter)
+   "render-page" (no-opts map-json cmd/render-page {})
+   "render-index" (no-opts map-json cmd/render-index)
+   "render-markdown" (no-opts map-json cmd/render-markdown)
    "embed-template" {:fn #( map-json cmd/embed-template %)
                      :coerce {:template-name :string}
                      :args->opts [:template-name]}
@@ -93,7 +93,7 @@
    "repl" {:fn flower.repl/repl
            :coerce {:template :boolean}
            :args->opts [:template]}
-   "new" (no-args flower.defaults/materialize-all)
+   "new" (no-opts flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
          :coerce {:raw-input :boolean
@@ -102,8 +102,8 @@
                   :query :string}
          :aliases {:R :raw-input :r :raw-output}
          :args->opts [:query]}
-   ["version" "--version"] (no-args #(println VERSION))
-   ["help" "--help" "-h" "/?"] (no-args help)
+   ["version" "--version"] (no-opts println VERSION)
+   ["help" "--help" "-h" "/?"] (no-opts help)
    [] {:fn unknown-command :needs-metadata true}})
 
 (defn ->bb

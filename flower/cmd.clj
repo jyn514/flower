@@ -20,6 +20,7 @@
         split (split-frontmatter {:filename f :content content})]
    [(str f) (:frontmatter split)]))
 
+; TODO: allow pages/index.edn so we can avoid repeating configuration
 (defn- load-all-meta [dir]
   (let [paths (fs/glob dir "**")
         files (filter #(not (fs/directory? %)) paths)]
@@ -69,7 +70,7 @@
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
-  []
+  [{:keys [build-dir] :or {build-dir ".build"}}]
   (let [in (str *site* "/build.clj")
         out (str *site* "/build.ninja")
         ninja-writer (new StringWriter)
@@ -86,8 +87,10 @@
             lisp (eval/parse-string cx embedded)
             ; TODO: we need a mechanism for build.clj to pass back the builddir.
             ; maybe we can bind `flower.reflect/*build*` or something idk
-            depfile (fs/path *site* ".build" "build.clj.d")]
+            ; alternatively we can force this to be in flower.edn?
+            depfile (fs/path *site* build-dir "build.clj.d")]
         (eval/eval-form cx embedded lisp)
+        (fs/create-dirs build-dir)
         (let [contents (gen-depfile out flower.reflect/*dependencies*)]
           (fs/write-bytes depfile (String/.getBytes contents))))
     (->> ninja-writer str .getBytes (fs/write-bytes dst)))))

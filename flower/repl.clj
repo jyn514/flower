@@ -4,6 +4,7 @@
    [clojure.main]
    [clojure.stacktrace :as st]
    [flower.eval :as eval]
+   [flower.reflect :as reflect]
    [flower.internal.utils :refer [env state-dir]])
   (:import
    (org.jline.reader LineReader LineReaderBuilder History)
@@ -65,6 +66,7 @@
 (defn repl
   [{:keys [template]}]
   (binding [eval/*cx* (eval/create-fs-cx "<repl>")
+            reflect/*dependencies* #{}
             *reader* (make-reader template)]
     ; TODO: doesn't work because shutdown hooks can't see thread-locals
     ; (.addShutdownHook (Runtime/getRuntime)

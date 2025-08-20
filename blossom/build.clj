@@ -1,14 +1,10 @@
 ; TODO: expose this as flower.defaults.build
 (require
   'expressions.ninja
+  '[expressions.constants :refer [use-jar rebuild-flower]]
   '(babashka [fs :as fs])
   '(clojure [string :as str]))
 (use 'flower.utils)
-
-; TODO: configuration mechanism using ninja phony targets
-; (def use-jar (boolean (System/getenv "FLOWER_SKIP_GRAAL")))
-(def use-jar false)
-(def rebuild-flower true)
 
 (defn / [x & more]
   (apply fs/path x more))

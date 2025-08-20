@@ -3,3 +3,4 @@
 /defaults/deps.edn
 /defaults/public
 /defaults/MANIFEST.txt
+/blossom/build.ninja

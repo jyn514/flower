@@ -102,7 +102,7 @@
 
 (defn rerun-ninja [{:keys [type path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
-  (println type (str path))
+  (when path (println type (str path)))
   ; ninja can't handle file deletes. generate a new build plan for it.
   ; TODO: delete all the outputs of the deleted file;
   ; you can get a list with `ninja -t query`
@@ -117,32 +117,34 @@
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
   ; TODO: this doesn't notice files that were added after the watch started
+  ; TODO: this doesn't notice files that are only listed in depfiles
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
         temp-file? #(str/starts-with? % (str build-dir "/"))
         important-inputs (filter #(not (temp-file? %)) all-inputs)
         watcher (watch-files rerun-ninja important-inputs)]
     ; run once at startup
-    ; TODO: this doesn't seem to be working?
-    (async/go #(rerun-ninja {:type :created :path *site*}))
+    (future (rerun-ninja {}))
     watcher))
 
 ; api
 
+; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
 (defn watch
   [& {:keys [port out-dir build-dir]
       :or {port 8090
            out-dir "public"
            build-dir ".build"}}]
   (println "Rerun `flower configure`")
-  (cmd/configure)
+  (cmd/configure {:build-dir build-dir})
+  ; ninja might not have run yet; create an out dir anyway so we can watch it.
+  (fs/create-dirs out-dir)
+  ; prints its out progress info
+  (http-server/serve {:dir out-dir :port port})
+  (println "Starting live reload watcher for" out-dir)
+  (live-reload {:dir out-dir :port 35729})
+  ; Run this last since ninja emits its own output
   (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`")
   (watch-ninja build-dir)
-  ; ninja could have failed, in which case out-dir won't exist.
-  ; but we still want to start a server in case it succeeds later.
-  ; create a fake directory for it now.
-  (fs/create-dirs out-dir)
-  (println "Starting live reload watcher for" out-dir)
-  ; TODO: this needs to be async oops
-  (live-reload {:dir out-dir :port 35729})
-  (http-server/exec {:dir out-dir :port port}))
+  ; Block forever
+  @(promise))
 

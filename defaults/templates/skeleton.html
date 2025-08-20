@@ -14,12 +14,12 @@
     ◊(if (resolve 'head) (eval 'head))
   </head>
   <body>
-    ◊body
-    <flower-if when=◊flower.reflect/*watching*>
-    <script>document.write('<script src="http://'
-    + location.host.split(':')[0]
-    + ':35729/livereload.js"></'
-    + 'script>')</script>
-    </flower-if>
+    ◊content
+    ◊when[flower.reflect/*watching*]{
+      <script>document.write('<script src="http://'
+      + location.host.split(':')[0]
+      + ':35729/livereload.js"></'
+      + 'script>')</script>
+    }
   </body>
 </html>
