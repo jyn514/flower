@@ -3,10 +3,10 @@
 
 (ns flower.watch
   (:use flower.internal.utils)
+  (:import [java.util Timer TimerTask])
   (:require
    [babashka.fs :as fs]
    [babashka.http-server :as http-server]
-   [clojure.core.async :as async]
    [clojure.data.json :as json]
    [clojure.java.io :as io]
    [clojure.stacktrace]
@@ -16,6 +16,27 @@
    [org.httpkit.server :as wss]))
 
 ; file watcher
+
+; https://gist.github.com/oliyh/0c1da9beab43766ae2a6abc9507e732a
+(defn debounce
+  "Given a channel `in` and a debounce period in `ms`,
+   return a channel that emits the most recent value in `in` every `ms`.
+   If multiple messages come through `in` within a single period,
+   all but the last are discarded.
+   New messages during the debounce period reset the timer."
+   [f ^long ms]
+   (let [timer (Timer.)
+         task (atom nil)]
+     (fn [& args]
+         (when-let [t ^TimerTask @task]
+           (.cancel t))
+         (let [new-task (proxy [TimerTask] []
+                          (run []
+                            (apply f args)
+                            (reset! task nil)
+                            (.purge timer)))]
+           (reset! task new-task)
+           (.schedule timer new-task ms)))))
 
 (defn on-file-change
   [cb paths event]
@@ -28,10 +49,12 @@
     (-> dir fs/real-path str)))
 
 (defn watch-files
-  [cb paths]
-  (let [abs-paths (set (map #(fs/real-path % {:nofollow-links true}) paths))
-        dirs (set (map to-dir abs-paths))]
-    (apply behold/watch #(on-file-change cb abs-paths %) dirs)))
+  ([cb paths] (watch-files cb paths 0))
+  ([cb paths period]
+   (let [abs-paths (set (map #(fs/real-path % {:nofollow-links true}) paths))
+        dirs (set (map to-dir abs-paths))
+        debouncer (debounce cb period)]
+     (apply behold/watch #(on-file-change debouncer abs-paths %) dirs))))
 
 ; live-reload proto
 
@@ -111,7 +134,7 @@
   (when (= :delete type) (run-non-fatal "flower configure"))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
 
-(defn watch-ninja [build-dir]
+(defn watch-ninja [build-dir debounce]
   ; TODO: decide whether to interrupt ninja on changes
   ; definitely shouldn't for anything in `build`
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
@@ -121,7 +144,7 @@
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
         temp-file? #(str/starts-with? % (str build-dir "/"))
         important-inputs (filter #(not (temp-file? %)) all-inputs)
-        watcher (watch-files rerun-ninja important-inputs)]
+        watcher (watch-files rerun-ninja important-inputs debounce)]
     ; run once at startup
     (future (rerun-ninja {}))
     watcher))
@@ -130,10 +153,12 @@
 
 ; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
 (defn watch
-  [& {:keys [port out-dir build-dir]
+  [& {:keys [port out-dir build-dir debounce-period]
       :or {port 8090
            out-dir "public"
-           build-dir ".build"}}]
+           build-dir ".build"
+           ; ms
+           debounce-period 100}}]
   (println "Rerun `flower configure`")
   (cmd/configure {:build-dir build-dir})
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
@@ -143,8 +168,9 @@
   (println "Starting live reload watcher for" out-dir)
   (live-reload {:dir out-dir :port 35729})
   ; Run this last since ninja emits its own output
-  (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`")
-  (watch-ninja build-dir)
+  (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
+           "with debounce period" debounce-period)
+  (watch-ninja build-dir debounce-period)
   ; Block forever
   @(promise))
 

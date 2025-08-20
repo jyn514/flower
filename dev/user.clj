@@ -17,6 +17,7 @@
           '[toml-clj.core :as toml]
           '[java-time.api :as jt]
           '[nextjournal.beholder :as behold]
+          '[hiccup2.core :refer [html]]
           '(babashka [process :as ps])
           '(babashka [cli :as cli])
           '(babashka [fs :as fs])))

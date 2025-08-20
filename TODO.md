@@ -3,6 +3,7 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
+- https://github.com/noprompt/garden for CSS generation
 - (compile) so startup time is better
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)
@@ -22,6 +23,15 @@
     - document how to set this up in common editors (vscode, vim, emacs, helix, zed)
 - auto-escaping with `hiccup.util/escape-html`
   - opt-out with `hiccup/raw`
+  - only support HTML and attribute contexts
+  - urls: java.net.URLEncoder
+  - css: port https://github.com/mathiasbynens/CSS.escape/blob/master/css.escape.js
+  - js: https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeJavaScript(java.lang.String)
+- hiccup syntax is ok for embedded clojure, but it would be nice to have a simpler standalone syntax based on css selectors
+  - https://haml.info/tutorial.html
+  - https://web.archive.org/web/20190630223046/http://jade-lang.com/
+  - https://code.google.com/archive/p/zen-coding/
+  - https://maud.lambda.xyz/
 
 - some things don't work with `(doc)` in the repl
   - TODO make a list
