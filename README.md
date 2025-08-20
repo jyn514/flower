@@ -353,6 +353,11 @@ the string is a libc-style file glob.
 -->
 
 ### custom build tasks
+
+**NOTE:** build tasks are *not* general purpose task runners.
+ninja silences all output from tasks unless they fail,
+and builds all tasks by default.
+
 say you are building a demo of a Rust program that compiles to WASM and runs in the browser. you want to integrate that build with the build of your site.
 
 rather than running many commands in sequence, you can tell flower to build the program for you.

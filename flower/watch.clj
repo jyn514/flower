@@ -39,22 +39,27 @@
            (.schedule timer new-task ms)))))
 
 (defn on-file-change
-  [cb paths event]
+  [cb paths dirs event]
     ; behold doesn't support file filters, only directory filters. implement them ourselves.
-    (when (contains? paths (:path event))
-         (cb event)))
+    (let [p (:path event)]
+      (when (or (some #{p} paths)
+                (some #(fs/starts-with? p %) dirs))
+        (cb event))))
 
 (defn to-dir [path]
   (let [dir (if (fs/directory? path) path (fs/parent path))]
     (-> dir fs/real-path str)))
 
 (defn watch-files
-  ([cb paths] (watch-files cb paths 0))
+  ([cb paths] (watch-files cb paths nil))
   ([cb paths period]
-   (let [abs-paths (set (map #(fs/real-path % {:nofollow-links true}) paths))
-        dirs (set (map to-dir abs-paths))
-        debouncer (debounce cb period)]
-     (apply behold/watch #(on-file-change debouncer abs-paths %) dirs))))
+   (let [form (comp fs/normalize fs/absolutize)
+         abs-paths (->> paths (map form) set)
+         interesting-dirs (filter fs/directory? abs-paths)
+         all-dirs (set (map to-dir abs-paths))
+         debouncer (if (nil? period) cb (debounce cb period))
+         on-change #(on-file-change debouncer abs-paths interesting-dirs %)]
+     (apply behold/watch on-change all-dirs))))
 
 ; live-reload proto
 
@@ -116,9 +121,10 @@
         (on-close ch "(unknown reason)")))))
 
 (defn live-reload
-  [& {:keys [dir port]}]
+  [& {:keys [dir port period]}]
   (watch-files #(on-output-change (assoc % :build-dir (fs/real-path dir)))
-               [(fs/file-name dir)])
+               [(fs/file-name dir)]
+               period)
   (wss/run-server handler {:port port}))
 
 ; ninja file watcher
@@ -130,7 +136,6 @@
   ; TODO: delete all the outputs of the deleted file;
   ; you can get a list with `ninja -t query`
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
-  ; TODO: don't rebuild immediately if ninja modifies a bunch of intermediate files, it looks weird
   (when (= :delete type) (run-non-fatal "flower configure"))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
 
@@ -143,7 +148,10 @@
   ; TODO: this doesn't notice files that are only listed in depfiles
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
         temp-file? #(str/starts-with? % (str build-dir "/"))
-        important-inputs (filter #(not (temp-file? %)) all-inputs)
+        ; TODO: reconsider if we actually want to filter out build.ninja
+        ; also this will be wrong when *site* is set
+        important? #(not (or (temp-file? %) (= "build.ninja" %)))
+        important-inputs (filter important? all-inputs)
         watcher (watch-files rerun-ninja important-inputs debounce)]
     ; run once at startup
     (future (rerun-ninja {}))
@@ -160,13 +168,16 @@
            ; ms
            debounce-period 100}}]
   (println "Rerun `flower configure`")
-  (cmd/configure {:build-dir build-dir})
+  ; TODO: doesn't handle the case where the exception trickles up to main.
+  ; probably that's fine though
+  (binding [*cmd* "configure"]
+    (cmd/configure {:build-dir build-dir}))
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
   ; prints its out progress info
   (http-server/serve {:dir out-dir :port port})
   (println "Starting live reload watcher for" out-dir)
-  (live-reload {:dir out-dir :port 35729})
+  (live-reload {:dir out-dir :port 35729 :period debounce-period})
   ; Run this last since ninja emits its own output
   (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
            "with debounce period" debounce-period)

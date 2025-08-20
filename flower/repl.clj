@@ -5,7 +5,7 @@
    [clojure.stacktrace :as st]
    [flower.eval :as eval]
    [flower.reflect :as reflect]
-   [flower.internal.utils :refer [env state-dir]])
+   [flower.internal.utils :refer [env state-dir *cmd*]])
   (:import
    (org.jline.reader LineReader LineReaderBuilder History)
    (org.jline.terminal TerminalBuilder)))
@@ -47,7 +47,7 @@
         false))))
 
 (defn print-trace [ex transform-repl]
-  (print "flower: error: ")
+  (print "flower" (str *cmd* ": error: "))
   ; TODO: env variables suck lmao, do something else
   (if-not (env "FLOWER_HOST_TRACE")
     (do (eval/print-cause-trace ex)

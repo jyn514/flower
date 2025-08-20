@@ -7,6 +7,7 @@
    [instaparse.core :as insta]))
 
 (def ^:dynamic *site* ".")
+(def ^:dynamic *cmd* "<BUG: unknown command>")
 
 (defmacro reexport [& syms]
   (let [defs (for [sym syms]
@@ -31,9 +32,9 @@
 (defn inspect [x] (eprn x) x)
 
 (defn warn [& msg]
-  (apply eprintln "flower: warning:" msg))
+  (apply eprintln (fmt "flower ${*cmd*}: warning:") msg))
 (defn error [& msg]
-  (apply eprintln "flower: error:" msg))
+  (apply eprintln (fmt "flower ${*cmd*}: error:") msg))
 (defn fatal [& msg]
   (throw (ex-info
            (apply str (interpose " " msg))
@@ -55,7 +56,7 @@
        (catch clojure.lang.ExceptionInfo e
          (if (= (:type (ex-data e)) :babashka.process/error)
            (let [cmd (if (map? opts) (str/join " " rest) opts)]
-               (error "failed to run ${cmd}: exit code " (:exit (ex-data e))))
+               (error (fmt "failed to run ${cmd}: exit code") (:exit (ex-data e))))
            (throw e)))))
 
 (defn strip-prefix
