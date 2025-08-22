@@ -190,6 +190,7 @@
         (when dup
           (-> e ex-cause ex-cause)))
       (do
+        ; TODO: make NoSuchFileExceptions relative to *site*
         (if (instance? clojure.lang.ExceptionInfo e)
           (println (ex-message e))
           (println (str (pr-str (class e)) ":") (ex-message e)))
@@ -243,8 +244,10 @@
                      sci/file (-> cx meta :flower/filename)]
          (try-sci cx #(sci/eval-form cx form))))))
 
-(defn ->source [src node]
-  (apply subs src (insta/span node)))
+(defn ->source [src & nodes]
+  (let [l (-> nodes first insta/span first)
+        r (-> nodes last insta/span last)]
+    (apply subs src [l r])))
 
 (defn inline-render
   ([cx src ident body] (apply inline-render cx src ident '[] body))
@@ -271,7 +274,7 @@
       InlineRender = Ident ( Vec )? <'{'> NestedRender <'}'>
       NestedRender = ( #'[^}◊]+' | Lisp )*
 
-      ReaderSyntax = #\"[\\[\\;@^#`~'_]\"
+      ReaderSyntax = #\"[\\[\\;@^#`~'_]+\"
       Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
       Form = <#'\\s*'> (Atom | List | Vec) <#'\\s*'>
       List = <'('> Form* <')'>
@@ -290,8 +293,7 @@
      :Atom identity
      :Form identity
      :FlowerSyntax identity
-     ; TODO: i think this is wrong when ReaderSyntax is present?
-     :OuterList #(->> (->source src %) (parse-string cx) embed)
+     :OuterList #(->> (apply ->source src %&) (parse-string cx) embed)
      :OuterIdent #(->> % embed)
      :InlineRender #(apply inline-render cx src %&)
      :NestedRender #(identity `((str ~@%&)))
