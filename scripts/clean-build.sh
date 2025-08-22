@@ -5,7 +5,11 @@ PATH=~/src/flower/target:$PATH
 export PATH
 
 cd ~/src/flower
-(cd blossom && ninja flower)
+(cd blossom
+# rerun configure since we often modify defaults just before running this script
+../target/flower configure
+# run this even if configure failed
+ninja flower)
 # clojure -T:build native
 cd ..
 rm -rf flower-test

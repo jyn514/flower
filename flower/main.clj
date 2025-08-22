@@ -123,7 +123,7 @@
       bb-map)))
 
 (defn init-fn [cmd-fn args]
-  (alter-var-root (var *cmd*) (str " " (-> args :dispatch first constantly)))
+  (alter-var-root (var *cmd*) (constantly (->> args :dispatch first (str " "))))
   (binding [*site* (or (get-in args [:opts :C]) ".")
             flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
                                                    (env "FLOWER_WATCH")))]

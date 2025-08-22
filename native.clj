@@ -4,16 +4,18 @@
    [babashka.process :as ps]
    [babashka.process.pprint]
    [clojure.data.json :as json]
+   [clojure.set :as set :refer [union]]
    [clojure.string :as str]
-   [clojure.tools.build.api :as b]) 
-  (:import
-   [java.io FileWriter]))
+   [clojure.tools.build.api :as b]))
 
 (defn strip-prefix
   [s pre]
   (let [quoted (java.util.regex.Pattern/quote pre)
         prefix (re-pattern (str "^" quoted))]
     (str/replace-first s prefix "")))
+
+(defn symmetric-difference [A B]
+  (union (set/difference A B) (set/difference B A)))
 
 (def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
 (def is-linux (= (System/getProperty "os.name") "Linux"))
@@ -36,7 +38,12 @@
   (->> "git ls-tree -r --name-only HEAD defaults"
                  (ps/shell {:out :string}) :out))
 (def manifest-path "MANIFEST.txt")
-(def default-files (str/split git-output #"\n"))
+(def default-files (set (str/split git-output #"\n")))
+(def all-files (set (map str (fs/glob "defaults" "**"))))
+(if-let [diff (symmetric-difference default-files all-files)]
+  (binding [*out* *err*]
+    (println "warning: ignoring" (count diff) "untracked default files")))
+
 (def manifest-contents
   (str/join "\n"
             (map #(strip-prefix % "defaults/")
@@ -116,10 +123,10 @@
 
 (defn args [dev]
   ["native-image" "-jar" jar-file exe
-   "--no-fallback"
+   "--silent"
    (when is-linux "--gc=G1")
    (when dev "-Ob")
-   "--exact-reachability-metadata"
+   "--no-fallback" "--exact-reachability-metadata"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])
 

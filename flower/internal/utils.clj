@@ -7,7 +7,7 @@
    [instaparse.core :as insta]))
 
 (def ^:dynamic *site* ".")
-(def ^:dynamic *cmd* "<BUG: unknown command>")
+(def ^:dynamic *cmd* " <BUG: unknown command>")
 
 (defmacro reexport [& syms]
   (let [defs (for [sym syms]
