@@ -1,11 +1,25 @@
-<flower-embed template=skeleton.html name=content>
+◊(use 'expressions.constants 'expressions.meta)
+
+◊def[head]{
+  <meta name="author" content="jyn">
+
+  <link rel="alternate" type="application/atom+xml" title="◊site-title" href="/atom.xml">
+  <link rel="icon" type="image/x-icon" href="/favicon.jpg">
+  <script src='/main.js?v=◊(hash "static/main.js")"' defer></script>
+  <!-- TODO: this is so bad and will lead to non-deterministic builds lmao
+       TODO: design an actual mechanism for depending on output files—maybe frontmatter?
+       TODO: lmao this isn't even the right filename
+       TODO: ok how about this: `hash-inputs` function that runs `ninja -t inputs` and hashes the root sources without letting you look at the outputs
+  -->
+  <link rel="stylesheet" href='/minima.css?v=◊(hash "public/minima.css")'>
+}
+
+◊def[body]{
   <header class="site-header" role="banner">
 
     <div class="wrapper">
-      <!-- <a class="site-title" href="/">{{ config.title | escape }}</a> -->
+      <a class="site-title" href="/">◊site-title</a>
 
-      <!-- {% set root = get_section(path = "_index.md") %} -->
-      <!-- {% if root.subsections %} -->
       <nav class="site-nav">
         <input type="checkbox" id="nav-trigger" class="nav-trigger" />
         <label for="nav-trigger">
@@ -20,29 +34,21 @@
         </label>
 
         <div class="trigger">
-          <!-- {% for section in root.subsections %} -->
-          <!--   {% set section = get_section(path=section) %} -->
-          <!--   {% if section.title %} -->
-          <!--   <a class="page-link" href="{{ section.path }}">{{ section.title | escape }}</a> -->
-          <!--   {% endif %} -->
-          <!-- {% endfor %} -->
+          ◊for[[section []
+                :when (:title section)]]{
+            <a class="page-link" href="◊(:path section)">◊(:title section)</a>
+          }
           <a class="page-link" href="/computer-of-the-future">the computer of the next 200 years</a>
         </div>
-        <!--
-          <details><summary>homestucks click here</summary>
-          <div id="presets" class="quirkButtons"></div>
-          </details>
-        -->
       </nav>
-      <!-- {% endif %} -->
     </div>
   </header>
 
   <main class="page-content" aria-label="Content">
     <div class="wrapper">
-      ◊(md->html content)
+      ◊content
     </div>
   </main>
-
-  <!-- {% include "footer.html" %} -->
-</flower-embed>
+  ◊(include "footer.html")
+}
+◊(embed "skeleton.html" {'content body 'head head})

@@ -1,7 +1,11 @@
 ◊(use 'expressions.constants 'expressions.meta)
+◊(require '[babashka.fs :as fs])
 
-◊(def sections
+◊#_(def sections
   (filter #(= (fs/file-name %) "index.html") pages))
+◊(def sections
+  [{:path "/about/index.html" :title "about"}
+   {:path "/talks/index.html" :title "talks"}])
 ◊def[head]{
   <meta name="author" content="jyn">
 
@@ -36,7 +40,7 @@
         </label>
 
         <div class="trigger">
-          ◊for[[section []
+          ◊for[[section sections
                 :when (:title section)]]{
             <a class="page-link" href="◊(:path section)">◊(:title section)</a>
           }

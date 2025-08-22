@@ -16,6 +16,9 @@
   (-> path fs/path fs/strip-ext (str "." ext)))
 (defn add-ext [path ext]
   (-> path fs/path (str "." ext)))
+(defn prepend-ext [path new-ext]
+  (let [[base old-ext] (-> path fs/path fs/split-ext)]
+    (str/join "." [base new-ext old-ext])))
 
 (defn all-dirs [root]
   (let [dirs (atom (if (fs/exists? root) #{root} #{}))
@@ -74,12 +77,14 @@
         filename (if (= "rendered" (fs/extension base))
                    (replace-ext base ext)
                    base)
+        tmpfile (prepend-ext filename "transformed")
         final (/ public (remove-parent filename))]
     ; NOTE: if you have a custom build command you have to add a :build yourself
     {:rules [{:rule "transform"
                :inputs rendered
                :outputs final
                :implicit transformers
+               :tmpfile (escape-shell tmpfile)
                :depfile depfile}]
       :out nil}))
 
@@ -133,6 +138,12 @@
         page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
     {:builds (concat index-builds page-builds)}))
 
+(defn static->build [path]
+  {:rule (if (fs/directory? path) "mkdir" "link")
+   :inputs path
+   :outputs (/ public (remove-parent path))})
+(def static-builds {:builds (map static->build (fs/glob "static" "**"))})
+
 (def defaults
   ; MANIFEST.txt gets rebuilt when we rebuild flower.
   ; avoid it always showing up as dirty.
@@ -154,7 +165,7 @@
     {:name "flower-defaults"
      :command (fmt "cd ../defaults && ${flower_cli} configure")
      :description "rebuild default build.ninja"}
-    {:name "tmpdir"
+    {:name "mkdir"
      :command (str "mkdir -p " builddir)
      :description "create build dir"}
     {:name "link"
@@ -193,7 +204,7 @@
        {:rule "flower-defaults"
         :outputs "../defaults/build.ninja"
         :inputs "../defaults/build.clj"})
-    {:rule "tmpdir"
+    {:rule "mkdir"
      :outputs builddir}]})
 
 (def trans-map {"clj" (str flower_cli " transform")})
@@ -204,7 +215,7 @@
   (let [files (->> transformers (map str) (str/join " "))
         ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
         ; instead we assume it's always relative to $in.
-        cmd "flower transform < $in $in.d $out $transform-map $transformers"]
+        cmd "flower transform < $in $in.d $out $transform-map $transformers > $tmpfile && flower jq -r .content < $tmpfile > $out"]
     {:variables {:transformers files
                  :transform-map (-> trans-map json/write-str escape-shell)}
      :rules [{:name "transform"
@@ -212,5 +223,5 @@
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform page-builds
+  (merge-deep transform page-builds static-builds
               (update base :builds #(concat % ))))

@@ -11,7 +11,11 @@
 ## what is flower?
 flower is a static site generator that is a library, not a framework. it comes with good defaults that allow you to get started quickly with minimum boilerplate, but scales to projects of great size and complexity without having to rewrite your code. it is extensible, pluggable, and extremely configurable—because all the code is exposed to you the creator.
 
-flower’s guiding principle is: it’s your site, you should control what’s on it.
+flower’s guiding principles are:
+1. it’s your site, you should control what’s on it.
+2. power comes from structure, not expressiveness.
+3. use the right language for the job.
+4. prefer composing tools to monoliths.
 ## language overview
 the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊func[args]{body}` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
 ```html
@@ -39,7 +43,7 @@ all the basics:
 things it’s weird other SSGs don’t support:
 
 - println debugging
-- real stack traces ([example][example-stacktrace])
+- real stack traces ([example][#example-stacktrace])
 - a REPL so you can try things out easily
 - a real programming language (clojure). the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
 - use any markup language you like. asciidoc (TODO) and markdown are supported by default. other languages are pluggable.

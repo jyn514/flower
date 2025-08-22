@@ -201,7 +201,6 @@
     ; https://stackoverflow.com/a/14108036/7669110
     ; NOTE: wrong when running sandboxed :(
     :mac (str (home) "/Library/Application Support")
-    (:linux :unknown) (or (env "XDG_STATE_HOME")
-                          (str (home) "/.local/state"))))
+    (:linux :unknown) (fs/xdg-state-home)))
 
 (defn state-dir [] (fs/path (platform-state-dir) "flower"))

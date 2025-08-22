@@ -195,3 +195,6 @@
     (fatal "TODO: transformers other than clojure (API and docs)"))
   (let [transformed (reduce run-transformer parsed transformers)]
     (split-dependencies transformed args)))
+    ; TODO: i don't love this, it prevents you from
+    ; e.g. running transforms on HTML and then converting to PDF
+    ; (:content transformed)))

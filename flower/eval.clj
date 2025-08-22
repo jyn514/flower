@@ -78,9 +78,24 @@
     'parse-boolean 'parse-long 'parse-double
     'partitionv 'partitionv-all 'splitv-at
     'update-keys 'update-vals 'with-precision})
-(def clojure-core
-  (into {} (for [sym missing-core]
-             [sym (sci/copy-var* (resolve sym) 'clojure.core)])))
+
+(defn copy-all
+  [ns vars]
+  (into {} (for [sym vars]
+             [sym (sci/copy-var* (ns-resolve ns sym) ns)])))
+
+(def clojure-core (copy-all 'clojure.core missing-core))
+
+; only pathlib
+; NOTE: canonicalize and friends intentionally missing because they resolve symlinks
+(def bb-fs
+  #{'absolute? 'absolutize 'normalize 'unixify
+    'relative? 'relativize 'components 'ends-with?
+    'extension 'file-name 'file-separator 'parent 'path
+    'path-separator 'split-ext 'strip-ext 'split-paths
+    'starts-with?
+    'expand-home 'home ; Technically impure but it's fine
+    })
 
 (declare render-file)
 ; needs to be a function, otherwise render-file won't be bound
@@ -106,6 +121,7 @@
                 'flower.eval {'pprint pprint}
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'java-time.api (copy-ns 'java-time.api)
+                'babashka.fs (copy-all 'babashka.fs bb-fs)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
@@ -331,6 +347,7 @@
    (binding [*cx* (if (some? *cx*)
                     ; NOTE: state changes in the inner template are not visible in the outside context
                     ; NOTE: :bindings doesn't work here, upstream bug
+                    ; TODO: fork this new context before merging so we don't bind 'locals into the parent
                     (let [new-cx (sci/merge-opts *cx* {:namespaces {'user locals}})]
                       (with-meta new-cx {:flower/filename filename}))
                     (create-sci-cx filename {:bindings locals}))]
