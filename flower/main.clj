@@ -45,9 +45,11 @@
   (fn [& _] (apply f args)))
 
 (defn unknown-command [{:keys [args]}]
-  (fatal (str "unrecognized command: '"
-              (str/join " " args)
-              "' (-h for help, or 'watch' to build your site)")))
+  (binding [*cmd* ""]
+    (error (str "unrecognized command: '"
+                (str/join " " args)
+                "' ('help' for help, or 'watch' to build your site)"))
+    (System/exit 1)))
 
 (declare dispatch-table)
 
@@ -58,6 +60,9 @@
   [[k v]]
   [(keyword k) (if (map? v) v {})])
 
+; wait can i just do this lmao
+  ; (let [table (map #(apply ->bb init-fn %) dispatch-table)
+  ;       flat-table (flatten table)]
 (defn ->help
   []
   {:spec (->> (for [[ks v] dispatch-table]
@@ -75,12 +80,16 @@
    "render-page" (no-opts map-json cmd/render-page {})
    "render-index" (no-opts map-json cmd/render-index)
    "render-markdown" (no-opts map-json cmd/render-markdown)
-   "embed-template" {:fn #( map-json cmd/embed-template %)
-                     :coerce {:template-name :string}
-                     :args->opts [:template-name]}
-   "transform" {:fn #( map-json cmd/transform %)
-                     :coerce {:transformer :string}
-                     :args->opts [:transformer]}
+   "transform" {:fn #(map-json cmd/transform %)
+                :coerce {:depfile :string
+                         :out-file :string
+                         ; :transform-map {}
+                         :transformers []}
+                :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
+                :collect {:transform-map #(json/read-str %2)}
+                ; disallow infinite sequences, they horribly break debugging.
+                ; 1000 transformers is enough for anyone.
+                :args->opts (concat [:depfile :out-file :transform-map] (repeat 1000 :transformers))}
    "split-dependencies" {:fn #(map-json cmd/split-dependencies %)
                          :coerce {:depfile :string :out-file :string}
                          :args->opts [:depfile :out-file]}

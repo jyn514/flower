@@ -7,7 +7,8 @@
    [instaparse.core :as insta]))
 
 (def ^:dynamic *site* ".")
-(def ^:dynamic *cmd* " <BUG: unknown command>")
+(def ^:dynamic *cmd* " <CLI parsing>")
+(def ^:private bs "\\")
 
 (defmacro reexport [& syms]
   (let [defs (for [sym syms]
@@ -90,7 +91,11 @@
       (fatal (render-parse-error err description))
       ev)))
 
-(def ^:private bs "\\")
+(defn escape-shell
+  "the world's WORST shell escaper"
+  [s]
+  (str "'" (str/escape s {\' "'\\''"}) "'"))
+
 (def ^:private insta-bs (str bs bs))
 (def ^:private insta-qt (str bs "'"))
 (def ^:private ninja-parser

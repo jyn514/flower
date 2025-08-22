@@ -59,10 +59,12 @@
 
 (defn- gen-rule [opts]
   (str "rule " (:name opts) nl
-     ; TODO: replace all this with map-vars
-       (variable "command" (:command opts))
-     (when (contains? opts :description)
-       (variable "description" (:description opts)))))
+       (str/join
+         ; NOTE: ninja does not accept custom variables here, only built-in variables.
+         ; To add a custom variable, use a top-level `:variable`.
+         ; To see a list of built-ins, go to https://ninja-build.org/manual.html#ref_rule
+         (map-vars variable
+                   (dissoc opts :name)))))
 
 (defn- gen-build [opts]
   (let [out (join-ninja (:outputs opts))

@@ -2,7 +2,10 @@
 (require
   'expressions.ninja
   '[expressions.constants :refer [use-jar rebuild-flower]]
+; TODO: remove everything here but the path functions,
+; make read/write access go through flower.reflect/glob-files
   '(babashka [fs :as fs])
+  '[clojure.data.json :as json]
   '(clojure [string :as str]))
 (use 'flower.utils)
 
@@ -163,11 +166,6 @@
     {:name "index"
      :command (fmt "${flower_cli} render-index < $in | ${flower_cli} split-dependencies $in.d $out > $out")
      :description "render index page $in using clojure"}
-    {:name "template"
-     ; NOTE: this means that all templates must depend on all other templates
-     ; TODO: `flow` should take arbitrary number of args
-     :command (fmt "${flower_cli} embed-template $template < $in > $out")
-     :description "embed $in into $template using clojure"}
     {:name "frontmatter"
      :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
@@ -202,12 +200,14 @@
 
 ; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
 (def transform
-  (let [cmds (map #(str (get trans-map (fs/extension %)) " " %) transformers)
-        pipe (str/join " | " cmds)
+        ; TODO: shell escaping
+  (let [files (->> transformers (map str) (str/join " "))
         ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
         ; instead we assume it's always relative to $in.
-        cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $in.d $out | ${flower_cli} jq .content -r > $out")]
-    {:rules [{:name "transform"
+        cmd "flower transform < $in $in.d $out $transform-map $transformers"]
+    {:variables {:transformers files
+                 :transform-map (-> trans-map json/write-str escape-shell)}
+     :rules [{:name "transform"
               :command cmd
               :description "run all transformers on $in"}]}))
 

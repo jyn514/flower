@@ -1,5 +1,7 @@
 ◊(use 'expressions.constants 'expressions.meta)
 
+◊(def sections
+  (filter #(= (fs/file-name %) "index.html") pages))
 ◊def[head]{
   <meta name="author" content="jyn">
 

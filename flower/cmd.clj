@@ -95,25 +95,6 @@
           (fs/write-bytes depfile (String/.getBytes contents))))
     (->> ninja-writer str .getBytes (fs/write-bytes dst)))))
 
-; template embedding
-; TODO: this should happen in transformers/embed.clj
-(defn embed-template
-  "Given a {:content :frontmatter} page and the name of a template file,
-  render `template` in context."
-  [embed {:keys [template-name]}]
-        ; TODO: layering violation, we shouldn't be reading this off disk.
-        ; instead we should run `split-frontmatter` on the template too
-        ; and then merge the two.
-  (let [template-contents (-> template-name slurp)
-        {template-frontmatter :frontmatter template :content}
-          (split-frontmatter {:filename template-name :content template-contents})
-        frontmatter (merge-deep template-frontmatter (:frontmatter embed))
-        locals {'content (:content embed)
-                'frontmatter frontmatter}
-        embedded (eval/render-file template template-name locals)]
-    {:content embedded
-     :frontmatter frontmatter}))
-
 ; jq emulator
 
 ; the clojure library is buggy and the underlying java library is hideously complicated.
@@ -190,16 +171,17 @@
         (assoc out-map :dependencies all-deps))))
 
 ; transforming
-(defn transform
+(defn run-transformer
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [parsed {:keys [transformer]}]
-  (let [cx-opts {:bindings {'page parsed}}
+  [page transformer]
+  (let [cx-opts {:bindings {'page page}}
         cx (eval/create-sci-cx transformer cx-opts)
-        f (slurp transformer)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
-        ls (str "(do " f ")")
-        transformer (eval/parse-string cx ls)
+        ; borkdude suggests running parse-next in a loop instead, see
+        ; https://clojurians.slack.com/archives/C015LCR9MHD/p1755283534353819?thread_ts=1755274827.891389&cid=C015LCR9MHD
+        f (str "(do " (slurp transformer) ")")
+        transformer (eval/parse-string cx f)
         run-transform (eval/embed '(transform page))
         ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)]
@@ -207,3 +189,9 @@
     ; also allow returning just a string to inherit existing metadata
     {:content (eval/eval-form cx "" lisp)}))
 
+(defn transform
+  [parsed {:keys [transform-map transformers] :as args}]
+  (when-not (-> transform-map keys count (= 1))
+    (fatal "TODO: transformers other than clojure (API and docs)"))
+  (let [transformed (reduce run-transformer parsed transformers)]
+    (split-dependencies transformed args)))

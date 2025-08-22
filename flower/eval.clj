@@ -97,6 +97,7 @@
                 'hiccup.compiler hiccup-compiler
                 'instaparse.core (copy-ns 'instaparse.core) 
                 'clojure.core clojure-core
+                'clojure.data.json (copy-ns 'clojure.data.json)
                 ; repl/doc tries to call private functions, so we need to copy those too
                 'clojure.repl (copy-ns 'clojure.repl true)
                 'flower.utils flower.utils/bindings

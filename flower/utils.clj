@@ -25,6 +25,7 @@
    'merge-deep merge-deep
    'escape-ninja escape-ninja
    'join-ninja join-ninja
+   'escape-shell escape-shell
    'fmt (sci/copy-var fmt utils-ns)
    'md->html md->html})
 

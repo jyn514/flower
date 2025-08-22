@@ -6,7 +6,10 @@ index = true
           '[expressions.utils :refer [split-all def+]]
           '[expressions.title :refer [title]])
 
-◊(def+ [index-pages regular-pages] (split-all :index pages))
+◊#_(def+ [index-pages regular-pages] (split-all :index pages))
+◊#_(def+ [_index-pages regular-pages]
+  (split-all #(= (fs/file-name %) "index.html") pages))
+◊(def regular-pages pages)
 ◊(def+ [talks posts]
   (split-all #(str/starts-with? (:path %) "talks/") regular-pages))
 ◊(def sorted-posts
