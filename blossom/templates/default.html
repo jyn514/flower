@@ -1,60 +1,71 @@
-◊(use 'expressions.constants 'expressions.meta)
-◊(require '[babashka.fs :as fs])
+<!-- {% import "macros.html" as macros %} -->
+<!-- {% extends "default.html" %} -->
 
-◊#_(def sections
-  (filter #(= (fs/file-name %) "index.html") pages))
-◊(def sections
-  [{:path "/about/index.html" :title "about"}
-   {:path "/talks/index.html" :title "talks"}])
-◊def[head]{
-  <meta name="author" content="jyn">
+<!-- {% block content %} -->
+◊def[content]{
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
-  <link rel="alternate" type="application/atom+xml" title="◊site-title" href="/atom.xml">
-  <link rel="icon" type="image/x-icon" href="/favicon.jpg">
-  <script src='/main.js?v=◊(hash "static/main.js")"' defer></script>
-  <!-- TODO: this is so bad and will lead to non-deterministic builds lmao
-       TODO: design an actual mechanism for depending on output files—maybe frontmatter?
-       TODO: lmao this isn't even the right filename
-       TODO: ok how about this: `hash-inputs` function that runs `ninja -t inputs` and hashes the root sources without letting you look at the outputs
-  -->
-  <link rel="stylesheet" href='/minima.css?v=◊(hash "public/minima.css")'>
-}
-
-◊def[body]{
-  <header class="site-header" role="banner">
-
-    <div class="wrapper">
-      <a class="site-title" href="/">◊site-title</a>
-
-      <nav class="site-nav">
-        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
-        <label for="nav-trigger">
-          <span class="menu-icon">
-            <svg viewBox="0 0 18 15" width="18px" height="15px">
-              <title>menu</title>
-              <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
-              <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
-              <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
-            </svg>
-          </span>
-        </label>
-
-        <div class="trigger">
-          ◊for[[section sections
-                :when (:title section)]]{
-            <a class="page-link" href="◊(:path section)">◊(:title section)</a>
-          }
-          <a class="page-link" href="/computer-of-the-future">the computer of the next 200 years</a>
-        </div>
-      </nav>
-    </div>
+  <header class="post-header">
+    ◊(let [attrs {:class "post-title" :itemprop "name headline"}
+           more-attrs (if-let [d (:description post)]
+            (assoc attrs :description d) attrs)]
+      (html [:h1 more-attrs (hiccup.util/raw-string (title post))]))
+		<!-- <h1 {%if page.description%}title="{{page.description}}"{%endif%} class="post-title" itemprop="name headline">{{ page.title | safe }}</h1> -->
+    <p class="post-meta">
+      <time datetime="◊(:date page)" itemprop="datePublished">
+        ◊(:date page)
+      </time>
+      ◊if-let[[a (:author page)]]{
+        • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">◊a</span></span>
+      }
+      ◊if-let[[aud (-> page :extra :audience)]]{
+        • audience—{{ page.extra.audience }}
+      }
+      ◊for[[[term tags] (:taxonomies post)
+             :when (= :tags term)
+             tag tags] tag]{
+        • <a href="/tags/◊tag">◊tag</a>
+      }
+      <!-- {% for term, tags in page.taxonomies %} -->
+      <!--   {% if term != "tags" %}{% continue %}{% endif %} -->
+      <!--   {% for tag in tags %} -->
+      <!--   {% endfor %} -->
+      <!-- {% endfor %} -->
+    </p>
   </header>
 
-  <main class="page-content" aria-label="Content">
-    <div class="wrapper">
-      ◊content
-    </div>
-  </main>
-  ◊(include "footer.html")
+  <!-- {% if page.draft or page.extra.draft %} -->
+  ◊if[(or (:draft page) (-> page :extra :draft))]{
+  <aside class=secret><button class=close aria-label=Close title="Click here to dismiss">
+    <strong>This is a draft post.</strong>
+  </button></aside>
+  }
+
+  ◊if-let[[depth (-> page :extra :toc)]]{
+    <flower-toc depth=◊depth />
+  }
+<!-- 	{% if page.extra.toc %} -->
+<!-- {{ macros::toc(toc=page.toc, depth=page.extra.toc) }} -->
+<!-- 	{% endif %} -->
+
+  <!-- ◊#_(for[[[term tags] (:taxonomies post) -->
+  <!--        :when (= :tags term) -->
+  <!--        tag tags] tag]){ -->
+  ◊if-let[[part (->> post :taxonomies (filter #(= "computer-of-the-future" (first %))) second)]]{
+  <p>This post is part ◊part of a multi-part series called <a href="/computer-of-the-future">“the computer of the next 200 years”</a>.</p>
+    ◊if[(-> page :extra :stub)]{
+    <p>This post is as-yet unfinished.</p>
+    }
+  <hr>
+  }
+  <!-- {% endfor %} -->
+
+  <div class="post-content" itemprop="articleBody">
+    ◊(:content page)
+    <!-- ( -->
+    <!-- {{ page.content | safe }} -->
+  </div>
+</article>
 }
-◊(embed "skeleton.html" {'content body 'head head})
+
+◊(embed "base.html" {'content content})
