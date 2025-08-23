@@ -21,23 +21,23 @@ index = true
   <h1 class="page-heading">posts</h1>
 
   <ul class="post-list">
-    ◊for[[post sorted-posts
+    ◊(for [post sorted-posts
           :let [extra (:extra post)]
           :when (not (or
             (:unlisted extra)
             (:stub extra)
             (:rss_only extra)
-            (= "index.html" (:path post))))]]{
+            (= "index.html" (:path post))))]){
       <li>
         <span class="post-meta">
           ◊(when-let [d (:date post)]
             (->> d jt/offset-date-time (jt/format "yyyy-MM-dd")))
-          ◊when-let[[audience (:audience extra)]]{
+          ◊(when-let [audience (:audience extra)]){
             • audience—◊audience
           }
-          ◊for[[[term tags] (:taxonomies post)
+          ◊(for [[term tags] (:taxonomies post)
                 :when (= :tags term)
-                tag tags]]{
+                tag tags]){
             • <a href="/tags/◊tag">◊tag</a>
           }
         </span>
@@ -62,9 +62,9 @@ index = true
              :when (= :tags term)
              tag tags] tag)))
 
-◊when[(seq all-tags)]{
+◊(when (seq all-tags)){
 <nav class=all-tags>all tags:<ul>
-    ◊for[[tag all-tags]]{
+    ◊(for [tag all-tags]){
       <li><a href="/tags/◊tag">◊tag</a></li>
     }
 </ul></nav>

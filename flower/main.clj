@@ -97,12 +97,13 @@
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
       :args->opts [:source-file]}
-   "watch" {:fn flower.watch/watch
+   ; TODO: b/build
+   ["w" "watch"] {:fn flower.watch/watch
             :coerce {:port :number}}
-   "repl" {:fn flower.repl/repl
+   ["r" "repl"] {:fn flower.repl/repl
            :coerce {:template :boolean}
            :args->opts [:template]}
-   "new" (no-opts flower.defaults/materialize-all)
+   ["n" "new"] (no-opts flower.defaults/materialize-all)
    ; TODO: this overrides --data
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
          :coerce {:raw-input :boolean

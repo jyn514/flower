@@ -3,17 +3,19 @@
   (:require
    [babashka.fs]
    [clj-commons.digest]
-   [java-time.api]
+   [clojure.java.io :as io]
    [clojure.repl :as repl]
    [clojure.string :as str]
+   [clojure.data.json ]
    [flower.hiccup]
    [flower.reflect]
    [flower.utils]
    [hiccup.util]
    [instaparse.core :as insta]
+   [java-time.api]
    [sci.core :as sci])
   (:import
-   [java.io StringReader BufferedReader]
+   [java.io BufferedReader StringReader]
    [org.jsoup.nodes Document]
    (org.jsoup.select Nodes)))
 
@@ -273,32 +275,11 @@
           call `(~ident ~@(concat parsed-args body))]
       (embed call))))
 
-; TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
-; https://clojure.org/reference/reader
-; this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
-; NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
-; TODO: allow escaping ] and } in InlineRender
-; TODO: don't actually need to disallow whitespace in Atom now that InlineRender handles Vec properly
-; TODO: there's some bug around backslashes here
+(def parse-file "META-INF/resources/flower/eval/parser.ebnf")
 (def parse
-   (insta/parser
-     "Start = (Text | Lisp)*
-      Text = #'[^◊]+'
-      Lisp = <'◊'> FlowerSyntax
-      FlowerSyntax = (OuterIdent | InlineRender | OuterList)
-      OuterList = ReaderSyntax* List
-      OuterIdent = Ident
-      InlineRender = Ident ( Vec )? <'{'> NestedRender <'}'>
-      NestedRender = ( #'[^}◊]+' | Lisp )*
+   (insta/parser (io/resource parse-file)))
 
-      ReaderSyntax = #\"[\\[\\;@^#`~'_]+\"
-      Ident = #'[a-zA-Z0-9*+!_\\'?=/.:-]+'
-      Form = <#'\\s*'> (Atom | List | Vec) <#'\\s*'>
-      List = <'('> Form* <')'>
-      Vec = <'['> Form* <']'>
-      Atom = #'[^()\\[\\] ]+' "))
-
-(defn- transformer
+(defn transformer
   "'''IR''' (really just fancy parse-form)"
   [tree src cx]
   (insta/transform

@@ -2,7 +2,7 @@
 <!-- {% extends "default.html" %} -->
 
 <!-- {% block content %} -->
-◊def[content]{
+◊(def content){
 <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
@@ -15,15 +15,16 @@
       <time datetime="◊(:date page)" itemprop="datePublished">
         ◊(:date page)
       </time>
-      ◊if-let[[a (:author page)]]{
+      ◊(if-let [a (:author page)]){
         • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">◊a</span></span>
       }
-      ◊if-let[[aud (-> page :extra :audience)]]{
-        • audience—{{ page.extra.audience }}
+      ◊(if-let [aud (-> page :extra :audience)]){
+        • audience—◊aud
       }
-      ◊for[[[term tags] (:taxonomies post)
+      ◊(for [[term tags] (:taxonomies post)
              :when (= :tags term)
-             tag tags] tag]{
+             ; TODO: oh my godddd this is a bug lmao
+             tag tags]){
         • <a href="/tags/◊tag">◊tag</a>
       }
       <!-- {% for term, tags in page.taxonomies %} -->
@@ -35,13 +36,13 @@
   </header>
 
   <!-- {% if page.draft or page.extra.draft %} -->
-  ◊if[(or (:draft page) (-> page :extra :draft))]{
+  ◊(if (or (:draft page) (-> page :extra :draft))){
   <aside class=secret><button class=close aria-label=Close title="Click here to dismiss">
     <strong>This is a draft post.</strong>
   </button></aside>
   }
 
-  ◊if-let[[depth (-> page :extra :toc)]]{
+  ◊(if-let [depth (-> page :extra :toc)]){
     <flower-toc depth=◊depth />
   }
 <!-- 	{% if page.extra.toc %} -->
@@ -51,9 +52,9 @@
   <!-- ◊#_(for[[[term tags] (:taxonomies post) -->
   <!--        :when (= :tags term) -->
   <!--        tag tags] tag]){ -->
-  ◊if-let[[part (->> post :taxonomies (filter #(= "computer-of-the-future" (first %))) second)]]{
+  ◊(if-let [part (->> post :taxonomies (filter #(= "computer-of-the-future" (first %))) second)]){
   <p>This post is part ◊part of a multi-part series called <a href="/computer-of-the-future">“the computer of the next 200 years”</a>.</p>
-    ◊if[(-> page :extra :stub)]{
+    ◊(if (-> page :extra :stub)){
     <p>This post is as-yet unfinished.</p>
     }
   <hr>

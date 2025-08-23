@@ -6,7 +6,7 @@
 ◊(def sections
   [{:path "/about/index.html" :title "about"}
    {:path "/talks/index.html" :title "talks"}])
-◊def[head]{
+◊(def head){
   <meta name="author" content="jyn">
 
   <link rel="alternate" type="application/atom+xml" title="◊site-title" href="/atom.xml">
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href='/minima.css?v=◊(hash "public/minima.css")'>
 }
 
-◊def[body]{
+◊(def body){
   <header class="site-header" role="banner">
 
     <div class="wrapper">
@@ -40,8 +40,8 @@
         </label>
 
         <div class="trigger">
-          ◊for[[section sections
-                :when (:title section)]]{
+          ◊(for [section sections
+                :when (:title section)]){
             <a class="page-link" href="◊(:path section)">◊(:title section)</a>
           }
           <a class="page-link" href="/computer-of-the-future">the computer of the next 200 years</a>

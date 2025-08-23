@@ -17,15 +17,15 @@ flower’s guiding principles are:
 3. use the right language for the job.
 4. prefer composing tools to monoliths.
 ## language overview
-the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊func[args]{body}` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
+the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args){body}` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
 ```html
-◊def[body]{
+◊(def body){
  <div class="trigger">
-    ◊for[[section subsections
-          :when (:title section)]]{
+    ◊(for [section subsections
+          :when (:title section)]){
       <a class="page-link" href="◊(:path section)">(:title section)</a>
     }
-    ◊a[{:class "page-link" :href "/computer-of-the-future"}]{the computer of the next 200 years}
+    ◊(a {:class "page-link" :href "/computer-of-the-future"}){the computer of the next 200 years}
  </div>
  }
  ◊(embed "page.html" {'body body})
@@ -289,7 +289,7 @@ you may want to embed only parts of the template.
 in flower, this is the same `include` call we’ve already seen: `◊(include "music-theory.html" {'body "this is *some* markdown"})`.
 most of the time, dealing with quoting, escaping, and formatting nested markup is a pain to deal with. to make this easier, flower offers an easy way to embed markup inside of clojure:
 ```clojure
-◊def[body]{
+◊(def body){
   this is *some* markdown
 }
 ◊(include "music-theory.html" {'body body})

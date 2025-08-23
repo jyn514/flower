@@ -1,0 +1,30 @@
+(*
+TODO: allow weird syntax in front of Ident (maybe Atom+ or something)
+https://clojure.org/reference/reader
+this is tricky because `#_id` needs to parse as [:Syntax "#_"], _ can't be associated with the ident
+NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses. too easy to write `<a name=◊x>`.
+*)
+Start = (Text | Lisp)*
+Text = #'[^◊]+'
+Lisp = <'◊'> FlowerSyntax
+FlowerSyntax = OuterIdent | FlowerCall
+FlowerCall = ReaderSyntax? List CallTrailer
+CallTrailer = <'{'> NestedRender <'}'> | !'{'
+OuterIdent = Ident
+NestedRender = ( #'[^}◊]+' | Lisp )*
+
+ReaderSyntax = #"[\[\;@^`~']+" | ReaderForm
+ReaderForm = '#' ( #'[#:"\'_]' | Ident )
+Ident = #'[a-zA-Z0-9*+!_\'?=/.-]+'
+Keyword = ':' Ident
+List = <'('> Sequence <')'>
+Vec = <'['> Sequence <']'>
+MapOrSet = <'#'?> <'{'> Sequence <'}'>
+Sequence = ( <#'[\s,]+'> | Form )*
+Form = (Atom | List | Vec | MapOrSet)
+Atom = String | Char | Ident | Keyword | ReaderSyntax
+String = '"' ( #'[^"\\]+' | #'\\.' )* '"'
+Char = '\\' #'[a-zA-Z0-9*+!_\'?=/.-\\{}\[\]()]'
+(* Letter = #'[a-zA-Z0-9*+!_\'?=/.-]' *)
+(* Char = '\\' #'[a-zA-Z\s]' *)
+(* NotStringOrChar = #'[^()\[\]#{} "]+' *)

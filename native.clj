@@ -27,6 +27,8 @@
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with watch.clj
 (def live-reload "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
+; keep this in sync with eval.clj
+(def parser "META-INF/resources/flower/eval/parser.ebnf")
 (def defaults "META-INF/resources/flower/defaults")
 
 (defn clean [_]
@@ -104,6 +106,8 @@
     (b/write-file {:path target :string serialized}))
   (b/copy-file {:src live-reload
                 :target (str class-dir "/" live-reload)})
+  (b/copy-file {:src parser
+                :target (str class-dir "/" parser)})
   (b/copy-file {:src "scripts/run-jar.sh"
                 :target "target/flower"})
   (b/uber {:class-dir class-dir
