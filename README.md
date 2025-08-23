@@ -1,13 +1,10 @@
-# flower: a meta-SSG based on [pollen] and [soupault]
-
-[pollen]: https://docs.racket-lang.org/pollen
-[soupault]: https://soupault.app/
+# flower: an SSG that's a library, not a framework
 
 **NOTE: still in pre-alpha, blog post forthcoming**
 
 **NOTE: flower lives on [Codeberg](https://codeberg.org/jyn514/flower) now. Github is a read-only mirror.**
 
-`flower` is currently EXTREMELY ROUGH. this is mostly on github so i can show it to people and as a tech demo.
+`flower` is currently EXTREMELY ROUGH. this is mostly public so i can show it to people and as a tech demo.
 ## what is flower?
 flower is a static site generator that is a library, not a framework. it comes with good defaults that allow you to get started quickly with minimum boilerplate, but scales to projects of great size and complexity without having to rewrite your code. it is extensible, pluggable, and extremely configurable—because all the code is exposed to you the creator.
 
@@ -53,7 +50,7 @@ and some weird ones:
 - support for arbitrary build commands
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
 - post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
-- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- NOT DOCUMENTED
+- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- TODO
 - render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
 ## testimonials
@@ -511,6 +508,21 @@ as a bonus, JVM langs can interop well, which means it was easy to lean on the J
 ## why a "meta-build" system instead of something simpler?
 because if i'm going to be insane enough to write my own SSG, i want it to be one that i don't rip up and throw away in a year. that means it has to be extensible *and* not break *and* be easy enough to import that i don't spend a bunch of time rewriting things away from jinja again.
 
+## flower has lots of weird ideas! where did they all come from?
+- the template syntax is heavily based on [pollen] and refined through conversations with friends and real bugs i ran into while porting jyn.dev.
+- transformers are based on [soupault] (but i didn't like the enormous amounts of configuration required, so i give you a real language for running transformers).
+- dynamic runtime tracking of file IO was heavily based on the syscall tracking i write about in [complected and orthogonal persistence], which was inspired by many many conversations with [@edef].
+- allowing people to modify so much of the site, (i.e. moving nearly everything into user space) was my idea, with lots of help from [@Hactar] on how to actually do it.
+- unifying templates and pages was my own idea.
+- [petal] (currently unimplemented) is based on jade-lang, maud, zen-coding, and haml.
+
+[pollen]: https://docs.racket-lang.org/pollen
+[soupault]: https://soupault.app/
+[@Hactar]: https://ajfarkas.dev/
+[complected and orthogonal persistence]: https://jyn.dev/complected-and-orthogonal-persistence/
+[@edef]: https://github.com/sponsors/edef1c
+[petal]: https://codeberg.org/jyn514/flower/issues/20
+
 ## example stacktrace
 
 ```
@@ -532,6 +544,10 @@ Caused by: Could not find namespace: flower.expressions.constants.
 it's an SSG. it's running arbitrary code because you (or i) wrote all the code. don't treat it as a security boundary and you'll be fine.
 
 the built-in web server is probably not resilient to any kind of malicious use. only use it for dev. use a real web server (e.g. Caddy) to serve things in prod.
+
+automatic HTML escaping is [not currently implemented][escaping].
+
+[escaping]: https://codeberg.org/jyn514/flower/issues/21
 
 the sandboxing for clojure code is "best-effort". i have not reviewed the code of the underlying SCI interpreter, and i have not done any kind of extensive testing.
 i try to prevent untracked disk access, but only to prevent your dependency graph from being wrong.
