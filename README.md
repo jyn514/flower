@@ -17,7 +17,7 @@ flower’s guiding principles are:
 3. use the right language for the job.
 4. prefer composing tools to monoliths.
 ## language overview
-the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
+the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. `◊»` and `◊◊` escape their special characters, respectively. template embedding and includes are done with clojure function calls.
 ```html
 ◊(def body)«
  <div class="trigger">

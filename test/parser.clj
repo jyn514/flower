@@ -83,6 +83,7 @@
   (expect-nodes "◊(->> xyz a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
   (expect-nodes "<a>◊xyz</a>" {:FlowerCall 0 :OuterIdent 1 :NestedRender 0
                                :Text 2})
+  (expect-nodes "◊» ◊◊" {:OuterIdent 2 :Text 1})
   (expect-nodes "◊(str \n  ; TODO: xxx \n )" {:FlowerCall 1 :Text 0})
   (expect-nodes "◊#_(a)«b»" {:ReaderSyntax 1 :FlowerCall 1 :NestedRender 1
                              :Text 0}))

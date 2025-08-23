@@ -125,7 +125,9 @@
                 'java-time.api (copy-ns 'java-time.api)
                 'babashka.fs (copy-all 'babashka.fs bb-fs)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
-   :bindings {'html (sci/copy-var flower.hiccup/html-2 userns)
+   :bindings {'» "»"
+              '◊ "◊"
+              'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
               'doc (sci/copy-var repl/doc userns)
               'dir (sci/copy-var repl/dir userns)
