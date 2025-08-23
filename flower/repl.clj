@@ -7,7 +7,7 @@
    [flower.reflect :as reflect]
    [flower.internal.utils :refer [env state-dir *cmd*]])
   (:import
-   (org.jline.reader LineReader LineReaderBuilder History)
+   (org.jline.reader LineReader LineReader$Option LineReaderBuilder History)
    (org.jline.terminal TerminalBuilder)))
 
 (def ^:dynamic *reader*)
@@ -20,11 +20,14 @@
     hist))
 
 (defn- make-reader [template]
-  (let [term (.. TerminalBuilder builder (system true) build)]
-    (.. LineReaderBuilder builder
-        (terminal term)
-        (variable LineReader/HISTORY_FILE (history template))
-        build)))
+  (let [term (.. TerminalBuilder builder (system true) build)
+        reader (.. LineReaderBuilder builder
+            (terminal term)
+            (variable LineReader/HISTORY_FILE (history template))
+            build)]
+    ; otherwise it swallows backslashes >:(
+    (.setOpt reader LineReader$Option/DISABLE_EVENT_EXPANSION)
+    reader))
 
 (defn- readline
   [fresh exit]
