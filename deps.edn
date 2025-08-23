@@ -1,58 +1,67 @@
- {:deps {
-    ; native builds
-    com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}
-    ; CLI parsing
-    org.babashka/cli {:mvn/version "0.8.66"}
-    ; repl
-    org.jline/jline {:mvn/version "3.30.0"}
-    ; live-reload server
-    http-kit/http-kit {:mvn/version "2.8.0"}
-    com.nextjournal/beholder {:mvn/version "1.0.3" }
-    org.babashka/http-server {:git/url "https://github.com/babashka/http-server"
-                              :git/sha "7259ab93400c18afc90afcf2cfe82aaa2064e6a1"}
-    org.clojure/core.async {:mvn/version "1.8.741"}
-    ; silence logging warning
-    org.slf4j/slf4j-simple {:mvn/version "1.7.36"}
-    ; template parsing
-    instaparse/instaparse {:mvn/version "1.5.0"}
-    ; clojure evaluator
-    org.babashka/sci {:git/url "https://github.com/babashka/sci.git"
-                      :git/sha "56104c81cb7a3804f8ee84aa64b313dc7143f30e"}
-    ; org.babashka/sci {:mvn/version "0.10.47"}
-    ; build helpers
-    babashka/fs {:mvn/version "0.5.26"}
-    babashka/process {:mvn/version "0.6.23"}
-    lt.jocas/clj-jq {:mvn/version "2.4.0"}
-    ; frontmatter
-    org.clojure/data.json {:mvn/version "2.5.1"}
-    clj-commons/clj-yaml {:mvn/version "1.0.29"}
-    io.github.tonsky/toml-clj {:mvn/version "0.1.0"}
+{:paths ["."]
+ :aliases
+  ; mkdir -p target/repl-cache && clojure -A:dev
+ {:dev
+  {:extra-paths ["dev" "target/repl-cache"]
+   :extra-deps
+    {com.github.seancorfield/expectations {:mvn/version "2.2.214"}
+    org.clojure/test.check {:mvn/version "1.1.1"}}}
 
-    ; user-facing
-    ; html parsing and manipulation
-    hiccup/hiccup {:mvn/version "2.0.0"}
-    org.jsoup/jsoup {:mvn/version "1.21.1"}
-    org.clj-commons/digest {:mvn/version "1.4.100"}
-    io.github.nextjournal/markdown {:mvn/version "0.7.186"}
-    ; time formatting
-    clojure.java-time/clojure.java-time {:mvn/version "1.4.3"}}
-  :paths ["."]
-  :aliases {
-    :dev
-    {:extra-paths ["dev" "target/repl-cache"]}
-    :build
-    {:deps
-     {io.github.clojure/tools.build {:mvn/version "0.10.9"}
-      babashka/process {:mvn/version "0.6.23"}}
-     :ns-default native}
-    :test
-      ; {:extra-paths ["parse.clj"]
-      {:extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
-      :exec-fn     kaocha.runner/exec-fn
-      :exec-args   {:skip-meta :slow}}
+  ; clojure -T:build native
+  :build
+  {:deps
+   {io.github.clojure/tools.build {:mvn/version "0.10.9"}
+    babashka/process {:mvn/version "0.6.23"}}
+   :ns-default native}
 
-      :watch
-      {:exec-args   {:watch?     true
-                    :skip-meta  :slow
-                    :fail-fast? true}}}}
- ; :deps {org.clojure/clojure {:mvn/version "1.12.0"}}
+  ; clojure -M:test
+  :test
+  {:extra-deps
+   {lambdaisland/kaocha {:mvn/version "1.77.1236"}
+    com.github.seancorfield/expectations {:mvn/version "2.2.214"}
+    org.clojure/test.check {:mvn/version "1.1.1"}}
+   :main-opts ["-m" "kaocha.runner"]}
+
+  :watch
+  {:extra-deps  {lambdaisland/kaocha {:mvn/version "1.77.1236"}}
+   :main-opts ["-m" "kaocha.runner" "--watch"]}}
+
+ :deps
+ {org.clojure/clojure {:mvn/version "1.12.1"}
+  ; native builds
+  com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}
+  ; CLI parsing
+  org.babashka/cli {:mvn/version "0.8.66"}
+  ; repl
+  org.jline/jline {:mvn/version "3.30.0"}
+  ; live-reload server
+  http-kit/http-kit {:mvn/version "2.8.0"}
+  com.nextjournal/beholder {:mvn/version "1.0.3" }
+  org.babashka/http-server {:git/url "https://github.com/babashka/http-server"
+                            :git/sha "7259ab93400c18afc90afcf2cfe82aaa2064e6a1"}
+  org.clojure/core.async {:mvn/version "1.8.741"}
+  ; silence logging warning
+  org.slf4j/slf4j-simple {:mvn/version "1.7.36"}
+  ; template parsing
+  instaparse/instaparse {:mvn/version "1.5.0"}
+  ; clojure evaluator
+  org.babashka/sci {:git/url "https://github.com/babashka/sci.git"
+                    :git/sha "56104c81cb7a3804f8ee84aa64b313dc7143f30e"}
+  ; org.babashka/sci {:mvn/version "0.10.47"}
+  ; build helpers
+  babashka/fs {:mvn/version "0.5.26"}
+  babashka/process {:mvn/version "0.6.23"}
+  lt.jocas/clj-jq {:mvn/version "2.4.0"}
+  ; frontmatter
+  org.clojure/data.json {:mvn/version "2.5.1"}
+  clj-commons/clj-yaml {:mvn/version "1.0.29"}
+  io.github.tonsky/toml-clj {:mvn/version "0.1.0"}
+
+  ; user-facing
+  ; html parsing and manipulation
+  hiccup/hiccup {:mvn/version "2.0.0"}
+  org.jsoup/jsoup {:mvn/version "1.21.1"}
+  org.clj-commons/digest {:mvn/version "1.4.100"}
+  io.github.nextjournal/markdown {:mvn/version "0.7.186"}
+  ; time formatting
+  clojure.java-time/clojure.java-time {:mvn/version "1.4.3"}}}

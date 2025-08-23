@@ -20,7 +20,9 @@
           '[hiccup2.core :refer [html]]
           '(babashka [process :as ps])
           '(babashka [cli :as cli])
-          '(babashka [fs :as fs])))
+          '(babashka [fs :as fs])
+          '[expectations.clojure.test :as expect :refer [defexpect]]
+          '[clojure.test.check.generators :as gen]))
 
 (defn members [val]
   (->> val r/reflect :members (map :name) set sort))

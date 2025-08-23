@@ -1,0 +1,3 @@
+#kaocha/v1
+{:tests [{:test-paths ["test"]
+          :ns-patterns [".*"]}]}
