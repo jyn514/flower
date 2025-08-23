@@ -32,9 +32,9 @@ index = true
         <span class="post-meta">
           ◊(when-let [d (:date post)]
             (->> d jt/offset-date-time (jt/format "yyyy-MM-dd")))
-          ◊(when-let [audience (:audience extra)]){
+          ◊(when-let [audience (:audience extra)])«
             • audience—◊audience
-          }
+          »
           ◊(for [[term tags] (:taxonomies post)
                 :when (= :tags term)
                 tag tags]){
@@ -62,10 +62,10 @@ index = true
              :when (= :tags term)
              tag tags] tag)))
 
-◊(when (seq all-tags)){
+◊(when (seq all-tags))«
 <nav class=all-tags>all tags:<ul>
-    ◊(for [tag all-tags]){
+    ◊(for [tag all-tags])«
       <li><a href="/tags/◊tag">◊tag</a></li>
-    }
+    »
 </ul></nav>
-}
+»

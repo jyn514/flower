@@ -27,11 +27,11 @@
               (str "(" name " " args ")"))
             (gen/tuple gen-sunflower-ident gen-lisp)))
 (def gen-inline-render
-  (let [not-brace (gen/such-that #(not-any? #{\}} %) gen/string-ascii)]
+  (let [not-brace (gen/such-that #(not-any? #{\»} %) gen/string-ascii)]
     (gen/fmap (fn [[name args body]]
                 (str "(" name " "
                          args
-                         "){" body "}"))
+                         ")«" body "»"))
               (gen/tuple gen-sunflower-ident gen-lisp not-brace))))
 (def gen-sunflower-cmd
   (let [syntax (gen/one-of [gen-sunflower-ident gen-lisp gen-inline-render])]
@@ -77,14 +77,14 @@
 (defexpect edge-cases
   (expect-nodes "◊(a)(b)" {:FlowerCall 1 :Text 1})
   (expect-nodes "◊(a)◊(b)" {:FlowerCall 2 :Text 0})
-  (expect-nodes "◊(a){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
-  (expect-nodes "◊(a){b}{}" {:FlowerCall 1 :NestedRender 1 :Text 1})
-  (expect-nodes "◊(map #(+ 1 %) []){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
-  (expect-nodes "◊(->> xyz a){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
+  (expect-nodes "◊(a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
+  (expect-nodes "◊(a)«b»«»" {:FlowerCall 1 :NestedRender 1 :Text 1})
+  (expect-nodes "◊(map #(+ 1 %) [])«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
+  (expect-nodes "◊(->> xyz a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
   (expect-nodes "<a>◊xyz</a>" {:FlowerCall 0 :OuterIdent 1 :NestedRender 0
                                :Text 2})
   (expect-nodes "◊(str \n  ; TODO: xxx \n )" {:FlowerCall 1 :Text 0})
-  (expect-nodes "◊#_(a){b}" {:ReaderSyntax 1 :FlowerCall 1 :NestedRender 1
+  (expect-nodes "◊#_(a)«b»" {:ReaderSyntax 1 :FlowerCall 1 :NestedRender 1
                              :Text 0}))
 
 ; (s/def ::parse-result (s/coll-of (s/or :str string? :err insta/failure?)))
@@ -105,3 +105,5 @@
   (prop/for-all [s gen-sunflower]
     (let [parsed (insta/parses eval/parse s)]
       (expect unambiguous? parsed))))
+
+; TODO: test that all stack traces have at least one frame in user code

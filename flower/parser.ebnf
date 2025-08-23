@@ -10,11 +10,11 @@ Lisp = <'◊'> FlowerSyntax
 (* TODO: can probably inline this into Lisp *)
 FlowerSyntax = OuterIdent | FlowerCall
 FlowerCall = ReaderSyntax? List CallTrailer
-CallTrailer = <'{'> NestedRender <'}'> | !'{'
+CallTrailer = <'«'> NestedRender <'»'> | !'«'
 (* like Ident, but doesn't support <>.
    keep them in sync. *)
 OuterIdent = #'[a-zA-Z0-9%*+!_\'?=/.-]+'
-NestedRender = ( #'[^}◊]+' | Lisp )*
+NestedRender = ( #'[^»◊]+' | Lisp )*
 
 ReaderSyntax = #"[\[\;@^`~']+" | ReaderForm
 ReaderForm = '#' ( #'[#:"\'_]' | Ident | & '(' )
