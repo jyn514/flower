@@ -54,9 +54,6 @@
                      [:CallTrailer [:NestedRender & _]]]]]] true
     :else false))
 
-(defn unambiguous? [parses]
-  (< (count parses) 2))
-
 (defspec self-test-parseable-call 100
   (prop/for-all [s gen-call]
     (let [all (str "◊" s)
@@ -81,11 +78,17 @@
   (expect-nodes "◊(a)(b)" {:FlowerCall 1 :Text 1})
   (expect-nodes "◊(a)◊(b)" {:FlowerCall 2 :Text 0})
   (expect-nodes "◊(a){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
-  (expect-nodes "◊(a){b}{}" {:FlowerCall 1 :NestedRender 1 :Text 1}))
+  (expect-nodes "◊(a){b}{}" {:FlowerCall 1 :NestedRender 1 :Text 1})
+  (expect-nodes "◊(map #(+ 1 %) []){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
+  (expect-nodes "◊(->> xyz a){b}" {:FlowerCall 1 :NestedRender 1 :Text 0})
+  (expect-nodes "<a>◊xyz</a>" {:FlowerCall 0 :OuterIdent 1 :NestedRender 0
+                               :Text 2})
+  (expect-nodes "◊#_(a){b}" {:ReaderSyntax 1 :FlowerCall 1 :NestedRender 1
+                             :Text 0}))
 
-(s/def ::parse-result (s/coll-of (s/or :str string? :err insta/failure?)))
-(s/def ::transform-result
-  (s/coll-of (s/or :str string? :syn sequential? :err insta/failure?)))
+; (s/def ::parse-result (s/coll-of (s/or :str string? :err insta/failure?)))
+; (s/def ::transform-result
+;   (s/coll-of (s/or :str string? :syn sequential? :err insta/failure?)))
 
 ; (defspec no-obvious-crashes 100
 ;   (prop/for-all [src gen-sunflower]
@@ -93,6 +96,9 @@
 ;           tree (eval/parse src)
 ;           cx (eval/create-sci-cx filename)]
 ;     (expect ::transform-result (eval/transformer tree src cx)))))
+
+(defn unambiguous? [parses]
+  (< (count parses) 2))
 
 (defspec unambiguous 100
   (prop/for-all [s gen-sunflower]

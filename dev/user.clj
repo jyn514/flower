@@ -31,6 +31,9 @@
 (defn feval [form]
   (eval/eval-form (eval/create-sci-cx {}) form))
 
+(defn transform [src]
+  (eval/transformer (eval/parse src) src (eval/create-sci-cx "<repl>")))
+
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)
 ;        (ns-unmap *ns* '~'trace)

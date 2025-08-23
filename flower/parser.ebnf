@@ -7,15 +7,19 @@ NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses
 Start = (Text | Lisp)*
 Text = #'[^◊]+'
 Lisp = <'◊'> FlowerSyntax
+(* TODO: can probably inline this into Lisp *)
 FlowerSyntax = OuterIdent | FlowerCall
 FlowerCall = ReaderSyntax? List CallTrailer
 CallTrailer = <'{'> NestedRender <'}'> | !'{'
-OuterIdent = Ident
+(* like Ident, but doesn't support <>.
+   keep them in sync. *)
+OuterIdent = #'[a-zA-Z0-9%*+!_\'?=/.-]+'
 NestedRender = ( #'[^}◊]+' | Lisp )*
 
 ReaderSyntax = #"[\[\;@^`~']+" | ReaderForm
-ReaderForm = '#' ( #'[#:"\'_]' | Ident )
-Ident = #'[a-zA-Z0-9*+!_\'?=/.-]+'
+ReaderForm = '#' ( #'[#:"\'_]' | Ident | & '(' )
+(* keep this in sync with OuterIdent. *)
+Ident = #'[a-zA-Z0-9%*+!_\'?=/<>.-]+'
 Keyword = ':' Ident
 List = <'('> Sequence <')'>
 Vec = <'['> Sequence <']'>

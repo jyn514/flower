@@ -245,7 +245,11 @@
 
 (defn parse-string
   ([s] (parse-string *cx* s))
-  ([cx s] (try-sci cx #(sci/parse-string cx s))))
+  ([cx s]
+   (when (env "FLOWER_DEBUG_PARSE")
+     (eprint "parse-string: ")
+     (eprn s))
+   (try-sci cx #(sci/parse-string cx s))))
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
@@ -268,12 +272,15 @@
         r (-> nodes last insta/span last)]
     (apply subs src [l r])))
 
-(defn inline-render
-  ([cx src ident body] (apply inline-render cx src ident '[] body))
-  ([cx src ident args body]
-    (let [parsed-args (->> (->source src args) (parse-string cx))
-          call `(~ident ~@(concat parsed-args body))]
-      (embed call))))
+(defn flower-call
+  ([cx src list trailer] (flower-call cx src nil list trailer))
+  ([cx src syntax list trailer]
+   (let [source (if (nil? syntax)
+                  (->source src list)
+                  (->source src syntax list))
+         parsed-args (parse-string cx source)
+         merged-args (concat parsed-args (rest trailer))]
+     (embed merged-args))))
 
 (def parse-file "META-INF/resources/flower/eval/parser.ebnf")
 (def parse
@@ -286,14 +293,11 @@
     {:Start vector
      :Text identity
      :Lisp identity
-     :Ident symbol
-     :List #(identity %&)
-     :Atom identity
-     :Form identity
      :FlowerSyntax identity
-     :OuterList #(->> (apply ->source src %&) (parse-string cx) embed)
-     :OuterIdent #(->> % embed)
-     :InlineRender #(apply inline-render cx src %&)
+
+     :OuterIdent #(embed (symbol %))
+
+     :FlowerCall #(apply flower-call cx src %&)
      :NestedRender #(identity `((str ~@%&)))
      } tree))
 
