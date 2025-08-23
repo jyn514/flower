@@ -125,8 +125,8 @@
     :source-map source-map
     :depfile depfile}))
 
-(def sass-builds (map sass->build sass-files))
-(def sass-outputs (map :outputs sass-builds))
+(def sass-builds {:builds (map sass->build sass-files)})
+(def sass-outputs (map :outputs (:builds sass-builds)))
 
 (def page-builds
   (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
@@ -223,5 +223,5 @@
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform page-builds static-builds
+  (merge-deep transform page-builds static-builds sass-builds
               (update base :builds #(concat % ))))
