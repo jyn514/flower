@@ -50,18 +50,18 @@
                                #(sci/copy-var* % binding))]
      (with-meta bindings {:ns binding}))))
 
-(defn pprint [x]
+(defn pretty-print [x]
   (cond (or (instance? sci.lang.Var x) (nil? x)) ""
         (hiccup.util/raw-string? x) (str x)
         (instance? Document x) (Document/.outerHtml x)
         (instance? Nodes x) (Nodes/.outerHtml x)
-        (sequential? x) (apply str (map pprint x))
+        (sequential? x) (apply str (map pretty-print x))
         :else (print-str x)))
 
 (defn embed
   "given a quoted form, embeds it in a program that prints out the stringified value"
   [lisp]
-  `(flower.eval/pprint ~lisp))
+  (with-meta `(flower.eval/pretty-print ~lisp) (meta lisp)))
 
 ; don't bind compile-html{,-with-bindings}, they'll crash at runtime
 (def hiccup-compiler
@@ -120,11 +120,12 @@
                 'flower.utils flower.utils/bindings
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
                                        'render-file render-file)
-                'flower.eval {'pprint pprint}
+                'flower.eval {'pretty-print pretty-print}
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'java-time.api (copy-ns 'java-time.api)
                 'babashka.fs (copy-all 'babashka.fs bb-fs)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
+   ; NOTE: the strings will give a class cast exception if someone tries to rebind them
    :bindings {'» "»"
               '◊ "◊"
               'html (sci/copy-var flower.hiccup/html-2 userns)
@@ -167,7 +168,12 @@
       [line-zero (dec (count line))])
     [0 0]))
 
-(defn print-sci-frame [f default-file [start-line start-column]]
+(defn abs-span [[start-line start-column] [relative-line relative-column]]
+  [(+ relative-line start-line)
+   ; TODO: columns are messed up
+   (if (= relative-line 1) (+ relative-column start-column) relative-column)])
+
+(defn render-sci-frame [f default-file start]
   (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
         file (or (:file f)
                  ; TODO: this only catches the clojure runtime,
@@ -175,12 +181,7 @@
                  (if (:sci/built-in f)
                    "<clojure-runtime>"
                    "<bound-host-function>")) 
-        [relative-line relative-column] [(:line f) (:column f)]
-        [line column] (if (and relative-line relative-column (= default-file file))
-                        [(+ relative-line start-line)
-                         ; TODO: columns are messed up
-                         (if (= relative-line 1) (+ relative-column start-column) relative-column)]
-                        [relative-line relative-column])
+        [line column] [(:line f) (:column f)]
         span (cond
                (and line column) (str " " line ":" column)
                line (str " " line)
@@ -194,13 +195,13 @@
         file (-> e ex-data :flower/filename)
         src (-> e ex-data :flower/source)
         ; TODO: this doesn't handle InlineRender; *something* is going wrong
-        start (-> e ex-data :flower/span (span->start src))]
+        start (-> e ex-data :flower/span #_(span->start src))]
     (when (and dup (not (instance? clojure.lang.ExceptionInfo dup)))
       (-> dup type pr-str (str ": ") print))
     (apply print
       (ex-message e)
       "\n"
-      (map #(print-sci-frame % file start) useful-frames))))
+      (map #(render-sci-frame % file start) useful-frames))))
 
 (defn print-stack-trace [e]
   (if-let [sci-ex (sci/stacktrace e)]
@@ -215,8 +216,11 @@
         (if (instance? clojure.lang.ExceptionInfo e)
           (println (ex-message e))
           (println (str (pr-str (class e)) ":") (ex-message e)))
-        ; (st/print-stack-trace e)
-        (ex-cause e))))
+        (when-let [file (-> e ex-data :flower/filename)]
+          ; NOTE: intentionally doesn't make span relative to start. this is already the absolute span.
+          (let [[line column] (-> e ex-data :flower/span)]
+            (print "" (render-sci-frame (merge {:ns 'user :file file :line line :column column} (meta e)) nil nil))))
+          (ex-cause e))))
 
 (defn print-cause-trace [ex]
   (loop [e ex
@@ -225,6 +229,14 @@
       (print " Caused by: "))
     (when-let [cause (print-stack-trace e)]
       (recur cause false))))
+
+(defn map-ex-info
+  "Updates `ex-data` for `ex`, preserving message, cause, and stack trace."
+  [ex mapper]
+  (let [info (-> ex ex-data mapper)
+        new-ex (ex-info (ex-message ex) info (ex-cause ex))]
+    (.setStackTrace ^clojure.lang.ExceptionInfo new-ex (.getStackTrace ^Throwable ex))
+    new-ex))
 
 (defn try-sci
   [cx f]
@@ -235,12 +247,11 @@
                span (-> cx meta :flower/span)
                src (-> cx meta :flower/source)
                msg (fmt "failed to eval ${file}")
-               old-info (or (ex-data cause) {})
-               new-info (assoc old-info
-                               :flower/filename file
-                               :flower/span span
-                               :flower/source src)
-               new-cause (ex-info (ex-message cause) new-info (ex-cause cause))
+               new-cause (map-ex-info cause
+                           #(assoc %
+                             :flower/filename file
+                             :flower/span span
+                             :flower/source src))
                ex (ex-info msg {:flower/exit true
                                 :flower/eval true} new-cause)]
            (throw ex)))))
@@ -249,6 +260,7 @@
   ([s] (parse-string *cx* s))
   ([cx s]
    (when (env "FLOWER_DEBUG_PARSE")
+     (def ^:dynamic *lisp* s) ; for repl
      (eprint "parse-string: ")
      (eprn s))
    (try-sci cx #(sci/parse-string cx s))))
@@ -258,10 +270,11 @@
   ([src form] (eval-form *cx* src form))
   ([cx src form]
    (when (env "FLOWER_DEBUG_EVAL")
+     (def ^:dynamic *form* form) ; for repl
      (eprint "eval-form: ")
      (eprn form))
    (let [cx (with-meta cx (merge (meta cx)
-                                   {:flower/span (insta/span form)
+                                   {:flower/span (-> form insta/span (span->start src))
                                     :flower/source src}))]
        (sci/binding [sci/out *err*
                      sci/err *err*
@@ -269,19 +282,29 @@
                      sci/file (-> cx meta :flower/filename)]
          (try-sci cx #(sci/eval-form cx form))))))
 
-(defn ->source [src & nodes]
+(defn map-with-meta [f src & nodes]
   (let [l (-> nodes first insta/span first)
-        r (-> nodes last insta/span last)]
-    (apply subs src [l r])))
+        r (-> nodes last insta/span last)
+        orig_src (apply subs src [l r])
+        mapped (f orig_src)
+        old-meta (or (meta mapped) {:line 1 :column 1})
+        start (span->start [l r] src)
+        relative [(:line old-meta) (:column old-meta)]
+        [line column] (abs-span start relative)]
+    (if-not mapped mapped
+      (with-meta mapped (merge old-meta {:line line :column column})))))
 
 (defn flower-call
   ([cx src list trailer] (flower-call cx src nil list trailer))
   ([cx src syntax list trailer]
-   (let [source (if (nil? syntax)
-                  (->source src list)
-                  (->source src syntax list))
-         parsed-args (parse-string cx source)
-         merged-args (concat parsed-args (rest trailer))]
+   (let [parse #(parse-string cx %)
+         parsed-args (if (nil? syntax)
+                  (map-with-meta parse src list)
+                  (map-with-meta parse src syntax list))
+         render-body (rest trailer)
+         body-with-span (map-with-meta (constantly render-body) src trailer)
+         merged-args (with-meta (concat parsed-args body-with-span)
+                                (meta parsed-args))]
      (embed merged-args))))
 
 (def parse-file "META-INF/resources/flower/eval/parser.ebnf")
@@ -300,7 +323,7 @@
      :OuterIdent #(embed (symbol %))
 
      :FlowerCall #(apply flower-call cx src %&)
-     :NestedRender #(identity `((str ~@%&)))
+     :NestedRender #(identity `(str ~@%&))
      } tree))
 
 (defn- on-parse-event [cx src ev]
@@ -331,14 +354,16 @@
   ([src filename] (render-file src filename {}))
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
-   (binding [*cx* (if (some? *cx*)
-                    ; NOTE: state changes in the inner template are not visible in the outside context
-                    ; NOTE: :bindings doesn't work here, upstream bug
-                    ; TODO: fork this new context before merging so we don't bind 'locals into the parent
-                    (let [new-cx (sci/merge-opts *cx* {:namespaces {'user locals}})]
-                      (with-meta new-cx {:flower/filename filename}))
-                    (create-sci-cx filename {:bindings locals}))]
-     (teval (parse-or-fatal parse src filename) src *cx*))))
+   ; NOTE: we have to use `new-var` here or using `def` on a bound local will crash SCI
+   (let [bindings (into {} (for [[name val] locals] [name (sci/new-var name val)]))]
+     (binding [*cx* (if (some? *cx*)
+                      ; NOTE: state changes in the inner template are not visible in the outside context
+                      ; NOTE: :bindings doesn't work here, upstream bug
+                      ; TODO: fork this new context before merging so we don't bind 'locals into the parent
+                      (let [new-cx (sci/merge-opts *cx* {:namespaces {'user bindings}})]
+                        (with-meta new-cx {:flower/filename filename}))
+                      (create-sci-cx filename {:namespaces {'user bindings}}))]
+     (teval (parse-or-fatal parse src filename) src *cx*)))))
 
 (defn create-fs-cx
   [filename]

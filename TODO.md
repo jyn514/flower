@@ -3,8 +3,8 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
+- pass original path into transformers so `flower transform` can give better errors
 - https://github.com/noprompt/garden for CSS generation
-- (compile) so startup time is better
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)
     - reload vfs itself when flower changes using ninja
@@ -16,7 +16,7 @@
     - can build jyn.dev
     - incremental builds do nothing if no file has changed
     - incremental builds rebuild if necessary
-- document how to type lozenge
+- document how to type lozenge and «»
     - ◊ is option+shift+v on macOS
     - ⋄ is compose+<> on linux
     - point people to https://github.com/samhocevar/wincompose on windows
@@ -35,7 +35,6 @@
 
 - some things don't work with `(doc)` in the repl
   - TODO make a list
-- backslash escape parsing seems broken
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
 - `transformers/redirect.clj`
   - allows relative paths with /foo.html
@@ -43,7 +42,7 @@
 - fix spans for SCI eval
 - template defaults
 - add the rest of the HTML selector apis lol
-- allow configuring build dirs in `flower.toml`
+- allow configuring build dirs in `flower.edn`
 - sandbox fs APIs for build.clj
 - file watcher should debounce nvim delete/recreate
   - https://github.com/clojure/core.async
@@ -59,9 +58,7 @@
 - flower emojis
 - should not lose `page` with `embed-template`
 - maybe `◊include` should be relative to `includes` instead of `templates`?
-- allow more things to be dynamic with depfiles?
-  - e.g. `templates` could be fed through with JSON
-  - `embed-template` could be a post-processor
+  - nah
 - bundle asciidoc; suggest for highly nested md->clj->md->clj
 - allow preprocessors to edit frontmatter
 - render needs to not blindly assume that the preprocessing language is clojure
@@ -75,9 +72,7 @@
 
 ## ideating
 
-- `<a>` is a valid clojure ident???
 - have a 7 line outline for `defaults/build.clj`
-- hard-code `base` in the binary, since people can override it
 - define *an* order for transforms
   - defined in build.clj, defaults to alphabetical
   - uses normal file extensions to determine how to run the transformer
@@ -123,9 +118,9 @@ ninja's api for all of these is `flower transform`
   - https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html
   - https://github.com/bonede/tree-sitter-ng
   - https://github.com/seart-group/java-tree-sitter
-- Sass compiler
 - bsky comments
   - https://natalie.sh/posts/bluesky-comments/
 - SVG with embedded text for code blocks
   - https://wheybags.com/blog/macroblog.html#better_code_snippets
 - blog pingback protocol
+  - oh this isn't actually real lol
