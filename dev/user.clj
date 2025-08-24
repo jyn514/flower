@@ -28,11 +28,18 @@
 (defn members [val]
   (->> val r/reflect :members (map :name) set sort))
 
-(defn feval [form]
-  (eval/eval-form (eval/create-sci-cx {}) form))
+(def eval eval/eval-form)
 
 (defn transform [src]
   (eval/transformer (eval/parse src) src (eval/create-sci-cx "<repl>")))
+
+(defn render [src]
+  (eval/render-file src "<repl>"))
+
+(defn with-err-handler [f & args]
+  (try (apply f args) (catch clojure.lang.ExceptionInfo e (eval/print-cause-trace e))))
+
+(alter-var-root #'eval/*cx* (constantly (eval/create-sci-cx "<repl>")))
 
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)

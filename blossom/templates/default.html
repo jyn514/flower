@@ -17,7 +17,7 @@
       </time>
       ◊(if-let [a (:author page)])«
         • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">◊a</span></span>
-      }
+      »
       ◊(if-let [aud (-> page :extra :audience)])«
         • audience—◊aud
       »
