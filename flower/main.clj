@@ -38,8 +38,12 @@
    If any `args` are present, they will be passed after the map."
   [f & args]
   (let [before (read-json)
-        after (cmd/with-tracked-deps (:dependencies before) #(apply f before args))]
-    (json/write after *out*)))
+        after (cmd/with-tracked-deps (:dependencies before) #(apply f before args))
+        ; preserve namespaces in output
+        serialize #(cond (keyword? %) (subs (str %) 1)
+                         (symbol? %) (name %)
+                         :else (str %))]
+    (json/write after *out* :key-fn serialize)))
 
 (defn no-opts [f & args]
   (fn [& _] (apply f args)))
@@ -77,8 +81,8 @@
 (def dispatch-table
   {"configure" (no-opts cmd/configure {})
    "split-frontmatter" (no-opts map-json split-frontmatter)
-   "render-page" (no-opts map-json cmd/render-page {})
-   "render-index" (no-opts map-json cmd/render-index)
+   "render-page" (no-opts map-json cmd/render-page)
+   ; "render-index" (no-opts map-json cmd/render-page)
    "render-markdown" (no-opts map-json cmd/render-markdown)
    "transform" {:fn #(map-json cmd/transform %)
                 :coerce {:depfile :string

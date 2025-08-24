@@ -12,7 +12,7 @@ index = true
   (split-all #(= (fs/file-name %) "index.html") pages))
 ◊(def regular-pages pages)
 ◊(def+ [talks posts]
-  (split-all #(str/starts-with? (:path %) "talks/") regular-pages))
+  (split-all #(str/starts-with? (:flower/path %) "talks/") regular-pages))
 ◊(def sorted-posts
    ; sorted descending
    (sort #(compare (:date %2) (:date %1)) posts))

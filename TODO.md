@@ -4,6 +4,18 @@
 - `◊tag['span {:class "author"}]{jyn}`
 
 - pass original path into transformers so `flower transform` can give better errors
+- turn render-page into a transformer
+  - calls `flower/render-file` by default
+  - can use `flower.unsafe/process` for other langs
+    - works as a "runner", can use the same transformer for many different transformers
+  - gives us fewer caching points but that's fine, don't do dumb things that make builds slow
+- actually, turn transformers into one big transformer runner
+  - makes it v easy to plug in more transformers
+  - semantic cache points:
+    - scraping metadata from all posts is a cache point (with a short-circuit stop here, like red/green salsa but dumber)
+    - build.clj -> build.ninja is a cache point with a short-circuit stop (good actually)
+    - the output of each post is a cache point
+    - there are no other cache points
 - https://github.com/noprompt/garden for CSS generation
 - don't materialize onto disk by default
     - .build/vfs (maybe with chattr -i)

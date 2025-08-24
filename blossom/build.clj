@@ -40,7 +40,7 @@
 
 (def expressions  (fs/glob "expressions" "**.clj"))
 (def transformers (fs/glob "transformers" "**"))
-(def all-pages (fs/glob "pages" "**"))
+(def all-pages (remove fs/directory? (fs/glob "pages" "**")))
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
@@ -128,15 +128,17 @@
 (def sass-builds {:builds (map sass->build sass-files)})
 (def sass-outputs (map :outputs (:builds sass-builds)))
 
+  ; NOTE: we are careful here not to look at frontmatter contents so we don't have to rebuild build.ninja if a post is modified.
+  ; we only look at the pages themselves.
+  ; wait jyn wtf lol just glob
+
 (def page-builds
-  (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
-        [indexes pages] (split-all (fn [[_ meta]] (:index meta)) page-frontmatter)
-        index-paths (map first indexes)
-        page-paths (map first pages)
         ; sass here is a hack until i implement hash-inputs
-        index-builds (chain-page index-paths #(build-page "index" % (concat page-paths sass-outputs ["build.ninja"])))
-        page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
-    {:builds (concat index-builds page-builds)}))
+        ; all-pages is a hack until i implement caching for frontmatter loading
+    (let [deps (concat all-pages sass-outputs)
+          page-builds (chain-page all-pages #(build-page "page" % deps))]
+        ; page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
+    {:builds page-builds}))
 
 (defn static->build [path]
   {:rule (if (fs/directory? path) "mkdir" "link")
@@ -174,9 +176,6 @@
     {:name "page"
      :command (fmt "${flower_cli} render-page < $in | ${flower_cli} split-dependencies $in.d $out > $out")
      :description "render page $in using clojure"}
-    {:name "index"
-     :command (fmt "${flower_cli} render-index < $in | ${flower_cli} split-dependencies $in.d $out > $out")
-     :description "render index page $in using clojure"}
     {:name "frontmatter"
      :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
@@ -193,8 +192,7 @@
      :outputs "build.ninja"
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
-     ; TODO: remove all-pages once we get rid of render-index
-     :inputs (concat all-pages ["build.clj"] ff
+     :inputs (concat ["build.clj"] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"

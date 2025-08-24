@@ -47,16 +47,20 @@
     ";;;" parse-edn
     nil))
 
+(defn parse-frontmatter [filename content]
+  (let [[first-line & rest-lines] (str/split-lines content)
+        [raw body] (split-lines rest-lines first-line)]
+    (if-let [parser (select-parse-fn first-line)]
+      (try
+        [(parser (str/join "\n" raw)) body]
+        (catch java.lang.Exception e
+          (throw (ex-info (str "failed to parse frontmatter for " filename) {} e))))
+      [{} body])))
+
 ; NOTE: maps use strings as keys, not keywords
 (defn split-frontmatter
   [{:keys [filename content]}]
-  (let [[first-line & rest-lines] (str/split-lines content)
-        [frontmatter body]        (split-lines rest-lines first-line)]
-    (if-let [parser (select-parse-fn first-line)]
-      (try
-        {:content (str/join "\n" body)
-         :filename filename
-         :frontmatter (parser (str/join "\n" frontmatter))}
-        (catch java.lang.Exception e
-          (throw (ex-info (str "failed to parse frontmatter for " filename) {} e))))
-      {:content content :filename filename :frontmatter {}})))
+  (let [[frontmatter body] (parse-frontmatter filename content)
+        merged (assoc frontmatter :flower/source-file filename :flower/path filename)]
+    {:content (str/join "\n" body)
+     :frontmatter merged}))

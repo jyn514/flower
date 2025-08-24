@@ -17,8 +17,8 @@
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
-        split (split-frontmatter {:filename f :content content})]
-   [(str f) (:frontmatter split)]))
+        parsed (split-frontmatter {:filename f :content content})]
+   [(str f) (:frontmatter parsed)]))
 
 ; TODO: allow pages/index.edn so we can avoid repeating configuration
 (defn- load-all-meta [dir]
@@ -110,17 +110,6 @@
 
 ; preprocessing
 
-; TODO: this can just be a normal transfomer
-; actually no it needs to know the input languages and run them in sequence;
-; see comment on render-file
-(defn render-page
-  "Preprocess and render a JSON blob"
-  ([parsed {:keys [bindings] :or {bindings {}}}]
-   (let [all-bindings (merge-deep {'frontmatter (:frontmatter parsed)} bindings)
-         rendered (eval/render-file (:content parsed) (:filename parsed) all-bindings)]
-     {:content rendered
-      :frontmatter (:frontmatter parsed)})))
-
 ; index preprocessing
 
 ; TODO: horrible layering violation, doesn't handle expressions/constants.clj
@@ -128,15 +117,22 @@
 (defn- get-src-dst
   [frontmatter]
   (let [base (-> frontmatter remove-parent remove-ext)]
+    ; TODO: replace this with filtering `all-meta` for :flower/source-file
     [(str "pages/" base) (str (remove-ext base) ".html")]))
 
 (defn- index-page-meta
   [frontmatter all-meta]
   (let [[src dst] (get-src-dst frontmatter)
         base-meta (get all-meta src)]
-    (update base-meta :path (constantly dst))))
+    ; TODO: :path should be set by transformers, not here
+    (update base-meta :flower/path (constantly dst))))
 
-(defn render-index
+; TODO: this can just be a normal transfomer
+; actually no it needs to know the input languages and run them in sequence;
+; see comment on render-file
+; err hm—now that we're passing the preprocessors as json meta, this *can* be a transformer
+; ooooo
+(defn render-page
   "Preprocess and render a JSON blob as an index page (i.e. with access to `pages` local)"
   [parsed]
   ; TODO: put this on disk and feed it on stdin so we don't have to trust template renderers about dependency tracking.
@@ -152,8 +148,13 @@
   ; TODO: once we do that, it's silly to parse this over and over in `get-all-meta`. cache it on disk with build.clj.
   (let [all-meta (load-all-meta "pages")
         all-targets (parse-ninja "ninja -t targets rule frontmatter" false)
-        pages (map #(index-page-meta % all-meta) all-targets)]
-    (render-page parsed {:bindings {'pages pages}})))
+        pages (map #(index-page-meta % all-meta) all-targets)
+        ; TODO: this kinda sucks, just pass in `page` and `pages` and get all the rest of the info from that
+        ; otherwise we have future-compat concerns if we ever want to add more page metadata (e.g. :source-file)
+        ; TODO: remove 'frontmatter eventually
+        bindings {'pages pages 'page parsed}
+        render #(eval/render-file % (:flower/source-file parsed) bindings)]
+    (update parsed :content render)))
 
 ; TODO: this is silly lol, is this really the easiest way?
 ; maybe we can have `transformers/preprocessors` and `transformers/renderers` or something
@@ -175,7 +176,7 @@
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
   [page transformer]
-  (let [cx-opts {:bindings {'page page}}
+  (let [cx-opts {:bindings {'page (select-keys page [:content :frontmatter])}}
         cx (eval/create-sci-cx transformer cx-opts)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ; borkdude suggests running parse-next in a loop instead, see
@@ -184,10 +185,16 @@
         transformer (eval/parse-string cx f)
         run-transform (eval/embed '(transform page))
         ; NOTE: order is important here, see https://technomancy.us/143
-        lisp `(do ~transformer ~run-transform)]
-    ; TODO: this discards metadata, allow the transformer to mutate metadata
-    ; also allow returning just a string to inherit existing metadata
-    {:content (eval/eval-form cx "" lisp)}))
+        lisp `(do ~transformer ~run-transform)
+        transformed (eval/eval-form cx f lisp)]
+    (if (string? transformed)
+      (assoc page :content transformed)
+      ; allow overriding :content, and any frontmatter except :source-file
+      (let [sandboxed (select-keys transformed [:content :frontmatter])
+            moar-sandboxed (update sandboxed :frontmatter
+                                   #(merge (:frontmatter page) %
+                                           (select-keys page [:flower/source-file])))]
+      (merge page moar-sandboxed)))))
 
 (defn transform
   [parsed {:keys [transform-map transformers] :as args}]
@@ -195,6 +202,3 @@
     (fatal "TODO: transformers other than clojure (API and docs)"))
   (let [transformed (reduce run-transformer parsed transformers)]
     (split-dependencies transformed args)))
-    ; TODO: i don't love this, it prevents you from
-    ; e.g. running transforms on HTML and then converting to PDF
-    ; (:content transformed)))
