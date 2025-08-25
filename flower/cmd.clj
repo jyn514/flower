@@ -183,7 +183,8 @@
         ; https://clojurians.slack.com/archives/C015LCR9MHD/p1755283534353819?thread_ts=1755274827.891389&cid=C015LCR9MHD
         f (str "(do " (slurp transformer) ")")
         transformer (eval/parse-string cx f)
-        run-transform (eval/embed '(transform page))
+        ; NOTE: does *not* call pretty-print
+        run-transform '(transform page)
         ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)
         transformed (eval/eval-form cx f lisp)]

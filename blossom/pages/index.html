@@ -1,5 +1,6 @@
 +++
 index = true
+title = "posts"
 +++
 ◊(require '[java-time.api :as jt]
           '[clojure.string :as str]
@@ -17,9 +18,6 @@ index = true
    ; sorted descending
    (sort #(compare (:date %2) (:date %1)) posts))
 <nav class="home">
-
-  <h1 class="page-heading">posts</h1>
-
   <ul class="post-list">
     ◊(for [post sorted-posts
           :let [extra (:extra post)]
@@ -43,7 +41,7 @@ index = true
         </span>
 
         <h2>
-          ◊(let [attrs {:class "post-link" :href (:path post)}
+          ◊(let [attrs {:class "post-link" :href (:flower/path post)}
                  more-attrs (if-let [d (:description post)]
                               (assoc attrs :description d) attrs)]
               (html [:a more-attrs (hiccup.util/raw-string (title post))]))
