@@ -1,36 +1,25 @@
 +++
 index = true
 title = "posts"
+template = "base.html"
 +++
 ◊(require '[java-time.api :as jt]
           '[clojure.string :as str]
           '[babashka.fs :as fs]
           '[expressions.utils :refer [split-all def+]]
+          '[expressions.pages :refer [categorize date]]
           '[expressions.title :refer [title]])
 
-◊#_(def+ [index-pages regular-pages] (split-all :index pages))
-◊#_(def+ [_index-pages regular-pages]
-  (split-all #(= (fs/file-name %) "index.html") pages))
-◊(def regular-pages pages)
-◊(def+ [talks posts]
-  (split-all #(str/starts-with? (:flower/path %) "talks/") regular-pages))
-◊(def sorted-posts
-   ; sorted descending
-   (sort #(compare (:date %2) (:date %1)) posts))
+◊(def+ {:keys [talks sections main-posts]} (categorize pages))
+
 <nav class="home">
   <ul class="post-list">
-    ◊(for [post sorted-posts
-          :let [extra (:extra post)]
-          :when (not (or
-            (:unlisted extra)
-            (:stub extra)
-            (:rss_only extra)
-            (= "index.html" (:path post))))])«
+    ◊(for [post main-posts])«
       <li>
         <span class="post-meta">
-          ◊(when-let [d (:date post)]
-            (->> d jt/offset-date-time (jt/format "yyyy-MM-dd")))
-          ◊(when-let [audience (:audience extra)])«
+          ◊#_(println post)
+          ◊(date post)
+          ◊(when-let [audience (-> post :extra :audience)])«
             • audience—◊audience
           »
           ◊(for [[term tags] (:taxonomies post)

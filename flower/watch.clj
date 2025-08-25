@@ -6,11 +6,11 @@
   (:import [java.util Timer TimerTask])
   (:require
    [babashka.fs :as fs]
-   [babashka.http-server :as http-server]
    [clojure.data.json :as json]
    [clojure.java.io :as io]
    [clojure.stacktrace]
    [clojure.string :as str]
+   [flower.http-server :as http-server]
    [flower.beholder :as behold]
    [flower.cmd :as cmd]
    [org.httpkit.server :as wss]))
@@ -126,6 +126,21 @@
                [(fs/file-name dir)]
                period)
   (wss/run-server handler {:port port}))
+
+; http-server
+;
+; (defn serve-404 [req dir]
+;   (-> (str dir "/404.html") file-response
+;       (content-type "text/html")
+;       (status 404)
+;       (cond-> (= (:request-method req) :head) (assoc :body nil))))
+;
+; (defn serve-static [dir port]
+;   (wss/run-server (compojure/routes 
+;                     (files "/" {:root dir})
+;                     #(serve-404 % dir)
+;                     ; (not-found ()
+;                     ){:port port}))
 
 ; ninja file watcher
 

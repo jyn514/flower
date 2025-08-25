@@ -135,7 +135,7 @@
 (def page-builds
         ; sass here is a hack until i implement hash-inputs
         ; all-pages is a hack until i implement caching for frontmatter loading
-    (let [deps (concat all-pages sass-outputs)
+    (let [deps (concat all-pages sass-outputs (all-dirs "pages"))
           page-builds (chain-page all-pages #(build-page "page" % deps))]
         ; page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
     {:builds page-builds}))

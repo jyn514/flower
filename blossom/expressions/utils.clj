@@ -3,6 +3,12 @@
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])
 
+; https://stackoverflow.com/a/41049094
+(defmacro as-map
+  "Given (as-map a b c), returns {:a a :b b :c c}"
+  [& syms]
+  (zipmap (map keyword syms) syms))
+
 ; https://clojuredocs.org/clojure.core/destructure#example-5a946a0ae4b0316c0f44f8f2
 
 (defmacro def+

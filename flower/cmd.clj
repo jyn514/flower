@@ -153,7 +153,7 @@
         ; otherwise we have future-compat concerns if we ever want to add more page metadata (e.g. :source-file)
         ; TODO: remove 'frontmatter eventually
         bindings {'pages pages 'page parsed}
-        render #(eval/render-file % (:flower/source-file parsed) bindings)]
+        render #(eval/render-file % (-> parsed :frontmatter :flower/source-file) bindings)]
     (update parsed :content render)))
 
 ; TODO: this is silly lol, is this really the easiest way?
