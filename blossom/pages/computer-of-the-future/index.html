@@ -1,21 +1,42 @@
-{% extends "default.html" %}
-{% block content %}
+◊(use 'expressions.utils 'flower.utils)
+
 <h1 class="page-heading">The Computer Of The Next 200 Years</h1>
 
 This is a series of posts about what the future of computing could look like.
 This series is as-yet unfinished.
 
 {# sort numerically, not alphabetically #}
-{% set_global parsed_terms = [] %}
-{% for term in terms %}
-  {% set_global parsed_terms = parsed_terms | concat(with=term.name | int) %}
-{% endfor %}
-{% set parsed_terms = parsed_terms | sort %}
 
-{% set categories = ["principles", "tools", "implementation"] %}
-{% for category in categories %}
+◊(def postmodern
+  {:author "jade" :path "https://jade.fyi/blog/the-postmodern-build-system/"
+   :category "tools" :title "the postmodern build system"
+   :order 5})
+
+◊#_("https://stackoverflow.com/a/18201889/7669110")
+◊(defn the-future [page] (some-> page :taxonomies :computer-of-the-future first inspect Integer/parseInt))
+◊(def posts
+  (->> pages
+       (map (juxt identity the-future))
+       (filter second)
+       inspect
+       (sort-by second)
+       (insert-after-where #(= (the-future %) 5) postmodern)
+       (map first)))
+
+◊(def categories (-> posts (map #(:extra :category)) set))
+◊#_(def categories ["principles", "tools", "implementation"])
+
+<!-- {% set_global parsed_terms = [] %} -->
+<!-- {% for term in terms %} -->
+<!--   {% set_global parsed_terms = parsed_terms | concat(with=term.name | int) %} -->
+<!-- {% endfor %} -->
+<!-- {% set parsed_terms = parsed_terms | sort %} -->
+
+◊(for [category categories])«
 <hr>
-<h2>{{category}}</h2>
+<h2>◊category</h2>
+
+◊(for [n terms])«
 
 {% for n in parsed_terms %}
 {# {% set term = terms | filter(attribute="terms[0].category", value=category | as_str) | nth(n=0) %} #}
@@ -58,8 +79,6 @@ This series is as-yet unfinished.
     <h2><a class="post-link" href="https://jade.fyi/blog/the-postmodern-build-system/">the postmodern build system</a></h2>
   </li>
   {% endif %}
-  {% endfor %}
+  »
 </ol>
-{% endfor %}
-
-{% endblock content %}
+»

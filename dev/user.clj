@@ -7,6 +7,7 @@
   (require '(clojure [string :as str])
           '(clojure.data [json :as json])
           '[clojure.reflect :as r]
+          '[clojure.walk :as walk :refer [walk postwalk prewalk]]
           '[clojure.stacktrace :refer [print-stack-trace]]
           '(flower [main :as flower])
           '[flower.eval :as eval]
@@ -37,10 +38,14 @@
 (defn render [src]
   (eval/render-file src "<repl>"))
 
+(defn spans [src]
+  (postwalk #(do (print % ": ") (some-> % meta println) %) src))
+
 (defn with-err-handler [f & args]
   (try (apply f args) (catch clojure.lang.ExceptionInfo e (eval/print-cause-trace e))))
 
-(alter-var-root #'eval/*cx* (constantly (eval/create-sci-cx "<repl>")))
+(def cx (eval/create-sci-cx "<repl>"))
+(alter-var-root #'eval/*cx* (constantly cx))
 
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)

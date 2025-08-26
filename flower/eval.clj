@@ -3,10 +3,11 @@
   (:require
    [babashka.fs]
    [clj-commons.digest]
+   [clojure.data.json ]
    [clojure.java.io :as io]
    [clojure.repl :as repl]
    [clojure.string :as str]
-   [clojure.data.json ]
+   [clojure.walk :refer [postwalk]]
    [flower.hiccup]
    [flower.reflect]
    [flower.utils]
@@ -155,9 +156,12 @@
    (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
      (with-meta cx {:flower/filename filename}))))
 
-; rendering
+; eval and tracebacks
 
-(defn span->start [span src]
+(defn span->start
+  "Given a [start end] byte offset and source string,
+   return a [line column] pair."
+  [span src]
   (if-let [[start _] span]
     (let [[line-zero line] (->> (subs src 0 start)
                                 StringReader.
@@ -168,7 +172,9 @@
       [line-zero (dec (count line))])
     [0 0]))
 
-(defn abs-span [[start-line start-column] [relative-line relative-column]]
+(defn abs-span
+  "Make a `relative` span absolute with respect to `start`"
+  [[start-line start-column] [relative-line relative-column]]
   [(+ relative-line start-line)
    ; TODO: columns are messed up
    (if (= relative-line 1) (+ relative-column start-column) relative-column)])
@@ -282,17 +288,32 @@
                      sci/file (-> cx meta :flower/filename)]
          (try-sci cx #(sci/eval-form cx form))))))
 
-(defn map-with-meta [f src & nodes]
+(defn ->abs
+  "Given an SCI parsed form, update its metadata to be relative to `start`"
+  [start node]
+  (if-let [old-meta (meta node)]
+    (let [relative [(:line old-meta) (:column old-meta)]
+          [line column] (abs-span start relative)]
+      (with-meta node (merge old-meta {:line line :column column})))
+    node))
+
+(defn map-with-meta
+  "Given a mapper `f` and one or more nodes,
+   run `f` on the source text spanned by the combined nodes.
+   Then, recursively update all spans on the result to be relative 
+   to the span of the nodes, not the substring of the source text."
+  [f src & nodes]
   (let [l (-> nodes first insta/span first)
         r (-> nodes last insta/span last)
-        orig_src (apply subs src [l r])
-        mapped (f orig_src)
-        old-meta (or (meta mapped) {:line 1 :column 1})
         start (span->start [l r] src)
-        relative [(:line old-meta) (:column old-meta)]
-        [line column] (abs-span start relative)]
-    (if-not mapped mapped
-      (with-meta mapped (merge old-meta {:line line :column column})))))
+        orig_src (apply subs src [l r])
+        mapped (f orig_src)]
+    (postwalk #(->abs start %) mapped)))
+
+; sunflower
+
+(def parse-file "META-INF/resources/flower/eval/parser.ebnf")
+(def parse (insta/parser (io/resource parse-file)))
 
 (defn flower-call
   ([cx src list trailer] (flower-call cx src nil list trailer))
@@ -302,14 +323,17 @@
                   (map-with-meta parse src list)
                   (map-with-meta parse src syntax list))
          render-body (rest trailer)
-         body-with-span (map-with-meta (constantly render-body) src trailer)
+         ; NOTE: unlike `list` and `syntax`, we leave the nested metadata be.
+         ; we've already walked it once, no need to do it again.
+         ; we do need to add spans to the outermost `str` call, though.
+         [body-line body-col] (map inc (span->start (insta/span trailer) src))
+         ; render-body is either `() or a `(str ...) call.
+         body-with-span (if-let [inner (first render-body)]
+                          `(~(with-meta inner {:line body-line :col body-col}))
+                          '())
          merged-args (with-meta (concat parsed-args body-with-span)
                                 (meta parsed-args))]
      (embed merged-args))))
-
-(def parse-file "META-INF/resources/flower/eval/parser.ebnf")
-(def parse
-   (insta/parser (io/resource parse-file)))
 
 (defn transformer
   "'''IR''' (really just fancy parse-form)"

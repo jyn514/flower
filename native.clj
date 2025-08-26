@@ -66,6 +66,7 @@
   (all-public
     "java.lang.Class"
     "java.lang.String"
+    "java.lang.Integer"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"
     "org.jsoup.nodes.Node"
