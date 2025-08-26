@@ -101,7 +101,7 @@
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
       :args->opts [:source-file]}
-   ; TODO: b/build
+   ["b" "build"] (no-opts cmd/build)
    ["w" "watch"] {:fn flower.watch/watch
             :coerce {:port :number}}
    ["r" "repl"] {:fn flower.repl/repl

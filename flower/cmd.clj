@@ -95,6 +95,13 @@
           (fs/write-bytes depfile (String/.getBytes contents))))
     (->> ninja-writer str .getBytes (fs/write-bytes dst)))))
 
+(defn build []
+  ; TODO: doesn't handle the case where the exception trickles up to main.
+  ; probably that's fine though
+  (binding [*cmd* "configure"]
+    (configure {}))
+  (run "ninja"))
+
 ; jq emulator
 
 ; the clojure library is buggy and the underlying java library is hideously complicated.
