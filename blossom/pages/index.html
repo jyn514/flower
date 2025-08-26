@@ -7,8 +7,7 @@ template = "base.html"
           '[clojure.string :as str]
           '[babashka.fs :as fs]
           '[expressions.utils :refer [split-all def+]]
-          '[expressions.pages :refer [categorize date]]
-          '[expressions.title :refer [title]])
+          '[expressions.pages :refer [categorize date title]])
 
 ◊(def+ {:keys [talks sections main-posts]} (categorize pages))
 

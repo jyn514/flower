@@ -1,9 +1,13 @@
 (ns expressions.title
-  (:require [flower.utils :refer [remove-ext]]
-            [clojure.string :as str]))
+  (:require
+   [babashka.fs :as fs]
+   [clojure.string :as str]
+   [flower.utils :refer [remove-ext]]))
 
 (defn- unslugify [filename]
-  (-> filename remove-ext (str/replace #"-" " ")))
+  (if (= "index.html" (fs/file-name filename))
+    (-> filename fs/parent fs/file-name)
+    (-> filename remove-ext (str/replace #"-" " "))))
 
 (defn title
   [post]

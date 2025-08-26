@@ -1,6 +1,6 @@
-◊(require '[expressions.title :refer [title]]
+◊(require '[expressions.pages :refer [title]]
           '[expressions.meta  :refer [embed]])
-◊(def content)«
+◊(def post-body)«
 <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
@@ -46,9 +46,10 @@
   <!-- {% endfor %} -->
 
   <div class="post-content" itemprop="articleBody">
+    ◊(when (= "pages/computer-of-the-future/index.html" (:flower/source-file frontmatter)) (println content))
     ◊content
   </div>
 </article>
 »
 
-◊(embed "base.html" {'content content})
+◊(embed "base.html" {'content post-body})

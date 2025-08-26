@@ -51,12 +51,11 @@
         (fmt "${out}: ${deps}")))
 
 (defn split-dependencies
-  [parsed {:keys [depfile out-file]}]
-  (let [[parsed deps] (split-map parsed :dependencies)
-        formatted (gen-depfile out-file (:dependencies deps))]
-    (spit depfile formatted)
-    ; NOTE: we intentionally don't write to `out-file`, build.ninja is doing that.
-    parsed))
+  [dependencies {:keys [depfile out-file]}]
+  (when (some nil? [depfile out-file dependencies])
+    (throw (ex-info (str "got <nil> when trying to write a depfile for " out-file) {})))
+  (let [formatted (gen-depfile out-file dependencies)]
+    (spit depfile formatted)))
 
 ; TODO: take out-dir as an arg
 (defn split-sass-dependencies
@@ -141,7 +140,7 @@
 ; ooooo
 (defn render-page
   "Preprocess and render a JSON blob as an index page (i.e. with access to `pages` local)"
-  [parsed]
+  [parsed _opts]
   ; TODO: put this on disk and feed it on stdin so we don't have to trust template renderers about dependency tracking.
   ; then we can move this to flower.build
   ; TODO: pass the name of the current index as a CLI arg so we can filter it out from locals
@@ -170,13 +169,11 @@
   [parsed]
   (update parsed :content md->html))
 
-(defn with-tracked-deps [dependencies f]
-    (binding [flower.reflect/*dependencies* #{}]
-      (let [out-map (f)
-            ; TODO: should be keyed by output file so we can minimize rebuilds
-            ; TODO: something is wrong here, it's not tracking file reads in templates
-            all-deps (union (set dependencies) flower.reflect/*dependencies*)]
-        (assoc out-map :dependencies all-deps))))
+(defn with-tracked-deps [f]
+  (binding [flower.reflect/*dependencies* #{}]
+    (let [out-map (f)]
+      ; TODO: should be keyed by output file so we can minimize rebuilds
+      [out-map flower.reflect/*dependencies*])))
 
 ; transforming
 (defn run-transformer
@@ -205,8 +202,7 @@
       (merge page moar-sandboxed)))))
 
 (defn transform
-  [parsed {:keys [transform-map transformers] :as args}]
+  [parsed {:keys [transform-map transformers]}]
   (when-not (-> transform-map keys count (= 1))
     (fatal "TODO: transformers other than clojure (API and docs)"))
-  (let [transformed (reduce run-transformer parsed transformers)]
-    (split-dependencies transformed args)))
+  (reduce run-transformer parsed transformers))

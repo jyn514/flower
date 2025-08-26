@@ -174,7 +174,7 @@
      :command "ln -f $in $out"
      :description "link $in into build dir"}
     {:name "page"
-     :command (fmt "${flower_cli} render-page < $in | ${flower_cli} split-dependencies $in.d $out > $out")
+     :command (fmt "${flower_cli} render-page < $in $in.d $out > $out")
      :description "render page $in using clojure"}
     {:name "frontmatter"
      :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}

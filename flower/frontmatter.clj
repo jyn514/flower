@@ -52,15 +52,15 @@
         [raw body] (split-lines rest-lines first-line)]
     (if-let [parser (select-parse-fn first-line)]
       (try
-        [(parser (str/join "\n" raw)) body]
+        [(parser (str/join "\n" raw)) (str/join "\n" body)]
         (catch java.lang.Exception e
           (throw (ex-info (str "failed to parse frontmatter for " filename) {} e))))
-      [{} body])))
+      [{} content])))
 
 ; NOTE: maps use strings as keys, not keywords
 (defn split-frontmatter
   [{:keys [filename content]}]
   (let [[frontmatter body] (parse-frontmatter filename content)
         merged (assoc frontmatter :flower/source-file filename :flower/path filename)]
-    {:content (str/join "\n" body)
+    {:content body
      :frontmatter merged}))

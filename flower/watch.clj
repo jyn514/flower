@@ -28,13 +28,14 @@
    (let [timer (Timer.)
          task (atom nil)]
      (fn [& args]
-         (when-let [t ^TimerTask @task]
-           (.cancel t))
          (let [new-task (proxy [TimerTask] []
                           (run []
                             (apply f args)
                             (reset! task nil)
                             (.purge timer)))]
+           ; TODO: we have a race condition here somewhere
+           (when-let [t ^TimerTask @task]
+             (.cancel t))
            (reset! task new-task)
            (.schedule timer new-task ms)))))
 

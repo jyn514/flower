@@ -6,8 +6,11 @@
    [clojure.string :as str]
    [expressions.utils :refer [as-map split-all]]))
 
-(defn unslugify [filename]
-  (-> filename remove-ext (str/replace #"-" " ")))
+(defn- unslugify [filename]
+  (let [name (if (= "index.html" (fs/file-name filename))
+               (-> filename fs/parent fs/file-name)
+               (-> filename remove-ext))]
+    (str/replace name #"-" " ")))
 
 (defn title
   [post]

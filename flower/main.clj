@@ -37,12 +37,17 @@
    read the map as JSON from stdin and write it to stdout.
    If any `args` are present, they will be passed after the map."
   [f & args]
-  (let [before (read-json)
-        after (cmd/with-tracked-deps (:dependencies before) #(apply f before args))
+  (let [opts (first args)
+        before (read-json)
+        [after deps] (cmd/with-tracked-deps #(apply f before args))
         ; preserve namespaces in output
         serialize #(cond (keyword? %) (subs (str %) 1)
                          (symbol? %) (name %)
                          :else (str %))]
+    (if (:depfile opts)
+      (cmd/split-dependencies deps opts)
+      (when (seq deps)
+        (throw (ex-info "at least one file was accessed, but no depfile path was passed!" {:flower/deps deps}))))
     (json/write after *out* :key-fn serialize)))
 
 (defn no-opts [f & args]
@@ -81,22 +86,20 @@
 (def dispatch-table
   {"configure" (no-opts cmd/configure {})
    "split-frontmatter" (no-opts map-json split-frontmatter)
-   "render-page" (no-opts map-json cmd/render-page)
-   ; "render-index" (no-opts map-json cmd/render-page)
+   "render-page" {:fn #(map-json cmd/render-page %)
+                  :coerce {:depfile :string
+                           :out-file :string}
+                  :args->opts (concat [:depfile :out-file])}
    "render-markdown" (no-opts map-json cmd/render-markdown)
    "transform" {:fn #(map-json cmd/transform %)
                 :coerce {:depfile :string
                          :out-file :string
-                         ; :transform-map {}
                          :transformers []}
                 :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
                 :collect {:transform-map #(json/read-str %2)}
                 ; disallow infinite sequences, they horribly break debugging.
                 ; 1000 transformers is enough for anyone.
                 :args->opts (concat [:depfile :out-file :transform-map] (repeat 1000 :transformers))}
-   "split-dependencies" {:fn #(map-json cmd/split-dependencies %)
-                         :coerce {:depfile :string :out-file :string}
-                         :args->opts [:depfile :out-file]}
    "split-sass-dependencies"
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}

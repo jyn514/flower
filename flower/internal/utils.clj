@@ -21,6 +21,31 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
+; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
+(defn merge-deep [& xs]
+  (cond
+    (every? map? xs) (apply merge-with merge-deep xs)
+    (every? set? xs) (apply union xs)
+    (every? sequential? xs) (apply concat xs)
+    :else (last xs)))
+
+; https://gist.github.com/erez-rabih/038844d6c67ee85401d9c074ea5bfa71
+(defn split-map [m & ks]
+  [(apply dissoc m ks)
+   (select-keys m ks)])
+
+; https://github.com/clojure/clojure-contrib/blob/b8d2743d3a89e13fc9deb2844ca2167b34aaa9b6/src/main/clojure/clojure/contrib/seq.clj#L51
+(defn enumerate
+  "Returns a lazy sequence of [index, item] pairs, where items come
+  from 's' and indexes count up from zero.
+
+  (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
+  [s]
+  (map vector (iterate inc 0) s))
+
+(defn symmmetric-difference [A B]
+  (union (set/difference A B) (set/difference B A)))
+
 (defn eprint [& msg]
   (binding [*out* *err*]
     (apply print msg)))
@@ -44,7 +69,9 @@
 (defn run [opts & rest]
   (let [[opts rest] (if (map? opts)
                       [(assoc opts :dir *site*) rest]
-                      [{:dir *site*} (into opts rest)])]
+                      [{:dir *site*} (into opts rest)])
+        opts (merge-deep {:extra-env {"NINJA_STATUS" "[%f/%t (%r running)] "}}
+                         opts)]
     (if (sequential? rest)
       (apply ps/shell opts rest)
       (ps/shell opts rest))))
@@ -151,31 +178,6 @@
              [xs])]
     (->> xs (map escape-ninja) (str/join " "))))
 
-; https://groups.google.com/g/clojure/c/UdFLYjLvNRs/m/8fd9fvNur6cJ
-(defn merge-deep [& xs]
-  (cond
-    (every? map? xs) (apply merge-with merge-deep xs)
-    (every? set? xs) (apply union xs)
-    (every? sequential? xs) (apply concat xs)
-    :else (last xs)))
-
-; https://gist.github.com/erez-rabih/038844d6c67ee85401d9c074ea5bfa71
-(defn split-map [m & ks]
-  [(apply dissoc m ks)
-   (select-keys m ks)])
-
-; https://github.com/clojure/clojure-contrib/blob/b8d2743d3a89e13fc9deb2844ca2167b34aaa9b6/src/main/clojure/clojure/contrib/seq.clj#L51
-(defn enumerate
-  "Returns a lazy sequence of [index, item] pairs, where items come
-  from 's' and indexes count up from zero.
-
-  (indexed '(a b c d))  =>  ([0 a] [1 b] [2 c] [3 d])"
-  [s]
-  (map vector (iterate inc 0) s))
-
-(defn symmmetric-difference [A B]
-  (union (set/difference A B) (set/difference B A)))
-
 ; TODO: i think this won't return the initial `ex` :(
 (defn ex-causes [ex]
   (iteration ex-cause :initk ex))
@@ -199,8 +201,7 @@
     :win (or (env "LocalAppData")
              (str (home) "\\AppData\\Local"))
     ; https://stackoverflow.com/a/14108036/7669110
-    ; NOTE: wrong when running sandboxed :(
-    :mac (str (home) "/Library/Application Support")
-    (:linux :unknown) (fs/xdg-state-home)))
+    ; https://becca.ooo/blog/macos-dotfiles/
+    (:mac :linux :unknown) (fs/xdg-state-home)))
 
 (defn state-dir [] (fs/path (platform-state-dir) "flower"))
