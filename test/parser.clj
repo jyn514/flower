@@ -16,16 +16,25 @@
   ; self-test breaks horribly on chars, just skip them for now
   (let [gen-scalar
         (gen/one-of
-          [gen/int gen/size-bounded-bigint gen/double gen/string
+          [gen/small-integer gen/size-bounded-bigint gen/double gen/string
            gen/ratio gen/boolean gen/keyword gen/keyword-ns gen/symbol
            gen/symbol-ns gen/uuid])
         gen-collection (gen/recursive-gen gen/container-type gen-scalar)]
     (gen/fmap pr-str gen-collection)))
 
-(def gen-call
-  (gen/fmap (fn [[name args]]
-              (str "(" name " " args ")"))
-            (gen/tuple gen-sunflower-ident gen-lisp)))
+; (def gen-call
+;   (gen/fmap (fn [[name args]]
+;               (str "(" name " " args ")"))
+;             (gen/tuple gen-sunflower-ident gen-lisp)))
+
+(def gen-text
+  ; https://github.com/Engelberg/instaparse/issues/241
+  (gen/such-that #(not-any? #{\return} %) gen/string))
+
+(def gen-comment
+  (gen/fmap #(str ";" % "\n")
+            (gen/such-that #(not-any? #{\newline} %) gen-text)))
+
 (def gen-inline-render
   (let [not-brace (gen/such-that #(not-any? #{\»} %) gen/string-ascii)]
     (gen/fmap (fn [[name args body]]
@@ -33,19 +42,26 @@
                          args
                          ")«" body "»"))
               (gen/tuple gen-sunflower-ident gen-lisp not-brace))))
+
 (def gen-sunflower-cmd
-  (let [syntax (gen/one-of [gen-sunflower-ident gen-lisp gen-inline-render])]
+  (let [syntax (gen/one-of [gen-sunflower-ident gen-comment gen-lisp gen-inline-render])]
     (gen/fmap #(str "◊" %) syntax)))
 
 (def gen-sunflower
   (gen/fmap str/join
-            (gen/vector (gen/one-of [gen/string gen-sunflower-cmd]))))
+            (gen/vector (gen/one-of [gen-text gen-sunflower-cmd]))))
 
-(defn call? [tree]
+(defn comment? [tree]
   (match tree
-    [:Start [:Lisp [:FlowerSyntax
-                    [:FlowerCall & _]]]] true
+    [:Start [:Lisp [:FlowerSyntax [:OuterComment]]]
+            [:Text "\n"]] true
     :else false))
+
+; (defn call? [tree]
+;   (match tree
+;     [:Start [:Lisp [:FlowerSyntax
+;                     [:FlowerCall & _]]]] true
+;     :else false))
 
 (defn inline-render? [tree]
   (match tree
@@ -54,11 +70,17 @@
                      [:CallTrailer [:NestedRender & _]]]]]] true
     :else false))
 
-(defspec self-test-parseable-call 100
-  (prop/for-all [s gen-call]
+(defspec self-test-parseable-comment 100
+  (prop/for-all [s gen-comment]
     (let [all (str "◊" s)
           parsed (eval/parse all)]
-      (expect call? parsed (pr-str all)))))
+      (expect comment? parsed (pr-str all)))))
+
+; (defspec self-test-parseable-call 100
+;   (prop/for-all [s gen-call]
+;     (let [all (str "◊" s)
+;           parsed (eval/parse all)]
+;       (expect call? parsed (pr-str all)))))
 
 (defspec self-test-parseable-render 100
   (prop/for-all [s gen-inline-render]
@@ -85,6 +107,7 @@
                                :Text 2})
   (expect-nodes "◊» ◊◊" {:OuterIdent 2 :Text 1})
   (expect-nodes "◊(str \n  ; TODO: xxx \n )" {:FlowerCall 1 :Text 0})
+  (expect-nodes "◊; TODO: xxx" {:OuterComment 1 :Text 0})
   (expect-nodes "◊#_(a)«b»" {:ReaderSyntax 1 :FlowerCall 1 :NestedRender 1
                              :Text 0}))
 

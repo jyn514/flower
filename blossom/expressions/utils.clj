@@ -23,6 +23,6 @@
 
 (defn insert-after-where
   "Inserts `item` into `coll` after the first element that satisfies `pred`."
-  [coll pred item]
+  [pred item coll]
   (let [[after before] (split-with pred coll)]
     (concat before (take 1 after) (list item) (drop 1 after))))

@@ -64,6 +64,7 @@
 ; keep this in sync with :classes in flower.eval
 (def all-dynamic
   (all-public
+    "java.lang.AssertionError"
     "java.lang.Class"
     "java.lang.String"
     "java.lang.Integer"

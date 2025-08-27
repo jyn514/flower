@@ -61,10 +61,12 @@
   (apply eprintln (fmt "flower${*cmd*}: warning:") msg))
 (defn error [& msg]
   (apply eprintln (fmt "flower${*cmd*}: error:") msg))
-(defn fatal [& msg]
-  (throw (ex-info
-           (apply str (interpose " " msg))
-           {:flower/exit true})))
+(defn fatal [opts & msg]
+  (let [[info msg] (if (map? opts)
+                     [(merge {:flower/expected true} opts) msg]
+                     [{:flower/expected true} (concat [opts] msg)])
+        formatted (apply str (interpose " " msg))]
+    (throw (ex-info formatted info))))
 
 (defn run [opts & rest]
   (let [[opts rest] (if (map? opts)
@@ -115,7 +117,7 @@
   [parser input description]
   (let [ev (parser input)]
     (if-let [err (insta/get-failure ev)]
-      (fatal (render-parse-error err description))
+      (fatal {:flower/parse true} (render-parse-error err description))
       ev)))
 
 (defn escape-shell
