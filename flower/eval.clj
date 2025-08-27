@@ -127,7 +127,8 @@
                 'babashka.fs (copy-all 'babashka.fs bb-fs)
                 'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
    ; NOTE: the strings will give a class cast exception if someone tries to rebind them
-   :bindings {'» "»"
+   :bindings {'« "«"
+              '» "»"
               '◊ "◊"
               'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
@@ -344,6 +345,7 @@
      :Lisp identity
      :FlowerSyntax identity
 
+     :OuterComment (constantly "")
      :OuterIdent #(embed (symbol %))
 
      :FlowerCall #(apply flower-call cx src %&)

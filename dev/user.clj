@@ -9,6 +9,7 @@
           '[clojure.reflect :as r]
           '[clojure.walk :as walk :refer [walk postwalk prewalk]]
           '[clojure.stacktrace :refer [print-stack-trace]]
+          '[clojure.java.io :as io]
           '(flower [main :as flower])
           '[flower.eval :as eval]
           '(sci [core :as sci])

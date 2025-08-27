@@ -10,9 +10,12 @@ Start = (Text | Lisp)*
 Text = #'[^◊]+'
 Lisp = <'◊'> FlowerSyntax
 (* TODO: can probably inline this into Lisp *)
-FlowerSyntax = OuterIdent | FlowerCall
+FlowerSyntax = OuterIdent | FlowerCall | OuterComment
+(* NOTE: we disallow strings, vectors, and maps as outer forms *)
 FlowerCall = ReaderSyntax? List CallTrailer
 CallTrailer = <'«'> NestedRender <'»'> | !'«'
+NestedRender = ( #'[^»◊]+' | Lisp )*
+OuterComment = <#';[^\n]*'>
 (* like Ident, but doesn't support <>.
    keep them in sync. *)
 (*
@@ -21,20 +24,15 @@ Those are defined as:
 - ID_Start: [\p{L}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}].
 - Other_ID_Start: actually only here for backcompat so i don't care
 - Pattern_White_Space: [\t\n\v\f\r \u0085\u200e\us00f\u0028\0029]
-- 
 
 https://www.unicode.org/reports/tr44/#XID_Start
 https://www.unicode.org/reports/tr31/tr31-41.html
-
-OuterIdent = #'[-«»0-9a-zA-Z%*+!_\'?=/.]+'
 *)
-OuterIdent = #'[-«»◊0-9\p{L}\p{Nl}%*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
-NestedRender = ( #'[^»◊]+' | Lisp )*
-
-ReaderSyntax = #"[\[\;@^`~']+" | ReaderForm
+OuterIdent = #'[-«»◊0-9\p{L}\p{Nl}%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
+ReaderSyntax = #"[\;@^`~']+" | ReaderForm
 ReaderForm = '#' ( #'[#:"\'_]' | Ident | & '(' )
 (* keep this in sync with OuterIdent. *)
-Ident = #'[-«»◊0-9\p{L}\p{Nl}<>%*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
+Ident = #'[-«»◊0-9\p{L}\p{Nl}<>%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
 Keyword = ':' Ident
 List = <'('> Sequence <')'>
 Vec = <'['> Sequence <']'>

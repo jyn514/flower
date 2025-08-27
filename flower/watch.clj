@@ -33,7 +33,8 @@
                             (apply f args)
                             (reset! task nil)
                             (.purge timer)))]
-           ; TODO: we have a race condition here somewhere
+           ; TODO: we have a race condition here somewhere,
+           ; .schedule keeps throwing "already canceleled"
            (when-let [t ^TimerTask @task]
              (.cancel t))
            (reset! task new-task)

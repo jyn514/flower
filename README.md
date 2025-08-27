@@ -14,15 +14,18 @@ flower’s guiding principles are:
 3. use the right language for the job.
 4. prefer composing tools to monoliths.
 ## language overview
-the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. `◊»` and `◊◊` escape their special characters, respectively. template embedding and includes are done with clojure function calls.
+the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. `◊;` comments the rest of the line. `◊#_(...)` is a structural comment. `◊«`, `◊»`, and `◊◊` escape their special characters, respectively. template embedding and includes are done with clojure function calls.
 ```html
+◊; you can call any clojure function in a ◊() list.
+◊; the markup is passed as the last argument.
 ◊(def body)«
  <div class="trigger">
     ◊(for [section subsections
           :when (:title section)])«
       <a class="page-link" href="◊(:path section)">(:title section)</a>
     »
-    ◊(a {:class "page-link" :href "/computer-of-the-future"}){the computer of the next 200 years}
+    ◊; TODO: implement `a` for anchors
+    ◊#_(a {:class "page-link" :href "/computer-of-the-future"}){the computer of the next 200 years}
  </div>
  »
  ◊(embed "page.html" {'body body})
@@ -34,23 +37,26 @@ all the basics:
 - static binaries
 - live-reload
 - extremely fast builds
-- syntax highlighting -- TODO
-- RSS feed support -- TODO
+- syntax highlighting -- [TODO](https://codeberg.org/jyn514/flower/issues/22)
+- RSS feed support
 
 things it’s weird other SSGs don’t support:
 
 - println debugging
-- real stack traces ([example][#example-stacktrace])
+- real stack traces ([example](#example-stacktrace))
 - a REPL so you can try things out easily
 - a real programming language (clojure). the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
-- use any markup language you like. asciidoc (TODO) and markdown are supported by default. other languages are pluggable.
+- use any markup language you like. asciidoc ([TODO][todo-asciidoc]) and markdown are supported by default. other languages are pluggable.
+
+[todo-asciidoc]: https://codeberg.org/jyn514/flower/issues/37
 
 and some weird ones:
 
 - support for arbitrary build commands
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
 - post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
-- choose your own language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- TODO
+- choose your own preprocessor language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- [TODO](https://codeberg.org/jyn514/flower/issues/38)
+- choose your own libraries. instead of "macros" and "shortcodes", flower gives you real functions, which can be in either clojure or a language of your choosing -- [TODO](https://codeberg.org/jyn514/flower/issues/31)
 - render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
 ## testimonials
@@ -188,7 +194,7 @@ you can hide a template expression from the output with a normal HTML comment: `
 but sometimes you may want to avoid evaluating it at all (e.g. if it gives an error you don't want to fix right now).
 to avoid evaluating an expression, prefix it with `#_`, like a [normal clojure ignore](https://clojure.org/reference/reader#_dispatch):
 `◊#_(this-function-does-not-exist)`.
-TODO: this currently only works for lists, not idents, i.e. `◊#_ident` will give a syntax error.
+this only works for lists—to comment out identifiers, use a line comment: `◊;this-var-does-not-exist`
 
 you may want to write reusable expressions for your pages (these are often called "shortcodes" or "macros" in other SSGs).
 to do so, you write normal clojure.
@@ -316,7 +322,7 @@ preprocessors: ["handlebars"]
 ---
 ```
 
-this works for both pages and templates. TODO
+this works for both pages and templates. [TODO](https://codeberg.org/jyn514/flower/issues/38)
 
 #### advanced: custom preprocessors
 
@@ -410,6 +416,7 @@ flower will automatically check for conflicts when you call `generate`.
      :description "build my existing zola site"}]})
 
 ; TODO: all this sucks!! idk how to make it better though
+; TODO: ok so i think actually the thing to do is to make it so that you only have a single output (the index page), many inputs (everything in that directory), and you trust the existing SSG to be incremental rather than second guessing it.
 (def zola-dirs ["zola/static" "zola/content"]) ; need to watch these for newly created files
 (def zola-markdown-posts
   (fs/glob "zola/content" "**.md"))
