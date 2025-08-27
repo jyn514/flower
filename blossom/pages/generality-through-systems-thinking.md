@@ -4,9 +4,9 @@ date: 2025-07-04
 description: "our programs have been stuck in a box for a long time. we can escape it."
 taxonomies:
  tags: ["ideas"]
- computer-of-the-future: ["2"]
+computer-of-the-future:
+  principles: 2
 extra:
-  category: principles
   stub: true
   draft: true
   toc: true

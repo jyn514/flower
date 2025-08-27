@@ -4,10 +4,9 @@ date = 2025-07-02
 #draft = true
 #description: ""
 #taxonomies.tags = []
-taxonomies.computer-of-the-future = ["8"]
+computer-of-the-future.tools = 5
 #extra.audience = "everyone"
 #extra.unlisted = true
 extra.stub = true
-extra.category = "tools"
 +++
 

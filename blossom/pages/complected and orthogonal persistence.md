@@ -5,12 +5,10 @@ date: 2025-06-30
 description: how hard is it to save and restore program state?
 slug: complected-and-orthogonal-persistence
 taxonomies:
-  computer-of-the-future:
-    - 4
   tags:
     - ideas
-extra:
-    category: tools
+computer-of-the-future:
+  tools: 0
 ---
 [protobuf]: https://protobuf.dev/
 > _**Everything Not Saved Will Be Lost**_—Ancient Nintendo Proverb

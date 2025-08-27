@@ -3,8 +3,7 @@ title = "operators, not users and programmers"
 date = 2025-07-05
 description = "writing programs should be no harder than writing a resume"
 taxonomies.tags = ["ideas"]
-taxonomies.computer-of-the-future = ["0"]
-extra.category = "principles"
+computer-of-the-future.principles = 0
 +++
 **the modern distinction between “programmers” and “users” is evil and destroys agency.**
 ## consider how the spreadsheets grow

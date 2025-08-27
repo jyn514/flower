@@ -1,10 +1,6 @@
 ---
 title: "sorry for the rss screwup"
 date: 2025-07-06
-#description: ""
-#taxonomies:
-#  tags: []
-#  computer-of-the-future: ["0"]
 extra:
   rss_only: true
 ---

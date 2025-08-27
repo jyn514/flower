@@ -4,10 +4,10 @@ date: 2025-07-05
 #description: ""
 taxonomies:
 #  tags: []
-  computer-of-the-future: ["9"]
+computer-of-the-future:
+  tools: 6
 extra:
   draft: true
-  category: tools
 #  audience: "everyone"
 #  unlisted: true
   stub: true

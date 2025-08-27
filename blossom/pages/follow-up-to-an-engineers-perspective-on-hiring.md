@@ -5,7 +5,6 @@ draft: true
 #description: ""
 taxonomies:
   tags: [ideas, hiring]
-#  computer-of-the-future: ["0"]
 extra:
   draft: true
 #  category: "tools"

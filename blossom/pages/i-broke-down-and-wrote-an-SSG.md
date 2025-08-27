@@ -5,7 +5,6 @@ draft: true
 #description: ""
 #taxonomies:
 #  tags: []
-#  computer-of-the-future: ["0"]
 extra:
   draft: true
 #  category: "tools"

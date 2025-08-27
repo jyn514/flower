@@ -4,9 +4,9 @@ date: 2025-07-14
 description: "your data is trapped inside the box that is your program. you can only see what the program author exposes."
 taxonomies:
  tags: ["ideas"]
- computer-of-the-future: ["1"]
+computer-of-the-future:
+  principles: 1
 extra:
-  category: "principles"
   toc: 3
 #  audience: "everyone"
 #  unlisted: true

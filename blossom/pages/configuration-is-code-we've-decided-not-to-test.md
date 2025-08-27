@@ -5,7 +5,6 @@ draft: true
 description: "'configuration' vs 'code' is the real dubious ontology"
 #taxonomies:
 #  tags: []
-#  computer-of-the-future: ["0"]
 extra:
   draft: true
 #  category: "tools"
