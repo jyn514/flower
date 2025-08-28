@@ -1,5 +1,11 @@
 (ns expressions.utils)
 
+(defn discard
+  "Run a function for its side-effects and discard the return value.
+   Useful if you don't want to emit the return value into a template."
+  [f & args]
+  (do (apply f args) nil))
+
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])
 

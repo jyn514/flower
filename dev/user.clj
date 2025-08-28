@@ -10,6 +10,8 @@
           '[clojure.walk :as walk :refer [walk postwalk prewalk]]
           '[clojure.stacktrace :refer [print-stack-trace]]
           '[clojure.java.io :as io]
+          '[malli.core :as m]
+          '[malli.dev]
           '(flower [main :as flower])
           '[flower.eval :as eval]
           '(sci [core :as sci])
@@ -58,3 +60,5 @@
   (ns-unmap *ns* 'trace)
   (use 'clojure.tools.trace))
        ; (clojure.tools.trace/trace ~@args)))
+
+(malli.dev/start!)

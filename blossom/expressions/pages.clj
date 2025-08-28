@@ -19,8 +19,16 @@
       ; this is cursed and easily leads to dependency cycles
       ;(-> post :content meta/render (html/select "title") html/text)))
 
+(defn parse-date [d]
+  (try (jt/offset-date-time d)
+    (catch clojure.lang.ExceptionInfo e
+      ; HACK: SCI bug, `java.time.OffsetDateTime` is a symbol instead of a class
+      (if (->> e ex-data :to pr-str (= "java.time.OffsetDateTime"))
+        (jt/local-date d)
+        (throw e)))))
+
 (defn format-date [date format]
-  (->> date jt/offset-date-time (jt/format format)))
+  (->> date parse-date (jt/format format)))
 
 (defn date
   ([post] (date post "yyyy-MM-dd"))

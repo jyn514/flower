@@ -91,7 +91,7 @@
   (b/copy-file {:src (str "defaults/" manifest-path)
                 :target (format "%s/%s/%s" class-dir defaults manifest-path)}))
 
-(defn uberjar [_]
+(defn uberjar [dev]
   (clean nil)
   (manifest nil)
   (b/copy-dir {:src-dirs ["src"]
@@ -102,6 +102,7 @@
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]
+                  :bindings {#'clojure.core/*assert* (not= false dev)}
                   :class-dir class-dir})
   (let [target (str class-dir "/META-INF/native-image/flower/main/reachability-metadata.json")
         serialized (json/write-str reachable)]
@@ -140,7 +141,7 @@
 
 (defn -native-helper [dev]
   (println (graal dev))
-  (uberjar nil)
+  (uberjar dev)
   (ps/shell (graal dev)))
 
 (defn native [_] (-native-helper false))

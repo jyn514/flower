@@ -168,3 +168,28 @@
 
 (defn -main [& args]
   (System/exit (apply main args)))
+
+; dynamic type checking
+(do
+  (if *assert*
+    (require
+      '[malli.instrument :as mi]
+      '[malli.dev.pretty :as pretty])
+    (eprintln "into: type assertions disabled"))
+  (when *assert*
+    (eprintln "info: instrumenting type signatures")
+    (def flower-nss
+      ['flower.beholder
+       'flower.cmd
+       'flower.main
+       'flower.eval
+       'flower.defaults
+       'flower.frontmatter
+       'flower.hiccup
+       'flower.internal.utils
+       'flower.reflect
+       'flower.repl
+       'flower.utils
+       'flower.watch])
+    (mi/collect! {:ns flower-nss})
+    (mi/instrument! {:report (pretty/thrower)})))

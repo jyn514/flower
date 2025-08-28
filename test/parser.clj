@@ -53,21 +53,21 @@
 
 (defn comment? [tree]
   (match tree
-    [:Start [:Lisp [:FlowerSyntax [:OuterComment]]]
+    [:Start [:FlowerSyntax [:OuterComment]]
             [:Text "\n"]] true
     :else false))
 
 ; (defn call? [tree]
 ;   (match tree
-;     [:Start [:Lisp [:FlowerSyntax
-;                     [:FlowerCall & _]]]] true
+;     [:Start [:FlowerSyntax
+;                     [:FlowerCall & _]]] true
 ;     :else false))
 
 (defn inline-render? [tree]
   (match tree
-    [:Start [:Lisp [:FlowerSyntax
-                    [:FlowerCall _
-                     [:CallTrailer [:NestedRender & _]]]]]] true
+    [:Start [:FlowerSyntax
+             [:FlowerCall _
+              [:CallTrailer [:NestedRender & _]]]]] true
     :else false))
 
 (defspec self-test-parseable-comment 100

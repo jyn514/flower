@@ -46,6 +46,11 @@
 (defn symmmetric-difference [A B]
   (union (set/difference A B) (set/difference B A)))
 
+(defn update-meta
+  "Given a value x, run `f` on its metadata and apply the result as x's metadata"
+  [f x]
+  (->> x meta f (with-meta x)))
+
 (defn eprint [& msg]
   (binding [*out* *err*]
     (apply print msg)))

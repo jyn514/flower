@@ -32,6 +32,8 @@
  {org.clojure/clojure {:mvn/version "1.12.1"}
   ; native builds
   com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}
+  ; type checking
+  metosin/malli {:mvn/version "0.19.1"}
   ; CLI parsing
   org.babashka/cli {:mvn/version "0.8.66"}
   ; repl
@@ -50,7 +52,7 @@
   ; clojure evaluator
   org.babashka/sci {:git/url "https://github.com/babashka/sci.git"
                     :git/sha "56104c81cb7a3804f8ee84aa64b313dc7143f30e"}
-  ; org.babashka/sci {:mvn/version "0.10.47"}
+  ; org.babashka/sci {:mvn/version "0.10.49"}
   ; build helpers
   babashka/fs {:mvn/version "0.5.26"}
   babashka/process {:mvn/version "0.6.23"}

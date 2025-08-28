@@ -71,7 +71,7 @@
 - should not lose `page` with `embed-template`
 - maybe `◊include` should be relative to `includes` instead of `templates`?
   - nah
-- bundle asciidoc; suggest for highly nested md->clj->md->clj
+- bundle [asciidoc]; suggest for highly nested md->clj->md->clj
 - allow preprocessors to edit frontmatter
 - render needs to not blindly assume that the preprocessing language is clojure
 - dependencies between index pages and rendered pages
@@ -81,6 +81,8 @@
 
   <!-- - maybe `transformers/index.clj`, present by default, returns list of strings -->
   <!-- - files are recognized by  -->
+
+[asciidoc]: https://codeberg.org/jyn514/flower/issues/37
 
 ## ideating
 

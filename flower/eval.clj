@@ -20,6 +20,10 @@
    [org.jsoup.nodes Document]
    (org.jsoup.select Nodes)))
 
+; types
+
+(def Span [:map [:line :int] [:column :int]])
+
 ; sandboxing
 
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
@@ -138,6 +142,8 @@
               'md->html flower.utils/md->html}
    ; keep this in sync with `dynamic` in native.clj
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
+             'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
+             'java.time.OffsetDateTime 'java.time.OffsetDateTime
              'org.jsoup.Jsoup org.jsoup.Jsoup
              'org.jsoup.select.Elements org.jsoup.select.Elements
              'org.jsoup.nodes.Node org.jsoup.nodes.Node
@@ -159,36 +165,38 @@
 
 ; eval and tracebacks
 
-(defn span->start
-  "Given a [start end] byte offset and source string,
-   return a [line column] pair."
-  [span src]
-  (if-let [[start _] span]
+(defn offset->line
+  "Given a start byte offset and source string, return a Span."
+  {:malli/schema [:-> [:maybe :int] :string Span]}
+  [start src]
+  (if start
     (let [[line-zero line] (->> (subs src 0 start)
                                 StringReader.
                                 BufferedReader.
                                 line-seq
                                 enumerate
                                 last)]
-      [line-zero (dec (count line))])
-    [0 0]))
+      {:line line-zero :column (dec (count line))})
+    {:line 0 :column 0}))
 
 (defn abs-span
   "Make a `relative` span absolute with respect to `start`"
-  [[start-line start-column] [relative-line relative-column]]
-  [(+ relative-line start-line)
+  {:malli/schema [:-> Span Span Span]}
+  [{start-line :line start-column :column}
+   {relative-line :line relative-column :column}]
+  {:line (+ relative-line start-line)
    ; TODO: columns are messed up
-   (if (= relative-line 1) (+ relative-column start-column) relative-column)])
+   :column (if (= relative-line 1)
+             (+ relative-column start-column)
+             relative-column)})
 
-(defn render-sci-frame [f default-file start]
-  (let [var (str (:ns f) "/" (or (:name f) "<top-level>"))
-        file (or (:file f)
-                 ; TODO: this only catches the clojure runtime,
-                 ; not bound flower functions
-                 (if (:sci/built-in f)
+(defn render-sci-frame [frame]
+  (let [{:keys [line column ns name file]
+         :or {name "<top-level>"
+              file (if (:sci/built-in frame)
                    "<clojure-runtime>"
-                   "<bound-host-function>")) 
-        [line column] [(:line f) (:column f)]
+                   "<bound-host-function>")}} frame
+        var (str ns "/" name)
         span (cond
                (and line column) (str " " line ":" column)
                line (str " " line)
@@ -198,17 +206,13 @@
 (defn print-sci-trace [e stacktrace dup]
   (let [useful? #(or (:name %) (:line %) (not= (:ns %) 'user))
         ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
-        useful-frames (dedupe (filter useful? stacktrace))
-        file (-> e ex-data :flower/filename)
-        src (-> e ex-data :flower/source)
-        ; TODO: this doesn't handle InlineRender; *something* is going wrong
-        start (-> e ex-data :flower/span #_(span->start src))]
+        useful-frames (dedupe (filter useful? stacktrace))]
     (when (and dup (not (instance? clojure.lang.ExceptionInfo dup)))
       (-> dup type pr-str (str ": ") print))
     (apply print
       (ex-message e)
       "\n"
-      (map #(render-sci-frame % file start) useful-frames))))
+      (map render-sci-frame useful-frames))))
 
 (defn print-stack-trace [e]
   (if-let [sci-ex (sci/stacktrace e)]
@@ -224,9 +228,8 @@
           (println (ex-message e))
           (println (str (pr-str (class e)) ":") (ex-message e)))
         (when-let [file (-> e ex-data :flower/filename)]
-          ; NOTE: intentionally doesn't make span relative to start. this is already the absolute span.
-          (let [[line column] (-> e ex-data :flower/span)]
-            (print "" (render-sci-frame (merge {:ns 'user :file file :line line :column column} (meta e)) nil nil))))
+          (let [span (-> e ex-data :flower/span)]
+            (print "" (render-sci-frame (merge {:ns 'user :file file} span (meta e))))))
           (ex-cause e))))
 
 (defn print-cause-trace [ex]
@@ -252,13 +255,11 @@
        (catch clojure.lang.ExceptionInfo cause
          (let [file (-> cx meta :flower/filename)
                span (-> cx meta :flower/span)
-               src (-> cx meta :flower/source)
                msg (fmt "failed to eval ${file}")
                new-cause (map-ex-info cause
                            #(assoc %
                              :flower/filename file
-                             :flower/span span
-                             :flower/source src))
+                             :flower/span span))
                ex (ex-info msg {:flower/exit true
                                 :flower/eval true} new-cause)]
            (throw ex)))))
@@ -280,9 +281,8 @@
      (def ^:dynamic *form* form) ; for repl
      (eprint "eval-form: ")
      (eprn form))
-   (let [cx (with-meta cx (merge (meta cx)
-                                   {:flower/span (-> form insta/span (span->start src))
-                                    :flower/source src}))]
+   (let [cx (update-meta #(merge %
+                                 {:flower/span (-> form insta/span first (offset->line src))}) cx)]
        (sci/binding [sci/out *err*
                      sci/err *err*
                      sci/ns userns
@@ -291,12 +291,13 @@
 
 (defn ->abs
   "Given an SCI parsed form, update its metadata to be relative to `start`"
+  {:malli/schema [:-> Span :any :any]}
   [start node]
-  (if-let [old-meta (meta node)]
-    (let [relative [(:line old-meta) (:column old-meta)]
-          [line column] (abs-span start relative)]
-      (with-meta node (merge old-meta {:line line :column column})))
-    node))
+  ; TODO: add an update-meta helper
+  (let [relative (meta node)]
+    (if (and (:line relative) (:column relative))
+      (with-meta node (merge relative (abs-span start relative)))
+      node)))
 
 (defn map-with-meta
   "Given a mapper `f` and one or more nodes,
@@ -306,7 +307,7 @@
   [f src & nodes]
   (let [l (-> nodes first insta/span first)
         r (-> nodes last insta/span last)
-        start (span->start [l r] src)
+        start (offset->line l src)
         orig_src (apply subs src [l r])
         mapped (f orig_src)]
     (postwalk #(->abs start %) mapped)))
@@ -327,10 +328,10 @@
          ; NOTE: unlike `list` and `syntax`, we leave the nested metadata be.
          ; we've already walked it once, no need to do it again.
          ; we do need to add spans to the outermost `str` call, though.
-         [body-line body-col] (map inc (span->start (insta/span trailer) src))
+         span (update-vals (offset->line (first (insta/span trailer)) src) inc)
          ; render-body is either `() or a `(str ...) call.
          body-with-span (if-let [inner (first render-body)]
-                          `(~(with-meta inner {:line body-line :col body-col}))
+                          `(~(with-meta inner span))
                           '())
          merged-args (with-meta (concat parsed-args body-with-span)
                                 (meta parsed-args))]

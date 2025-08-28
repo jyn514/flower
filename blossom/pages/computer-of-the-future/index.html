@@ -1,15 +1,15 @@
 ◊(use 'expressions.utils 'flower.utils)
+◊(require '[expressions.pages :refer [date title]])
 
 <h1 class="page-heading">The Computer Of The Next 200 Years</h1>
 
 This is a series of posts about what the future of computing could look like.
 This series is as-yet unfinished.
 
-◊; sort numerically, not alphabetically
-
 ◊(def postmodern
-  {:author "jade" :path "https://jade.fyi/blog/the-postmodern-build-system/"
+  {:author "jade" :flower/path "https://jade.fyi/blog/the-postmodern-build-system/"
    :category "tools" :title "the postmodern build system"
+   :flower/source-file "<synthetic>" :date "2023-12-11"
    :order 5})
 
 ◊(def grouped
@@ -21,76 +21,32 @@ This series is as-yet unfinished.
   (-> grouped
     (update :tools #(conj % postmodern))
     (update-vals #(sort-by :order %))))
-  <!-- (filter first (group-by  pages))) -->
-  <!-- (filter first (group-by (comp first keys :computer-of-the-future) pages))) -->
 ◊(def categories [:principles, :tools, :implementation])
 ◊(assert (= (set categories) (set (keys posts)))
          (keys posts))
 
-◊; https://stackoverflow.com/a/18201889/7669110
-◊;(defn the-future [page] (some-> page :taxonomies :computer-of-the-future first))
-◊#_(def posts
-  (->> pages
-       (map (juxt identity the-future))
-       (filter second)
-       (sort-by second)
-       (insert-after-where #(= (the-future %) 5) postmodern)
-       (map first)))
-
-◊#_(def categories (set (map #(get-in % [:extra :category]) posts)))
-
-◊(def ^:dynamic n 0)
-
+◊(def n (atom 0))
 ◊(for [category categories])«
 <hr>
 <h2>◊(name category)</h2>
 
-<!-- {% for n in parsed_terms %} -->
-<!-- {# {% set term = terms | filter(attribute="terms[0].category", value=category | as_str) | nth(n=0) %} #} -->
-<!--     {% set term = terms | filter(attribute="name", value=n | as_str) | nth(n=0) %} -->
-<!--     {% if term.pages[0].extra.category == category %}{% set_global first_post = n %}{% break %}{% endif %} -->
-<!-- {% endfor %} -->
-
-{# {% set posts_in_cat = terms | filter(attribute="pages[0].category", value=category) %} #}
-{# {% set first_post = terms | filter(attribute="name", value=n | as_str) | nth(n=0) %} #}
-
 <ol class="post-list" start="◊n">
 ◊(for [post (category posts)])«
-
-  <!-- {% for n in parsed_terms %} -->
-  <!--   {% set term = terms | filter(attribute="name", value=n | as_str) | nth(n=0) %} -->
-  <!-- {% if not term %} oops !!! {{name}} {%continue%}{%endif%} -->
-  <!-- {% for post in term.pages %} {# always just a single post #} -->
-  <!-- {% if not post.extra.category %}oops!! {{post.title}} doesn't have a category{% continue %}{% endif %} -->
-  <!-- {% if post.extra.category != category %}{% continue %}{% endif %} -->
-
-    <li>
-      ◊;(if (-> post :extra :stub)
-      
-    {% if post.extra.stub %}
-    <h2>{{ post.title | safe }}</h2>
-    {% else %}
-    {% set date_format = site.minima.date_format | default(value = "%b %-d, %Y") %}
+  ◊(discard swap! n inc)
+  <li>
+    ◊(if (-> post :extra :stub))«
+    <h2>◊(title post)</h2>
+    »«
     <span class="post-meta">
-      {{ post.date | date(value = date_format) }}
-      • author—jyn
+      ◊(date post)
+      • author—◊(:author post)
     </span>
 
     <h2>
-      <a class="post-link" href="{{ post.path }}">{{ post.title | safe }}</a>
+      <a class="post-link" href="◊(:flower/path post)">◊(title post)</a>
     </h2>
-    {% endif %}
-    </li>
-  {% endfor %}
-  {% if term.name == "4" and category == "tools" %}
-  <li>
-      <span class="post-meta">
-      2023-12-11
-      • author—jade
-      </span>
-    <h2><a class="post-link" href="https://jade.fyi/blog/the-postmodern-build-system/">the postmodern build system</a></h2>
+    »
   </li>
-  {% endif %}
   »
 </ol>
 »
