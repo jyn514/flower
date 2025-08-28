@@ -324,18 +324,19 @@
          parsed-args (if (nil? syntax)
                   (map-with-meta parse src list)
                   (map-with-meta parse src syntax list))
-         render-body (rest trailer)
-         ; NOTE: unlike `list` and `syntax`, we leave the nested metadata be.
-         ; we've already walked it once, no need to do it again.
-         ; we do need to add spans to the outermost `str` call, though.
-         span (update-vals (offset->line (first (insta/span trailer)) src) inc)
-         ; render-body is either `() or a `(str ...) call.
-         body-with-span (if-let [inner (first render-body)]
-                          `(~(with-meta inner span))
-                          '())
-         merged-args (with-meta (concat parsed-args body-with-span)
+         merged-args (with-meta (concat parsed-args trailer)
                                 (meta parsed-args))]
      (embed merged-args))))
+
+(defn nested-render
+  [src markup]
+  ; first, add spans to all inner (str) calls
+  ; NOTE: we leave the nested metadata be.
+  ; we've already walked it once, no need to do it again.
+  (let [span (-> markup insta/span first (offset->line src) (update-vals inc))]
+    (if markup
+      (with-meta `(str ~@markup) span)
+      '())))
 
 (defn transformer
   "'''IR''' (really just fancy parse-form)"
@@ -350,7 +351,10 @@
      :OuterIdent #(embed (symbol %))
 
      :FlowerCall #(apply flower-call cx src %&)
-     :NestedRender #(identity `(str ~@%&))
+     ; don't have spans available yet; for now just combine them all into a vec
+     :NestedRender vector
+     :CallTrailer #(map (fn [m] (nested-render src m)) %&)
+     ; :NestedRender #(identity `(str ~@%&))
      } tree))
 
 (defn- on-parse-event [cx src ev]

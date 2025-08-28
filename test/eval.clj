@@ -23,9 +23,9 @@
                     :flower/keys [filename span]}
                    keyword? type
                    "<proptest>" filename
-                   (more-of [l r]
-                            integer? l
-                            integer? r) span)
+                   (more-of {:keys [line column]}
+                            integer? line
+                            integer? column) span)
           (ex-data (ex-cause e)) (ex-cause e)))
 
 (defn expect-valid-or-trace [s]

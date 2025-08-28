@@ -94,13 +94,13 @@
   (let [nodes (-> src eval/parse count-nodes
                   (select-keys (keys counts)))
         merged (merge (update-vals counts (constantly 0)) nodes)]
-    (expect counts merged)))
+    (expect counts merged src)))
 
 (defexpect edge-cases
   (expect-nodes "◊(a)(b)" {:FlowerCall 1 :Text 1})
   (expect-nodes "◊(a)◊(b)" {:FlowerCall 2 :Text 0})
   (expect-nodes "◊(a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
-  (expect-nodes "◊(a)«b»«»" {:FlowerCall 1 :NestedRender 1 :Text 1})
+  (expect-nodes "◊(a)«b»«c»" {:FlowerCall 1 :NestedRender 2 :Text 0})
   (expect-nodes "◊(map #(+ 1 %) [])«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
   (expect-nodes "◊(->> xyz a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
   (expect-nodes "<a>◊xyz</a>" {:FlowerCall 0 :OuterIdent 1 :NestedRender 0

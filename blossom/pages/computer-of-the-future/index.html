@@ -17,10 +17,11 @@ This series is as-yet unfinished.
       (group-by (comp first keys :computer-of-the-future))
       (filter first)
       (into {})))
+◊(println (map :order (:principles grouped)))
 ◊(def posts
   (-> grouped
     (update :tools #(conj % postmodern))
-    (update-vals #(sort-by :order %))))
+    (update-vals #(sort-by (comp first values :computer-of-the-future %)))))
 ◊(def categories [:principles, :tools, :implementation])
 ◊(assert (= (set categories) (set (keys posts)))
          (keys posts))
@@ -39,9 +40,8 @@ This series is as-yet unfinished.
     »«
     <span class="post-meta">
       ◊(date post)
-      • author—◊(:author post)
+      • author—◊(-> post :author (or "jyn"))
     </span>
-
     <h2>
       <a class="post-link" href="◊(:flower/path post)">◊(title post)</a>
     </h2>
