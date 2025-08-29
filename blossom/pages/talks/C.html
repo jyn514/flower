@@ -1,108 +1,107 @@
 ---
 title: Intro to C
 date: 2019-11-05
+template: null
 ---
+◊(require '[expressions.meta :refer [embed]])
+◊(def head)«
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<!doctype html>
-<html>
-        <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Intro to C</title>
 
-                <title>Intro to C</title>
+<link rel="stylesheet" href="/talks/css/reveal.css">
+<link rel="stylesheet" href="/talks/css/theme/black.css">
 
-                <link rel="stylesheet" href="/talks/css/reveal.css">
-                <link rel="stylesheet" href="/talks/css/theme/black.css">
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="/talks/lib/css/zenburn.css">
 
-                <!-- Theme used for syntax highlighting of code -->
-                <link rel="stylesheet" href="/talks/lib/css/zenburn.css">
-
-                <!-- Printing and PDF exports -->
-                <script>
-                        var link = document.createElement( 'link' );
-                        link.rel = 'stylesheet';
-                        link.type = 'text/css';
-                        link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
-                        document.getElementsByTagName( 'head' )[0].appendChild( link );
-                </script>
-        </head>
-        <body>
-                <div class="reveal">
-                        <div class="slides">
-                          <section>
-                            <h1>C</h1>
-                            <h3>A.K.A. High-level assembler</h3>
-                            <h5>For when you gotta go <i>fast</i></h5>
-                            <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
-                          </section>
-                          <section>
-                            <h2>5 minute history</h2>
-                            <ol>
-                              <li>C is the oldest programming language still widely used (except maybe COBOL)</li>
-                              <li>In 1972, Dennis Ritchie had to program on this machine: </li><img src="/talks/img/pdp-7.jpg" style="float: right;">
-                              <li>His compiler was fast and free so people used it</li>
-                              <li>Called high-level assembler because it is very close to how a CPU operates</li>
-                            </ol>
-                          </section>
-                          <section>
-                            <h2>What is C good for?</h2>
-                            <ul>
-                              <li>Going <i>fast</i></li>
-                              <li>Talking directly to hardware (memory-mapped I/O)</li>
-                              <li>Making system calls and <abbr title="Foreign Function Interface">FFI</abbr> calls</li>
-                            </ul>
-                            <p><small>Don't worry if you don't know these words yet</small></p>
-                          </section>
-                          <section>
-                            <h2>Enough meta, what does C look like?</h2>
-                            <a href="https://github.com/jyn514/threaded-server/">Threaded Web Server</a>
-                            <p><small>(demo goes here)</small></p>
-                          </section>
-                          <section>
-                            <h2>Preprocessor</h2>
-                            <ul>
-                              <li><code>#include</code> &#8212; C doesn't have imports, it just puts an entire file inside of your file</li>
-                              <li><code>#define A 1</code> &#8212; for when you want to be <i>sure</i> things are inlined</li>
-                              <li><code>#ifdef</code> &#8212; conditional compilation</li>
-                            </ul>
-                          </section>
-                          <section>
-                            <h2>Header files</h2>
-                            <ul>
-                              <li>C used to use a single-pass compiler, so it has to be very stupid</li>
-                              <li>The compiler only knows the type of a function if you declare it <i>before</i> you use it</li>
-                              <li>Also, C doesn't have <code>public</code>/<code>private</code>,
-                              <code>static</code> is the poor man's <code>private</code></li>
-                            </ul>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>Pointers!</h2>
-                              <p>Pointers hold the address in memory of a variable</p>
-                              <figure>
-                                <img src="/talks/img/pointer.png">
-                                <figcaption><small>picture credit:
-                                  <a href="https://stackoverflow.com/questions/4483653/can-you-explain-the-concept-of-the-this-pointer">stackoverflow.com</a>
-                                </small></figcaption>
-                              </figure>
-                            </section>
-                            <section>
-                              <h3>What's the difference?</h3>
-                              <div class="left"><pre><code>int f(int i) {
+<!-- Printing and PDF exports -->
+<script>
+  var link = document.createElement( 'link' );
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
+  document.getElementsByTagName( 'head' )[0].appendChild( link );
+</script>
+»
+◊(def body)«
+<div class="reveal">
+  <div class="slides">
+    <section>
+      <h1>C</h1>
+      <h3>A.K.A. High-level assembler</h3>
+      <h5>For when you gotta go <i>fast</i></h5>
+      <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
+    </section>
+    <section>
+      <h2>5 minute history</h2>
+      <ol>
+        <li>C is the oldest programming language still widely used (except maybe COBOL)</li>
+        <li>In 1972, Dennis Ritchie had to program on this machine: </li><img src="/talks/img/pdp-7.jpg" style="float: right;">
+        <li>His compiler was fast and free so people used it</li>
+        <li>Called high-level assembler because it is very close to how a CPU operates</li>
+      </ol>
+    </section>
+    <section>
+      <h2>What is C good for?</h2>
+      <ul>
+        <li>Going <i>fast</i></li>
+        <li>Talking directly to hardware (memory-mapped I/O)</li>
+        <li>Making system calls and <abbr title="Foreign Function Interface">FFI</abbr> calls</li>
+      </ul>
+      <p><small>Don't worry if you don't know these words yet</small></p>
+    </section>
+    <section>
+      <h2>Enough meta, what does C look like?</h2>
+      <a href="https://github.com/jyn514/threaded-server/">Threaded Web Server</a>
+      <p><small>(demo goes here)</small></p>
+    </section>
+    <section>
+      <h2>Preprocessor</h2>
+      <ul>
+        <li><code>#include</code> &#8212; C doesn't have imports, it just puts an entire file inside of your file</li>
+        <li><code>#define A 1</code> &#8212; for when you want to be <i>sure</i> things are inlined</li>
+        <li><code>#ifdef</code> &#8212; conditional compilation</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Header files</h2>
+      <ul>
+        <li>C used to use a single-pass compiler, so it has to be very stupid</li>
+        <li>The compiler only knows the type of a function if you declare it <i>before</i> you use it</li>
+        <li>Also, C doesn't have <code>public</code>/<code>private</code>,
+          <code>static</code> is the poor man's <code>private</code></li>
+      </ul>
+    </section>
+    <section>
+      <section>
+        <h2>Pointers!</h2>
+        <p>Pointers hold the address in memory of a variable</p>
+        <figure>
+          <img src="/talks/img/pointer.png">
+          <figcaption><small>picture credit:
+              <a href="https://stackoverflow.com/questions/4483653/can-you-explain-the-concept-of-the-this-pointer">stackoverflow.com</a>
+            </small></figcaption>
+        </figure>
+      </section>
+      <section>
+        <h3>What's the difference?</h3>
+        <div class="left"><pre><code>int f(int i) {
   i = 1;
 }</code></pre></div>
-                              <div class="right"><pre><code>int f(int *p) {
+          <div class="right"><pre><code>int f(int *p) {
   *p = 1;
 }</code></pre></div>
-                            </section>
-                            <section>
-                              <h3>Arrays in C are pointers</h3>
-                              <ul>
-                                <li>Have to know the length ahead of time</li>
-                                <li>Array index is offset from a pointer</li>
-                                <li>This is why arrays are 0-indexed!</li>
-                              </ul>
-                              <pre><code>int main() {
+      </section>
+      <section>
+        <h3>Arrays in C are pointers</h3>
+        <ul>
+          <li>Have to know the length ahead of time</li>
+          <li>Array index is offset from a pointer</li>
+          <li>This is why arrays are 0-indexed!</li>
+        </ul>
+        <pre><code>int main() {
   int a[] = {1, 2, 3};
   int i;
   // these are all equivalent and set i to 1
@@ -114,59 +113,59 @@ date: 2019-11-05
   // this will not compile
   i = a; // error: assignment makes integer from pointer
 }</code></pre>
-                            </section>
-                            <section>
-                              <h3>Strings in C are arrays</h3>
-                              <ul>
-                                <li>No classes!</li>
-                                <li>Have to know the length of a string somehow</li>
-                                <li>Denoted by null character '\0'</li>
-                              </ul>
-                              <figure>
-                                <img src="/talks/img/str.jpg">
-                                <figcaption><small>picture credit:
-                                  <a href="https://www.dyclassroom.com/c/c-pointers-and-strings">dyclassroom.com</a>
-                                </small></figcaption>
-                              </figure>
-                            </section>
-                            <!--
-                            <section>
-                              <p>So this means that
-                                <pre><code>int main(int argc, char *argv[]);</code></pre>
-                              is the same as <pre><code>int main(int argc, char **argv);</code></pre>
-                              </p>
-                            </section>
-                            -->
-                            <section>
-                              <h3>How do you return multiple things in C?</h3>
-                              <ul>
-                                <li>In Java, you return a class</li>
-                                <li>In Python, you return a tuple <pre><code>(a, b)</code></pre></li>
-                                  <li>In C, you have <a href="https://github.com/jyn514/threaded-server/blob/master/src/main.c#L67">output parameters</a></li>
-                              </ul>
-                            </section>
-                          </section>
-                          <section>
-                            <h2>Signals</h2>
-                            <p><small>(demo goes here)</small></p>
-                            <figure>
-                              <img src="/talks/img/signal.jpg">
-                              <figcaption><small>picture credit:
-                                  <a href="http://www.gerhardmueller.de/">gerhardmueller.de</a>. You can tell I was really having trouble finding pictures.
-                              </small></figcaption>
-                            </figure>
-                          </section>
-                        </div>
-                </div>
-                <style>
-                /* https://stackoverflow.com/questions/30861845/how-to-use-two-column-layout-with-reveal-js#38462769 */
-                .left {
-                  left: -9%;
-                  text-align: left;
-                  float: left;
-                  width: 50%;
-                  z-index:-10;
-                }
+      </section>
+      <section>
+        <h3>Strings in C are arrays</h3>
+        <ul>
+          <li>No classes!</li>
+          <li>Have to know the length of a string somehow</li>
+          <li>Denoted by null character '\0'</li>
+        </ul>
+        <figure>
+          <img src="/talks/img/str.jpg">
+          <figcaption><small>picture credit:
+              <a href="https://www.dyclassroom.com/c/c-pointers-and-strings">dyclassroom.com</a>
+            </small></figcaption>
+        </figure>
+      </section>
+      <!--
+        <section>
+        <p>So this means that
+        <pre><code>int main(int argc, char *argv[]);</code></pre>
+        is the same as <pre><code>int main(int argc, char **argv);</code></pre>
+        </p>
+        </section>
+        -->
+        <section>
+          <h3>How do you return multiple things in C?</h3>
+          <ul>
+            <li>In Java, you return a class</li>
+            <li>In Python, you return a tuple <pre><code>(a, b)</code></pre></li>
+              <li>In C, you have <a href="https://github.com/jyn514/threaded-server/blob/master/src/main.c#L67">output parameters</a></li>
+          </ul>
+        </section>
+    </section>
+    <section>
+      <h2>Signals</h2>
+      <p><small>(demo goes here)</small></p>
+      <figure>
+        <img src="/talks/img/signal.jpg">
+        <figcaption><small>picture credit:
+            <a href="http://www.gerhardmueller.de/">gerhardmueller.de</a>. You can tell I was really having trouble finding pictures.
+          </small></figcaption>
+      </figure>
+    </section>
+  </div>
+</div>
+<style>
+/* https://stackoverflow.com/questions/30861845/how-to-use-two-column-layout-with-reveal-js#38462769 */
+.left {
+  left: -9%;
+  text-align: left;
+  float: left;
+  width: 50%;
+  z-index:-10;
+}
 
                 .right {
                   left: 32%;
@@ -176,24 +175,24 @@ date: 2019-11-05
                   z-index: -10;
                   width: 50%;
                 }
-                </style>
+</style>
 
-                <script src="/talks/lib/js/head.min.js"></script>
-                <script src="/talks/dist/reveal.js"></script>
+<script src="/talks/lib/js/head.min.js"></script>
+<script src="/talks/dist/reveal.js"></script>
 
-                <script>
-                        // More info about config & dependencies:
-                        // - https://github.com/hakimel/reveal.js#configuration
-                        // - https://github.com/hakimel/reveal.js#dependencies
-                        Reveal.initialize({
-                          dependencies: [
-                                  { src: '/talks/plugin/zoom-js/zoom.js', async: true },
-                                  { src: '/talks/plugin/markdown/marked.js' },
-                                  { src: '/talks/plugin/markdown/markdown.js' },
-                                  { src: '/talks/plugin/notes/notes.js', async: true },
-                                  { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
-                          ]
-                        });
-                </script>
-        </body>
-</html>
+<script>
+  // More info about config & dependencies:
+  // - https://github.com/hakimel/reveal.js#configuration
+  // - https://github.com/hakimel/reveal.js#dependencies
+  Reveal.initialize({
+    dependencies: [
+      { src: '/talks/plugin/zoom-js/zoom.js', async: true },
+      { src: '/talks/plugin/markdown/marked.js' },
+      { src: '/talks/plugin/markdown/markdown.js' },
+      { src: '/talks/plugin/notes/notes.js', async: true },
+      { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+    ]
+  });
+</script>
+»
+◊(embed "skeleton.html" {'head head 'content body})

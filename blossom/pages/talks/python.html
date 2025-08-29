@@ -1,235 +1,229 @@
 ---
 title: Intro to Python
 date: 2019-09-11
+template: null
 ---
+◊(require '[expressions.meta :refer [embed]])
+◊(def head)«
+<link rel="stylesheet" href="/talks/css/reveal.css">
+<link rel="stylesheet" href="/talks/css/theme/black.css">
 
-<!doctype html>
-<html>
-        <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="/talks/lib/css/zenburn.css">
 
-                <title>Into to Python</title>
-
-                <link rel="stylesheet" href="/talks/css/reveal.css">
-                <link rel="stylesheet" href="/talks/css/theme/black.css">
-
-                <!-- Theme used for syntax highlighting of code -->
-                <link rel="stylesheet" href="/talks/lib/css/zenburn.css">
-
-                <!-- Printing and PDF exports -->
-                <script>
-                        var link = document.createElement( 'link' );
-                        link.rel = 'stylesheet';
-                        link.type = 'text/css';
-                        link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
-                        document.getElementsByTagName( 'head' )[0].appendChild( link );
-                </script>
-        </head>
-        <body>
-                <div class="reveal">
-                        <div class="slides">
-                          <section>
-                            <h1>Intro to Python</h1>
-                            <h3>A Tour of Python with Real World Code</h3>
-                            <p><small>Created by jyn using <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
-                          </section>
-                          <section>
-                            <h2>Who's using Python?</h2>
-                            <ul>
-                              <li><a href="https://keras.io/">Machine Learning</a> + <a href="https://numpy.org/">Scientific Computing</a></li>
-                              <li><a href="https://realpython.com/world-class-companies-using-python/">Companies</a><ul>
-                                  <li>Google</li>
-                                  <li>Reddit</li>
-                                  <li>Facebook</li>
-                              </ul></li>
-                              <li>Linux Distributions (Ubuntu, Debian, Fedora)</li>
-                              <li><a href="https://www.quora.com/Who-uses-Python">... and more</a></li>
-                            </ul>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>Python in 5 minutes</h2>
-                              <h4>Comparing Python to Java</h4>
-                            </section>
-                            <section>
-                              <h3>Declarations</h3>
-                              <div class="left">
-                                <pre><code>
+<!-- Printing and PDF exports -->
+<script>
+  var link = document.createElement( 'link' );
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
+  document.getElementsByTagName( 'head' )[0].appendChild( link );
+</script>
+»
+◊(def body)«
+<div class="reveal">
+  <div class="slides">
+    <section>
+      <h1>Intro to Python</h1>
+      <h3>A Tour of Python with Real World Code</h3>
+      <p><small>Created by jyn using <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
+    </section>
+    <section>
+      <h2>Who's using Python?</h2>
+      <ul>
+        <li><a href="https://keras.io/">Machine Learning</a> + <a href="https://numpy.org/">Scientific Computing</a></li>
+        <li><a href="https://realpython.com/world-class-companies-using-python/">Companies</a><ul>
+            <li>Google</li>
+            <li>Reddit</li>
+            <li>Facebook</li>
+          </ul></li>
+          <li>Linux Distributions (Ubuntu, Debian, Fedora)</li>
+          <li><a href="https://www.quora.com/Who-uses-Python">... and more</a></li>
+      </ul>
+    </section>
+    <section>
+      <section>
+        <h2>Python in 5 minutes</h2>
+        <h4>Comparing Python to Java</h4>
+      </section>
+      <section>
+        <h3>Declarations</h3>
+        <div class="left">
+          <pre><code>
 i = 1
 d = 1.2
 s = "hello, world"
 l = [1, 2, 3]
-                                </code></pre>
-                              </div>
-                              <div class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div class="right">
+          <pre><code>
 int i = 1;
 double d = 1.2;
 String s = "hello, world";
 int[] i = {1, 2, 3};
-                                </code></pre>
-                              </div>
-                            </section>
-                            <section>
-                              <h3>Duck Typing</h3>
-                              <div class="left">
-                                <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>Duck Typing</h3>
+        <div class="left">
+          <pre><code>
 l = [1, 1.2, "hello, world"]
-                                </code></pre>
-                              </div>
-                              <div class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div class="right">
+          <pre><code>
 List&lt;Object&gt; l = Arrays.asList(1, 1.2, "hello, world");
-                                </code></pre>
-                              </div>
-                            </section>
-                          </section>
-                          <section>
-                            <h2>One slide on dictionaries</h2>
-                            <p>What's the difference?</p>
-                            <pre><code>
+          </code></pre>
+        </div>
+      </section>
+    </section>
+    <section>
+      <h2>One slide on dictionaries</h2>
+      <p>What's the difference?</p>
+      <pre><code>
 d = {0: 'a', 1: 'b', 2: 'c'}
 a = ['a', 'b', 'c']
 print(d[0])  # prints 'a'
 print(a[0])  # prints 'a'
-                            </code></pre>
-                            <p>Keys don't have to be integers</p>
-                            <pre><code>
+      </code></pre>
+      <p>Keys don't have to be integers</p>
+      <pre><code>
 d = {'Monday': 'MATH 374', 'Tuesday': 'CSCE 146'}
 print(d['Monday'])  # prints 'MATH 374'
-                            </code></pre>
-                            <a href="https://libcat.csd.sc.edu/search/X?searchtype=X&SORT=D&searcharg=hello&searchscope=1">
-                              Web query parameter example
-                            </a>
-                          </section>
-                          <section>
-                            <h2>What's GrepMe?</h2>
-                            <p>GroupMe doesn’t have a working search and it made me sad. So I wrote my own in Python!</p>
-                            <p><small>Yes, I absolutely used this talk to advertise on of my side projects.</small></p>
-                            <img src="/talks/img/groupme-no-search.png">
-                          </section>
-                          <section>
-                            <h2>What does it look like?</h2>
-                            <ul>
-                              <li>Text highlighting</li>
-                              <li>Searches in reverse chronological order</li>
-                              <li>Can output dates</li>
-                              <li>Can search by who liked a message</li>
-                              <li>Can search multiple groups at a time </li>
-                            </ul>
-                            <img src="/talks/img/grepme-demo.png">
-                          </section>
-                          <section>
-                            <h2>How does it work?</h2>
-                            <a target="_blank" href="https://github.com/jyn514/GrepMe/blob/master/grepme/lib.py">
-                              Let's look at the source code
-                            </a>
-                            <br>
-                            <a target="_black" href="https://dev.groupme.com/docs/v3">
-                              Groupme API Reference
-                            </a>
-                            <!-- Major things to cover:
-                              - re stands for regular expressions
-                              - 200 <= status < 300: just does what you expect
-                              - come back to keyword arguments if we have time
-                              - maybe stop by get_messages() so they see how a simple function works
-                              - Note that get_messages() returns a set amount of data at a time
-                              - search_messages()!!
-                                - explain generators using all_integers() as an example
-                                - draw buffer up on the board
-                                - explain slicing briefly (Rust, Go also have it)
-                                - explain negative indexing briefly
-                                - explain options live with demos
-                                - ternary (if we have time)
-                              - get_all_groups()
-                                - same pattern as before
-                                - first class functions (more efficient)
-                              - print_message()
-                                - reversed(...): draw order up on the board
-                                - demo options again
-                              - extras:
-                                - argparse
-                                - kwargs
-                              - questions?
-                            !-->
-                          </section>
-                          <section>
-                            <h2>One slide on keyword arguments</h2>
-                            <p>What's this do?</p>
-                            <pre><code>
+      </code></pre>
+      <a href="https://libcat.csd.sc.edu/search/X?searchtype=X&SORT=D&searcharg=hello&searchscope=1">
+        Web query parameter example
+      </a>
+    </section>
+    <section>
+      <h2>What's GrepMe?</h2>
+      <p>GroupMe doesn’t have a working search and it made me sad. So I wrote my own in Python!</p>
+      <p><small>Yes, I absolutely used this talk to advertise on of my side projects.</small></p>
+      <img src="/talks/img/groupme-no-search.png">
+    </section>
+    <section>
+      <h2>What does it look like?</h2>
+      <ul>
+        <li>Text highlighting</li>
+        <li>Searches in reverse chronological order</li>
+        <li>Can output dates</li>
+        <li>Can search by who liked a message</li>
+        <li>Can search multiple groups at a time </li>
+      </ul>
+      <img src="/talks/img/grepme-demo.png">
+    </section>
+    <section>
+      <h2>How does it work?</h2>
+      <a target="_blank" href="https://github.com/jyn514/GrepMe/blob/master/grepme/lib.py">
+        Let's look at the source code
+      </a>
+      <br>
+      <a target="_black" href="https://dev.groupme.com/docs/v3">
+        Groupme API Reference
+      </a>
+      <!-- Major things to cover:
+        - re stands for regular expressions
+        - 200 <= status < 300: just does what you expect
+        - come back to keyword arguments if we have time
+        - maybe stop by get_messages() so they see how a simple function works
+        - Note that get_messages() returns a set amount of data at a time
+        - search_messages()!!
+        - explain generators using all_integers() as an example
+        - draw buffer up on the board
+        - explain slicing briefly (Rust, Go also have it)
+        - explain negative indexing briefly
+        - explain options live with demos
+        - ternary (if we have time)
+        - get_all_groups()
+        - same pattern as before
+        - first class functions (more efficient)
+        - print_message()
+        - reversed(...): draw order up on the board
+        - demo options again
+        - extras:
+        - argparse
+        - kwargs
+        - questions?
+        !-->
+    </section>
+    <section>
+      <h2>One slide on keyword arguments</h2>
+      <p>What's this do?</p>
+      <pre><code>
 def f(**kwargs):
   for key, value in kwargs.items():
     print(key, value)
 
 f(a='b', c='d')  # prints 'a b\nc d'
-                            </code></pre>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>Reference</h2>
-                              <p>Compares code in Python to code that does the same thing in Java</p>
-                              <ol>
-                                <li>printing to the console</li>
-                                <li>for-each loops</li>
-                                <li>generics</li>
-                                <li>doc-comments</li>
-                                <li>varargs</li>
-                                <li>lambdas</li>
-                              </ol>
-                            </section>
-                            <section>
-                              <h3>Printing to the console</h3>
-                              <div class="left">
-                                <pre><code>
+      </code></pre>
+    </section>
+    <section>
+      <section>
+        <h2>Reference</h2>
+        <p>Compares code in Python to code that does the same thing in Java</p>
+        <ol>
+          <li>printing to the console</li>
+          <li>for-each loops</li>
+          <li>generics</li>
+          <li>doc-comments</li>
+          <li>varargs</li>
+          <li>lambdas</li>
+        </ol>
+      </section>
+      <section>
+        <h3>Printing to the console</h3>
+        <div class="left">
+          <pre><code>
 print("Hello, world!")
-                                </code></pre>
-                              </div>
-                              <div  class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div  class="right">
+          <pre><code>
 System.out.println("Hello, world!");
-                                </code></pre>
-                              </div>
-                            </section>
-                            <section>
-                              <h3>For-Each loops</h3>
-                                <div class="left">
-                                  <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>For-Each loops</h3>
+        <div class="left">
+          <pre><code>
   for i in [1, 2, 3]:
     print(i)
-                                  </code></pre>
-                                </div>
-                                <div class="right">
-                                  <pre><code>
+          </code></pre>
+        </div>
+        <div class="right">
+          <pre><code>
   for (int i : Arrays.asList(1, 2, 3)) {
     System.out.println(i);
   }
-                                  </code></pre>
-                                </div>
-                            </section>
-                            <section>
-                              <h3>Generics</h3>
-                              <p>Python doesn't have generics, or rather, everything is generic! It uses duck-typing instead.</p>
-                                <div class="left">
-                                  <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>Generics</h3>
+        <p>Python doesn't have generics, or rather, everything is generic! It uses duck-typing instead.</p>
+        <div class="left">
+          <pre><code>
 def makeList(element):
   return [element]
-                                  </code></pre>
-                                </div>
-                                <div class="right">
-                                  <pre><code>
+          </code></pre>
+        </div>
+        <div class="right">
+          <pre><code>
 &lt;T&gt; List&lt;T&gt; makeList(T element) {
   ArrayList&lt;T&gt; myList = new ArrayList&lt;T&gt;();
   myList.add(element);
   return myList;
 }
-                                  </code></pre>
-                                </div>
-                            </section>
-                            <section>
-                              <h3>Documentation Comments</h3>
-                              <div class="left">
-                                <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>Documentation Comments</h3>
+        <div class="left">
+          <pre><code>
 """
 This documents the function 'my_function'
 
@@ -237,10 +231,10 @@ Longer descriptions go here, in plain text
 """
 def my_function():
   return 4  # guaranteed by IEEE to be random
-                                </code></pre>
-                              </div>
-                              <div  class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div  class="right">
+          <pre><code>
 /**
  * This documents the function 'my_function'
  *
@@ -250,91 +244,91 @@ def my_function():
 int my_function() {
   return 4;
 }
-                                </code></pre>
-                              </div>
-                            </section>
-                            <section>
-                              <h3>Variadic Arguments</h3>
-                              <div class="left">
-                                <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>Variadic Arguments</h3>
+        <div class="left">
+          <pre><code>
 def print(*args):
   for arg in args:
     print(arg)
-                                </code></pre>
-                              </div>
-                              <div  class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div  class="right">
+          <pre><code>
 void print(Object ... args) {
   for (Object arg : args) {
     System.out.println(arg);
   }
 }
-                                </code></pre>
-                              </div>
-                            </section>
-                            <section>
-                              <h3>First-Class and Anonymous Functions</h3>
-                              <div class="left">
-                                <pre><code>
+          </code></pre>
+        </div>
+      </section>
+      <section>
+        <h3>First-Class and Anonymous Functions</h3>
+        <div class="left">
+          <pre><code>
 def call_with_one(f):
   return f(1)
 
 call_with_one(lambda arg: print(arg))
-                                </code></pre>
-                              </div>
-                              <div class="right">
-                                <pre><code>
+          </code></pre>
+        </div>
+        <div class="right">
+          <pre><code>
 void call_with_one(IntConsumer f) {
   f.accept(1);
 }
 call_with_one(i -&gt; System.out.println(i));
-                                </code></pre>
-                              </div>
-                            </section>
-                          </section>
-                          <!--
-                            1. int, string, double (Java vs Python)
-                            2. arrays with different types
-                            questions?
-                            3. arrays vs maps
-                            4. maps are useful because http parameters (used in google)
-                            5. use library as example: https://libcat.csd.sc.edu/search/X?searchtype=X&SORT=D&searcharg=hello&searchscope=1
-                          -->
-                          <!--
-                          dictionary: data structure, instead of associating integers to a value (like in an array), associate anything to another value
-                          json: use to introduce dictionaries
-                          regex: search strings for patterns
-                          don't talk about python2
-                          talk about lack of types and lack of declarations
-                          doesn't have to be in a class (unlike Java)
-                          benefit of duck typing: generics are automatic
-                          -->
-                          <!--
-                            draw the buffer
-                            demonstrate options as they come up in code
-                            explain generators with integers
-                          !-->
-                        </div>
-                </div>
+          </code></pre>
+        </div>
+      </section>
+    </section>
+    <!--
+      1. int, string, double (Java vs Python)
+      2. arrays with different types
+      questions?
+      3. arrays vs maps
+      4. maps are useful because http parameters (used in google)
+      5. use library as example: https://libcat.csd.sc.edu/search/X?searchtype=X&SORT=D&searcharg=hello&searchscope=1
+    -->
+    <!--
+      dictionary: data structure, instead of associating integers to a value (like in an array), associate anything to another value
+      json: use to introduce dictionaries
+      regex: search strings for patterns
+      don't talk about python2
+      talk about lack of types and lack of declarations
+      doesn't have to be in a class (unlike Java)
+      benefit of duck typing: generics are automatic
+    -->
+    <!--
+      draw the buffer
+      demonstrate options as they come up in code
+      explain generators with integers
+      !-->
+  </div>
+</div>
 
-                <script src="/talks/lib/js/head.min.js"></script>
-                <script src="/talks/dist/reveal.js"></script>
-                <script>
-                        // More info about config & dependencies:
-                        // - https://github.com/hakimel/reveal.js#configuration
-                        // - https://github.com/hakimel/reveal.js#dependencies
-                        Reveal.initialize({
-                                width: "90%",
-                                dependencies: [
-                                        { src: '/talks/plugin/zoom-js/zoom.js', async: true },
-                                        { src: '/talks/plugin/markdown/marked.js' },
-                                        { src: '/talks/plugin/markdown/markdown.js' },
-                                        { src: '/talks/plugin/notes/notes.js', async: true },
-                                        { src: '/talks/plugin/highlight/highlight.js', async: true }
-                                ]
-                        });
-                </script>
-                <style>
+<script src="/talks/lib/js/head.min.js"></script>
+<script src="/talks/dist/reveal.js"></script>
+<script>
+  // More info about config & dependencies:
+  // - https://github.com/hakimel/reveal.js#configuration
+  // - https://github.com/hakimel/reveal.js#dependencies
+  Reveal.initialize({
+    width: "90%",
+    dependencies: [
+      { src: '/talks/plugin/zoom-js/zoom.js', async: true },
+      { src: '/talks/plugin/markdown/marked.js' },
+      { src: '/talks/plugin/markdown/markdown.js' },
+      { src: '/talks/plugin/notes/notes.js', async: true },
+      { src: '/talks/plugin/highlight/highlight.js', async: true }
+    ]
+  });
+</script>
+<style>
 /* https://stackoverflow.com/questions/30861845/how-to-use-two-column-layout-with-reveal-js#38462769 */
 .left {
   left: -9%;
@@ -352,6 +346,6 @@ call_with_one(i -&gt; System.out.println(i));
   z-index: -10;
   width: 50%;
 }
-                </style>
-        </body>
-</html>
+</style>
+»
+◊(embed "skeleton.html" {'head head 'content body})

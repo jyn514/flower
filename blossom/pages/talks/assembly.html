@@ -1,186 +1,180 @@
 ---
 title: Intro to Reverse Engineering
 date: 2019-11-11
+template: null
 ---
+◊(require '[expressions.meta :refer [embed]])
+◊(def head)«
+<link rel="stylesheet" href="/talks/css/reveal.css">
+<link rel="stylesheet" href="/talks/css/theme/black.css">
 
-<!doctype html>
-<html>
-        <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- styling for asciinema -->
+<link rel="stylesheet" type="text/css" href="/talks/css/asciinema-player.css" />
 
-                <title>Intro to Reverse Engineering</title>
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="/talks/lib/css/zenburn.css">
 
-                <link rel="stylesheet" href="/talks/css/reveal.css">
-                <link rel="stylesheet" href="/talks/css/theme/black.css">
-
-                <!-- styling for asciinema -->
-                <link rel="stylesheet" type="text/css" href="/talks/css/asciinema-player.css" />
-
-                <!-- Theme used for syntax highlighting of code -->
-                <link rel="stylesheet" href="/talks/lib/css/zenburn.css">
-
-                <!-- Printing and PDF exports -->
-                <script>
-                        var link = document.createElement( 'link' );
-                        link.rel = 'stylesheet';
-                        link.type = 'text/css';
-                        link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
-                        document.getElementsByTagName( 'head' )[0].appendChild( link );
-                </script>
-        </head>
-        <body>
-                <div class="reveal">
-                  <div class="slides">
-                    <section>
-                      <h1>Reverse Engineering</h1>
-                      <h3>How to read programs without the source code</h3>
-                      <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
-                    </section>
-                    <section>
-                      <h1>Bookkeeping</h1>
-                      <p>This talk:
-                      <a href="https://github.com/jyn514/reverse-engineering-talk/archive/master.zip">https://github.com/jyn514/reverse-engineering-talk/</a></p>
-                      <p>Cyber security groupme:</p>
-                      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIEAAAAADYoy0BAAAETUlEQVR4nOydUY5bMQgAkyr3v3L6m0bFggXezpNm/rrN2t6MLCGM8ev9fgiI1+PxfM4PG2nOzPX5u9HnM5/JkFln52+pr+fP/KDSQSEwFAJDITAUAuP17z87QfBGtNOZKzNmNYqLxpz73twhMBQCQyEwFAJDITBe8X9tRzJVqvmrTAS1Qe97c4fAUAgMhcBQCAyFwDhEWRtUT9+qkVVm/Exu6vdwh8BQCAyFwFAIDIXAuDjK6kRKmVO8Tv4qGvPaSMwdAkMhMBQCQyEwFALjEGVtRBcbY1Yjq+oJZjX31fsb3SEwFAJDITAUAkMhML6irI17cxGZfNTGzz+Zuqs49725Q2AoBIZCYCgEhkJgPPfPw6q5oGoXhSvvRe5/W+4QGAqBoRAYCoGhEBjP97ta45RhKhrprK3THWL77qR3DG+DQmAoBIZCYCgExleU1aGad5rqtLARiXW6knYiVbuS4lAIDIXAUAgMhcA4dCXd7tN+Zd/1aA2de4WdqNJc1m1QCAyFwFAIDIXAOFS/T/WemspldcapdjGdqgerz+sOgaEQGAqBoRAYCoGRfGFnKkqJ5urkl6ZO9LYr7XPzukNgKASGQmAoBIZCYCS7kk69M3hlt4TtiLEaxWW+E3NZOBQCQyEwFAJDITCa1e8b1ebVeSM6J4lT68zMay4LjUJgKASGQmAoBMahX9ZvVap/stFfqzrvRg7N6vfboBAYCoGhEBgKgfEVZW33ztq4t/hJ737fz8eZ6xrhDoGhEBgKgaEQGAqB8arXUE1FHdGYmbky69x4LahztzG3HncIDIXAUAgMhcBQCIxk7/epvNYn2x0bNvJdUyePnhjeBoXAUAgMhcBQCIzXXO1T5vOdE8PtF3Om5o3WkFubOwSGQmAoBIZCYCgExuHEcDuqiX6385lqDqozb6fDQ4w7BIZCYCgEhkJgKATGoV9WNaqZeiF6493Ajderd6JTdwgMhcBQCAyFwFAIjOQ7htWK7mo1+1QH0cwapurQOpX58TrdITAUAkMhMBQCQyEwktXvGTbqlzrzblTCd/JXubncITAUAkMhMBQCQyEwki/sZNjvJfX/n1ffPYzm7ax/qg+YOwSHQmAoBIZCYCgExuGO4VQtUzRmNX91ZRTU+UwvN+gOgaEQGAqBoRAYCoFxuGPYIZNTyuSROh0+t6Oyzp1K+2XdBoXAUAgMhcBQCIxD9XuVam+oqdqnTnV6ZpyIzovV8ZrdITAUAkMhMBQCQyEwBjs5VJm6xzcVfWXG2X/P0R0CQyEwFAJDITAUAmOw+j1D547eVDeJas5tqvtELnfnDoGhEBgKgaEQGAqBcXGUVe0xVa3M74wZ0XlNO4P9stAoBIZCYCgEhkJgHKKs7V7uU+8ndt5YrDLXFyv6bXcIDIXAUAgMhcBQCIyvKGvjvuFUj/eIaiQztYZO3ZevRd8GhcBQCAyFwFAIjOdGVyz5OX8DAAD//0uG7cmvII8pAAAAAElFTkSuQmCC">
-                    </section>
-                    <section>
-                      <h2>What is Reverse Engineering?</h2>
-                      <p>Taking a binary executable and figuring out what it does</p>
-                    </section>
-                    <section>
-                      <h1>Why RE?</h1>
-                      <p><sub>(ordered from least to most sketchy)</sub></p>
-                      <ol>
-                        <li>Debug compiler output</li>
-                        <li>Figure out what a virus is doing</li>
-                        <li>Mod a game not designed to be modded
-                          (e.g. <a href="https://github.com/Col-E/Recaf">Minecraft</a>)</li>
-                        <li>Exploit a program</li>
-                        <li>Steal information from a competitor</li>
-                      </ol>
-                    </section>
-                    <section>
-                      <section>
-                        <h1>Examples</h1>
-                        <h3>If you have source code</h3>
-                        <asciinema-player src="/talks/examples/printf-src/how-to.cast"></asciinema-player>
-                      </section>
-                      <section>
-                        <h3>If you're looking at strings</h3>
-                        <asciinema-player src="/talks/examples/printf/how-to.cast"></asciinema-player>
-                      </section>
-                      <section>
-                        <h2>What if it's not that simple?</h2>
-                        <asciinema-player src="/talks/examples/if/help.cast"></asciinema-player>
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                      <h2>Memory Models</h2>
-                      <p>Stack, heap, and static memory</p>
-                      <img src="https://i.stack.imgur.com/HOY4C.png">
-                      </section>
-                      <section>
-                        <h3>How do compilers use the stack?</h3>
-                        <img src="/talks/img/stack.png">
-                      </section>
-                      <section>
-                        <h2>What is linking?</h2>
-                        <p>The standard library needs to be compiled in somehow</p>
-                        <p>A program called a 'linker' merges your code with the standard library</p>
-                        <img src="/talks/img/linker.jpg">
-                      </section>
-                      <section>
-                        <h2>What is dynamic linking?</h2>
-                        <p>Putting the standard library in every program is expensive. What if we could avoid that?</p>
-                        <img src="/talks/img/dynamic-linking.gif">
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                      <h2>What's an ABI?</h2>
-                      <p>Keeping the expected data format the same</p>
-                      <p>Like an API but for binaries</p>
-                      <a href="https://gankra.github.io/blah/swift-abi/#what-is-abi-stability-and-dynamic-linking">There's a much better writeup here</a>
-                      </section>
-                      <section>
-                        <h3>ABI Examples</h3>
-                        <p>IP Packets</p>
-                        <img src="/talks/img/ip-abi.jpg">
-                      </section>
-                      <section>
-                        <h3>ABI Examples</h3>
-                        <p>Linux Kernel</p>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Linux_kernel_interfaces.svg/640px-Linux_kernel_interfaces.svg.png">
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                        <h2>Assembly Crash Course</h2>
-                        <p>Remember 212?</p>
-                        <img src="https://i.stack.imgur.com/4I3jv.png">
-                      </section>
-                      <section>
-                        <h3>Registers</h3>
-                        <img src="/talks/img/registers.jpg">
-                      </section>
-                      <section>
-                        <h3>CISC vs RISC</h3>
-                        <p>Complex Instruction Set Computer vs Reduced</p>
-                        <p>You may have heard of <a href="https://riscv.org/">RISC-V</a>. x86 is the exact opposite:</p>
-                        <ul>
-                          <li>Hundreds of instructions</li>
-                          <li>Variable length instructions</li>
-                          <li>Same mnemonic for different encodings</li>
-                          <li>Many addressing modes</li>
-                          <li>Backwards compatible over several decades</li>
-                        </ul>
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                        <h2>Common x86 Instructions</h2>
-                        <p><a href="https://www.felixcloutier.com/x86/">More instructions</a></p>
-                      </section>
-                      <section>
-                        <h3>Common x86 Instructions</h3>
-                        <ul>
-                          <li><code>mov/movq/movl</code> - move some data from {register,memory,immediate} to {register,memory}.
-                            <pre><code>movl $0,%edi  # move 0 into index register</code></pre>
-                          </li>
-                          <li><code>add</code> - add data to a register
-                            <pre><code>addl $8, %edi  # add 8 to the index register</code></pre>
-                          </li>
-                          <li><code>cmp</code> and <code>je</code> - Compare two values and jump if they're equal
-                            <pre><code>loop:
+<!-- Printing and PDF exports -->
+<script>
+  var link = document.createElement( 'link' );
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
+  document.getElementsByTagName( 'head' )[0].appendChild( link );
+</script>
+»
+◊(def body)«
+<div class="reveal">
+  <div class="slides">
+    <section>
+      <h1>Reverse Engineering</h1>
+      <h3>How to read programs without the source code</h3>
+      <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
+    </section>
+    <section>
+      <h1>Bookkeeping</h1>
+      <p>This talk:
+      <a href="https://github.com/jyn514/reverse-engineering-talk/archive/master.zip">https://github.com/jyn514/reverse-engineering-talk/</a></p>
+      <p>Cyber security groupme:</p>
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIEAAAAADYoy0BAAAETUlEQVR4nOydUY5bMQgAkyr3v3L6m0bFggXezpNm/rrN2t6MLCGM8ev9fgiI1+PxfM4PG2nOzPX5u9HnM5/JkFln52+pr+fP/KDSQSEwFAJDITAUAuP17z87QfBGtNOZKzNmNYqLxpz73twhMBQCQyEwFAJDITBe8X9tRzJVqvmrTAS1Qe97c4fAUAgMhcBQCAyFwDhEWRtUT9+qkVVm/Exu6vdwh8BQCAyFwFAIDIXAuDjK6kRKmVO8Tv4qGvPaSMwdAkMhMBQCQyEwFALjEGVtRBcbY1Yjq+oJZjX31fsb3SEwFAJDITAUAkMhML6irI17cxGZfNTGzz+Zuqs49725Q2AoBIZCYCgEhkJgPPfPw6q5oGoXhSvvRe5/W+4QGAqBoRAYCoGhEBjP97ta45RhKhrprK3THWL77qR3DG+DQmAoBIZCYCgExleU1aGad5rqtLARiXW6knYiVbuS4lAIDIXAUAgMhcA4dCXd7tN+Zd/1aA2de4WdqNJc1m1QCAyFwFAIDIXAOFS/T/WemspldcapdjGdqgerz+sOgaEQGAqBoRAYCoGRfGFnKkqJ5urkl6ZO9LYr7XPzukNgKASGQmAoBIZCYCS7kk69M3hlt4TtiLEaxWW+E3NZOBQCQyEwFAJDITCa1e8b1ebVeSM6J4lT68zMay4LjUJgKASGQmAoBMahX9ZvVap/stFfqzrvRg7N6vfboBAYCoGhEBgKgfEVZW33ztq4t/hJ737fz8eZ6xrhDoGhEBgKgaEQGAqB8arXUE1FHdGYmbky69x4LahztzG3HncIDIXAUAgMhcBQCIxk7/epvNYn2x0bNvJdUyePnhjeBoXAUAgMhcBQCIzXXO1T5vOdE8PtF3Om5o3WkFubOwSGQmAoBIZCYCgExuHEcDuqiX6385lqDqozb6fDQ4w7BIZCYCgEhkJgKATGoV9WNaqZeiF6493Ajderd6JTdwgMhcBQCAyFwFAIjOQ7htWK7mo1+1QH0cwapurQOpX58TrdITAUAkMhMBQCQyEwktXvGTbqlzrzblTCd/JXubncITAUAkMhMBQCQyEwki/sZNjvJfX/n1ffPYzm7ax/qg+YOwSHQmAoBIZCYCgExuGO4VQtUzRmNX91ZRTU+UwvN+gOgaEQGAqBoRAYCoFxuGPYIZNTyuSROh0+t6Oyzp1K+2XdBoXAUAgMhcBQCIxD9XuVam+oqdqnTnV6ZpyIzovV8ZrdITAUAkMhMBQCQyEwBjs5VJm6xzcVfWXG2X/P0R0CQyEwFAJDITAUAmOw+j1D547eVDeJas5tqvtELnfnDoGhEBgKgaEQGAqBcXGUVe0xVa3M74wZ0XlNO4P9stAoBIZCYCgEhkJgHKKs7V7uU+8ndt5YrDLXFyv6bXcIDIXAUAgMhcBQCIyvKGvjvuFUj/eIaiQztYZO3ZevRd8GhcBQCAyFwFAIjOdGVyz5OX8DAAD//0uG7cmvII8pAAAAAElFTkSuQmCC">
+    </section>
+    <section>
+      <h2>What is Reverse Engineering?</h2>
+      <p>Taking a binary executable and figuring out what it does</p>
+    </section>
+    <section>
+      <h1>Why RE?</h1>
+      <p><sub>(ordered from least to most sketchy)</sub></p>
+      <ol>
+        <li>Debug compiler output</li>
+        <li>Figure out what a virus is doing</li>
+        <li>Mod a game not designed to be modded
+          (e.g. <a href="https://github.com/Col-E/Recaf">Minecraft</a>)</li>
+        <li>Exploit a program</li>
+        <li>Steal information from a competitor</li>
+      </ol>
+    </section>
+    <section>
+      <section>
+        <h1>Examples</h1>
+        <h3>If you have source code</h3>
+        <asciinema-player src="/talks/examples/printf-src/how-to.cast"></asciinema-player>
+      </section>
+      <section>
+        <h3>If you're looking at strings</h3>
+        <asciinema-player src="/talks/examples/printf/how-to.cast"></asciinema-player>
+      </section>
+      <section>
+        <h2>What if it's not that simple?</h2>
+        <asciinema-player src="/talks/examples/if/help.cast"></asciinema-player>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>Memory Models</h2>
+        <p>Stack, heap, and static memory</p>
+        <img src="https://i.stack.imgur.com/HOY4C.png">
+      </section>
+      <section>
+        <h3>How do compilers use the stack?</h3>
+        <img src="/talks/img/stack.png">
+      </section>
+      <section>
+        <h2>What is linking?</h2>
+        <p>The standard library needs to be compiled in somehow</p>
+        <p>A program called a 'linker' merges your code with the standard library</p>
+        <img src="/talks/img/linker.jpg">
+      </section>
+      <section>
+        <h2>What is dynamic linking?</h2>
+        <p>Putting the standard library in every program is expensive. What if we could avoid that?</p>
+        <img src="/talks/img/dynamic-linking.gif">
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>What's an ABI?</h2>
+        <p>Keeping the expected data format the same</p>
+        <p>Like an API but for binaries</p>
+        <a href="https://gankra.github.io/blah/swift-abi/#what-is-abi-stability-and-dynamic-linking">There's a much better writeup here</a>
+      </section>
+      <section>
+        <h3>ABI Examples</h3>
+        <p>IP Packets</p>
+        <img src="/talks/img/ip-abi.jpg">
+      </section>
+      <section>
+        <h3>ABI Examples</h3>
+        <p>Linux Kernel</p>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Linux_kernel_interfaces.svg/640px-Linux_kernel_interfaces.svg.png">
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>Assembly Crash Course</h2>
+        <p>Remember 212?</p>
+        <img src="https://i.stack.imgur.com/4I3jv.png">
+      </section>
+      <section>
+        <h3>Registers</h3>
+        <img src="/talks/img/registers.jpg">
+      </section>
+      <section>
+        <h3>CISC vs RISC</h3>
+        <p>Complex Instruction Set Computer vs Reduced</p>
+        <p>You may have heard of <a href="https://riscv.org/">RISC-V</a>. x86 is the exact opposite:</p>
+        <ul>
+          <li>Hundreds of instructions</li>
+          <li>Variable length instructions</li>
+          <li>Same mnemonic for different encodings</li>
+          <li>Many addressing modes</li>
+          <li>Backwards compatible over several decades</li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>Common x86 Instructions</h2>
+        <p><a href="https://www.felixcloutier.com/x86/">More instructions</a></p>
+      </section>
+      <section>
+        <h3>Common x86 Instructions</h3>
+        <ul>
+          <li><code>mov/movq/movl</code> - move some data from {register,memory,immediate} to {register,memory}.
+            <pre><code>movl $0,%edi  # move 0 into index register</code></pre>
+          </li>
+          <li><code>add</code> - add data to a register
+            <pre><code>addl $8, %edi  # add 8 to the index register</code></pre>
+          </li>
+          <li><code>cmp</code> and <code>je</code> - Compare two values and jump if they're equal
+            <pre><code>loop:
  cmpl $10,%eax  # check if we hit the end
  je exit
  addl $1, %eax
  jmp loop
 exit:
  movl $1,%eax
-</code></pre></li>
-                        </ul>
-                      </section>
-                      <section>
-                        <h3>Common x86 Instructions</h3>
-                        <ul>
-                          <li><code>xor</code> - acts on two registers or register and immediate
-                            <pre><code>xor %eax, %eax  # fast way to set eax to 0</code></pre>
-                          </li>
-                          <li><code>push</code> and <code>pop</code> - store or load things onto the stack
-                            <pre><code>pushl %eax  # save the contents of eax
+          </code></pre></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Common x86 Instructions</h3>
+        <ul>
+          <li><code>xor</code> - acts on two registers or register and immediate
+            <pre><code>xor %eax, %eax  # fast way to set eax to 0</code></pre>
+          </li>
+          <li><code>push</code> and <code>pop</code> - store or load things onto the stack
+            <pre><code>pushl %eax  # save the contents of eax
 mov $5, %eax  # do something with eax
 pop %eax  # restore eax to former glory</code></pre>
-                          </li>
-                        </ul>
-                      </section>
-                      <section>
-                        <ul>
-                        <h3>Common x86 Instructions</h3>
-                          <li><code>call</code> and <code>ret</code> - function instructions
-                          <pre><code>_start:
+          </li>
+        </ul>
+      </section>
+      <section>
+        <ul>
+          <h3>Common x86 Instructions</h3>
+          <li><code>call</code> and <code>ret</code> - function instructions
+            <pre><code>_start:
  call power
  mov %eax, %ebx  # return code
  movl $1, %eax   # syscall number
@@ -191,29 +185,29 @@ power:
  movl 8(%esp), %ecx  # put second argument in %ecx
  movl $1,%eax  # result = 1
  ret</code></pre></li>
-                        </ul>
-                      </section>
-                      <section>
-                        <h3>Common x86 Instructions</h3>
-                        <ul>
-                          <li><code>lea</code> - load effective address
-                          <pre><code>lea    0x4(%rsp),%rcx</code></pre></li>
-                          <li><code>nop</code> - no operation</li>
-                        </ul>
-                      </section>
-                      <section>
-                        <h3>Addressing modes</h3>
-                        <ul>
-                          <li>Immediate: <code>mov $10, %eax</code><br> (assigning a constant to a variable)</li>
-                          <li>Direct: <code>mov %esi, %eax</code><br /> (assigning a variable to a variable)</li>
-                          <li>Indirect: <code>mov (%esi), %eax</code><br /> (dereferencing a pointer)</li>
-                          <li>Offset: <code>mov 0x2000(%eax), %eax</code> <br />(accessing an array, no pointer math)</li>
-                          <li>Scaled offset: <code>mov 0x3113(,%eax,4), %ebx</code><br /> (array indexing, pointer math)</li>
-                        </ul>
-                      </section>
-                      <section>
-                        <h3>Example</h3>
-<pre><code># printf.c:15:   size_t len = 0;
+        </ul>
+      </section>
+      <section>
+        <h3>Common x86 Instructions</h3>
+        <ul>
+          <li><code>lea</code> - load effective address
+            <pre><code>lea    0x4(%rsp),%rcx</code></pre></li>
+            <li><code>nop</code> - no operation</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Addressing modes</h3>
+        <ul>
+          <li>Immediate: <code>mov $10, %eax</code><br> (assigning a constant to a variable)</li>
+          <li>Direct: <code>mov %esi, %eax</code><br /> (assigning a variable to a variable)</li>
+          <li>Indirect: <code>mov (%esi), %eax</code><br /> (dereferencing a pointer)</li>
+          <li>Offset: <code>mov 0x2000(%eax), %eax</code> <br />(accessing an array, no pointer math)</li>
+          <li>Scaled offset: <code>mov 0x3113(,%eax,4), %ebx</code><br /> (array indexing, pointer math)</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Example</h3>
+        <pre><code># printf.c:15:   size_t len = 0;
         movq    $0, -16(%rbp)   #, len
 # printf.c:16:   fputs("Enter the password: ", stdout);
         movq    stdout(%rip), %rax      # stdout, stdout.0_1
@@ -243,13 +237,13 @@ power:
         leaq    .LC3(%rip), %rdi        #,
         call    puts@PLT        #
         movl    $0, %eax        #, _14
-</code></pre>
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                        <h3>Let's figure this one out</h3>
-  <pre><code>0000000000000894 &lt;main>:
+        </code></pre>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h3>Let's figure this one out</h3>
+        <pre><code>0000000000000894 &lt;main>:
    894:   55                      push   %rbp
    895:   48 89 e5                mov    %rsp,%rbp
    898:   48 83 ec 20             sub    $0x20,%rsp
@@ -288,29 +282,29 @@ power:
    929:   e8 e2 fd ff ff          callq  710 &lt;__stack_chk_fail@plt>
    92e:   c9                      leaveq
    92f:   c3                      retq
-  </code></pre>
-                      </section>
-                      <section>
-                        <h3>Can we make this easier?</h3>
-                        <asciinema-player src="/talks/examples/printf/gdb.cast"></asciinema-player>
-                      </section>
-                    </section>
-                    <section>
-                      <section>
-                        <h2>Common C idioms</h2>
-                        <ol>
-                          <li><code>if/then/else</code></li>
-                          <li><code>while</code></li>
-                          <li><code>argv</code></li>
-                          <li><code>for</code></li>
-                          <li><code>switch</code></li>
-                          <li><code>recursion</code></li>
-                        </ol>
-                      </section>
-                      <section>
-                        <h3>If</h3>
-                        <p>Hint: look for <code>cmp</code></p>
-<pre><code>0000000000000864 &lt;main>:
+        </code></pre>
+      </section>
+      <section>
+        <h3>Can we make this easier?</h3>
+        <asciinema-player src="/talks/examples/printf/gdb.cast"></asciinema-player>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>Common C idioms</h2>
+        <ol>
+          <li><code>if/then/else</code></li>
+          <li><code>while</code></li>
+          <li><code>argv</code></li>
+          <li><code>for</code></li>
+          <li><code>switch</code></li>
+          <li><code>recursion</code></li>
+        </ol>
+      </section>
+      <section>
+        <h3>If</h3>
+        <p>Hint: look for <code>cmp</code></p>
+        <pre><code>0000000000000864 &lt;main>:
  864:   55                      push   %rbp
  865:   48 89 e5                mov    %rsp,%rbp
  868:   48 83 ec 20             sub    $0x20,%rsp
@@ -348,14 +342,14 @@ power:
  8f7:   c3                      retq
  8f8:   0f 1f 84 00 00 00 00    nopl   0x0(%rax,%rax,1)
  8ff:   00</code></pre>
-                      </section>
-                      <section>
-                        <h3>The answer:</h3>
-                        <asciinema-player src="/talks/examples/if/how-to.cast"></asciinema-player>
-                      </section>
-                      <section>
-                        <h3><code>while</code></h3>
-<pre><code>   0x000000000000083b &lt;+23>:    movl   $0x4,-0xc(%rbp)
+      </section>
+      <section>
+        <h3>The answer:</h3>
+        <asciinema-player src="/talks/examples/if/how-to.cast"></asciinema-player>
+      </section>
+      <section>
+        <h3><code>while</code></h3>
+        <pre><code>   0x000000000000083b &lt;+23>:    movl   $0x4,-0xc(%rbp)
                         ...
    0x0000000000000862 &lt;+62>:    lea    -0x10(%rbp),%rax
    0x0000000000000866 &lt;+66>:    mov    %rax,%rsi
@@ -378,15 +372,15 @@ power:
    0x000000000000089f &lt;+123>:   callq  0x80a &lt;error>
    0x00000000000008a4 &lt;+128>:   lea    0xd8(%rip),%rdi        # 0x983
    0x00000000000008ab &lt;+135>:   callq  0x6a0 &lt;puts@plt></code></pre>
-                      </section>
-                      <section>
-                        <h3>Answer</h3>
-                        <asciinema-player src="/talks/examples/while/how-to.cast"></asciinema-player>
-                      </section>
-                      <section>
-                        <h3>argv</h3>
-                        <p>a.k.a command-line arguments</p>
-<pre><code>0000000000000714 &lt;main>:
+      </section>
+      <section>
+        <h3>Answer</h3>
+        <asciinema-player src="/talks/examples/while/how-to.cast"></asciinema-player>
+      </section>
+      <section>
+        <h3>argv</h3>
+        <p>a.k.a command-line arguments</p>
+        <pre><code>0000000000000714 &lt;main>:
  714:   55                      push   %rbp
  715:   48 89 e5                mov    %rsp,%rbp
  718:   48 83 ec 10             sub    $0x10,%rsp
@@ -409,16 +403,16 @@ power:
  75d:   c9                      leaveq
  75e:   c3                      retq
  75f:   90                      nop
-</code></pre>
-                      </section>
-                      <section>
-                        <h3>Answer</h3>
-                        <asciinema-player src="/talks/examples/argv/how-to.cast"></asciinema-player>
-                      </section>
-                      <section>
-                        <h3><code>for</code></h3>
-                        <p>Guess what? It's the same as a while loop</p>
-                        <pre><code>839:   31 c0                   xor    %eax,%eax
+        </code></pre>
+      </section>
+      <section>
+        <h3>Answer</h3>
+        <asciinema-player src="/talks/examples/argv/how-to.cast"></asciinema-player>
+      </section>
+      <section>
+        <h3><code>for</code></h3>
+        <p>Guess what? It's the same as a while loop</p>
+        <pre><code>839:   31 c0                   xor    %eax,%eax
  83b:   48 8b 05 ce 07 20 00    mov    0x2007ce(%rip),%rax        # 201010 &lt;stdout@@GLIBC_2.2.5>
  842:   48 89 c1                mov    %rax,%rcx
  845:   ba 14 00 00 00          mov    $0x14,%edx
@@ -445,11 +439,11 @@ power:
  89c:   48 8d 3d e0 00 00 00    lea    0xe0(%rip),%rdi        # 983 &lt;_IO_stdin_used+0x33>
  8a3:   e8 f8 fd ff ff          callq  6a0 &lt;puts@plt>
  8a8:   b8 00 00 00 00          mov    $0x0,%eax</code></pre>
-                      </section>
-                      <section>
-                        <h3><code>switch</code></h3>
-                        <p>Same as a series of if/else statements, right?</p>
-                        <pre><code> 71b:   48 89 44 24 08          mov    %rax,0x8(%rsp)
+      </section>
+      <section>
+        <h3><code>switch</code></h3>
+        <p>Same as a series of if/else statements, right?</p>
+        <pre><code> 71b:   48 89 44 24 08          mov    %rax,0x8(%rsp)
  720:   31 c0                   xor    %eax,%eax
  722:   e8 99 ff ff ff          callq  6c0 &lt;fputs@plt>
  727:   48 8d 74 24 04          lea    0x4(%rsp),%rsi
@@ -484,11 +478,11 @@ power:
  798:   e8 13 ff ff ff          callq  6b0 &lt;__stack_chk_fail@plt>
  79d:   48 83 c4 18             add    $0x18,%rsp
  7a1:   c3                      retq
-                        </code></pre>
-                      </section>
-                      <section>
-                        <p><b>BUT</b> could be a jump to an offset table<sup>*</sup></p>
-                        <pre><code>   0x0000000000400f29 &lt;+28>:    mov    $0x40258f,%esi
+        </code></pre>
+      </section>
+      <section>
+        <p><b>BUT</b> could be a jump to an offset table<sup>*</sup></p>
+        <pre><code>   0x0000000000400f29 &lt;+28>:    mov    $0x40258f,%esi
    0x0000000000400f2e &lt;+33>:    callq  0x400bb0 &lt;__isoc99_sscanf@plt>
    0x0000000000400f33 &lt;+38>:    cmp    $0x1,%eax
    0x0000000000400f36 &lt;+41>:    jg     0x400f3d &lt;phase_3+48>
@@ -524,14 +518,14 @@ power:
    0x0000000000400faa &lt;+157>:   callq  0x400b00 &lt;__stack_chk_fail@plt>
    0x0000000000400faf &lt;+162>:   add    $0x18,%rsp
    0x0000000000400fb3 &lt;+166>:   retq</code></pre>
-                        <p><a href="https://eli.thegreenplace.net/2012/07/12/computed-goto-for-efficient-dispatch-tables">More info</a></p>
-                        <small>*disclaimer: I have not been able to replicate this output with gcc</small>
-                      </section>
-                      <section>
-                        <h3>Recursion</h3>
-                        <p>Good news: This isn't harder than recursion in any other language</p>
-                        <p>Bad news: This is as hard as recursion in any other language</p>
-                        <pre><code>000000000000068a &lt;recursive>:
+        <p><a href="https://eli.thegreenplace.net/2012/07/12/computed-goto-for-efficient-dispatch-tables">More info</a></p>
+        <small>*disclaimer: I have not been able to replicate this output with gcc</small>
+      </section>
+      <section>
+        <h3>Recursion</h3>
+        <p>Good news: This isn't harder than recursion in any other language</p>
+        <p>Bad news: This is as hard as recursion in any other language</p>
+        <pre><code>000000000000068a &lt;recursive>:
  68a:   55                      push   %rbp
  68b:   48 89 e5                mov    %rsp,%rbp
  68e:   53                      push   %rbx
@@ -588,88 +582,88 @@ power:
  72f:   b8 00 00 00 00          mov    $0x0,%eax
  734:   c9                      leaveq
  735:   c3                      retq
-                        </code></pre>
-                      </section>
-                  </section>
-                  <section>
-                    <section>
-                      <h3>Bonus</h3>
-                      <p>Why do I keep running the program before disassembling it?</p>
-                      <p><b>Relocatable code and virtual memory</b></p>
-                      <ul>
-                        <li>Programs run in <i>virtual memory</i></li>
-                        <li>The address of constants and instructions <i>changes at load time</i></li>
-                        <li>GDB can't load static data until it's loaded in memory</li>
-                      </ul>
-                    </section>
-                    <section>
-                      <p><a href="https://davidad.github.io/blog/2014/02/19/relocatable-vs-position-independent-code-or/">Good summary</a></p>
-                      <p><a href="http://www-inst.eecs.berkeley.edu/~cs162/sp06/hand-outs/p149-presser-linker-loader.pdf">Way too much detail</a></p>
-                    </section>
-                    <section>
-                      <h3>Bonus</h3>
-                      <p>Why do I keep seeing <pre><code>push %rbp
+        </code></pre>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h3>Bonus</h3>
+        <p>Why do I keep running the program before disassembling it?</p>
+        <p><b>Relocatable code and virtual memory</b></p>
+        <ul>
+          <li>Programs run in <i>virtual memory</i></li>
+          <li>The address of constants and instructions <i>changes at load time</i></li>
+          <li>GDB can't load static data until it's loaded in memory</li>
+        </ul>
+      </section>
+      <section>
+        <p><a href="https://davidad.github.io/blog/2014/02/19/relocatable-vs-position-independent-code-or/">Good summary</a></p>
+        <p><a href="http://www-inst.eecs.berkeley.edu/~cs162/sp06/hand-outs/p149-presser-linker-loader.pdf">Way too much detail</a></p>
+      </section>
+      <section>
+        <h3>Bonus</h3>
+        <p>Why do I keep seeing <pre><code>push %rbp
 mov %rsp,%rbp
 sub $n, %esp
 ...
 mov %ebp, %esp
 pop %ebp</code></pre> at the start and end of functions?</p>
-                      <p>That's how you allocate memory on the stack at the assembly level. Every variable you declare (int x;) has to have an address.
-                      If you don't use malloc, it uses an address on the stack.
-                      This is saving, allocating, and then restoring the stack pointer for the previous function.</p>
-                    </section>
-                  </section>
-                  <section>
-                    <h2>Help my brain is exploding</h2>
-                    <h5>a.k.a. more resources</h5>
-                    <ul>
-                      <li><a href="https://www.cs.princeton.edu/courses/archive/spr08/cos217/reading/ProgrammingGroundUp-1-0-lettersize.pdf">Programming from the Ground Up</a></li>
-                      <li>Bombs by Dr. Matthews (in <code>/class/csce212h/bombs</code>)</li>
-                      <li><a href="https://sourceware.org/gdb/current/onlinedocs/gdb/">More about GDB</a></li>
-                      <li><a href="https://github.com/longld/peda">Make GDB nicer</a></li>
-                      <li><a href="https://beginners.re/">RE for Beginners</a></li>
-                    </ul>
-                  </section>
-                  <section>
-                    <h2>The boring stuff</h2>
-                    <h5>a.k.a acknowledgments</h5>
-                    <p>Many thanks to the following people</p>
-                    <ul>
-                      <li><a href="https://hakim.se/">Hakim</a>, creator of <a href="https://github.com/hakimel/reveal.js">reveal.js</a></li>
-                      <li><a href="http://ku1ik.com/">sickill</a>, creator of <a href="https://asciinema.org/">asciinema</a></li>
-                      <li><a href="https://cse.sc.edu/~matthews/">Dr. Matthews</a>, whose binaries I used to learn reverse engineering in the first place</li>
-                    </ul>
-                  </section>
-                  </div>
-                </div>
+        <p>That's how you allocate memory on the stack at the assembly level. Every variable you declare (int x;) has to have an address.
+        If you don't use malloc, it uses an address on the stack.
+        This is saving, allocating, and then restoring the stack pointer for the previous function.</p>
+      </section>
+    </section>
+    <section>
+      <h2>Help my brain is exploding</h2>
+      <h5>a.k.a. more resources</h5>
+      <ul>
+        <li><a href="https://www.cs.princeton.edu/courses/archive/spr08/cos217/reading/ProgrammingGroundUp-1-0-lettersize.pdf">Programming from the Ground Up</a></li>
+        <li>Bombs by Dr. Matthews (in <code>/class/csce212h/bombs</code>)</li>
+        <li><a href="https://sourceware.org/gdb/current/onlinedocs/gdb/">More about GDB</a></li>
+        <li><a href="https://github.com/longld/peda">Make GDB nicer</a></li>
+        <li><a href="https://beginners.re/">RE for Beginners</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2>The boring stuff</h2>
+      <h5>a.k.a acknowledgments</h5>
+      <p>Many thanks to the following people</p>
+      <ul>
+        <li><a href="https://hakim.se/">Hakim</a>, creator of <a href="https://github.com/hakimel/reveal.js">reveal.js</a></li>
+        <li><a href="http://ku1ik.com/">sickill</a>, creator of <a href="https://asciinema.org/">asciinema</a></li>
+        <li><a href="https://cse.sc.edu/~matthews/">Dr. Matthews</a>, whose binaries I used to learn reverse engineering in the first place</li>
+      </ul>
+    </section>
+  </div>
+</div>
 
-                <script src="/talks/lib/js/head.min.js"></script>
-                <script src="/talks/dist/reveal.js"></script>
-                <script src="/talks/js/asciinema-player.js"></script>
+<script src="/talks/lib/js/head.min.js"></script>
+<script src="/talks/dist/reveal.js"></script>
+<script src="/talks/js/asciinema-player.js"></script>
 
-                <script>
-                        // More info about config & dependencies:
-                        // - https://github.com/hakimel/reveal.js#configuration
-                        // - https://github.com/hakimel/reveal.js#dependencies
-                        Reveal.initialize({
-                                dependencies: [
-                                        { src: '/talks/plugin/zoom-js/zoom.js', async: true },
-                                        { src: '/talks/plugin/markdown/marked.js' },
-                                        { src: '/talks/plugin/markdown/markdown.js' },
-                                        { src: '/talks/plugin/notes/notes.js', async: true },
-                                        { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
-                                ],
-                                margin: .05,
-                                minScale: 0.2,
-                                history: true
-                        });
-                </script>
-                <style>
-                /* fix overflow going off the page */
-                .scrollable {
-                    overflow-y: auto  !important;
-                    overflow-x: hidden !important;                    height: 675px;
-                }
-                </style>
-        </body>
-</html>
+<script>
+  // More info about config & dependencies:
+  // - https://github.com/hakimel/reveal.js#configuration
+  // - https://github.com/hakimel/reveal.js#dependencies
+  Reveal.initialize({
+    dependencies: [
+      { src: '/talks/plugin/zoom-js/zoom.js', async: true },
+      { src: '/talks/plugin/markdown/marked.js' },
+      { src: '/talks/plugin/markdown/markdown.js' },
+      { src: '/talks/plugin/notes/notes.js', async: true },
+      { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+    ],
+    margin: .05,
+    minScale: 0.2,
+    history: true
+  });
+</script>
+<style>
+/* fix overflow going off the page */
+.scrollable {
+  overflow-y: auto  !important;
+  overflow-x: hidden !important;                    height: 675px;
+}
+</style>
+»
+◊(embed "skeleton.html" {'head head 'content body})

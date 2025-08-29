@@ -1,192 +1,191 @@
 ---
 title: Intro to Linux
 date: 2019-09-16
+template: null
 ---
+◊(require '[expressions.meta :refer [embed]])
+◊(def head)«
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<!doctype html>
-<html>
-        <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>How to use the command line</title>
 
-                <title>How to use the command line</title>
+<link rel="stylesheet" href="/talks/css/reveal.css">
+<link rel="stylesheet" href="/talks/css/theme/black.css">
 
-                <link rel="stylesheet" href="/talks/css/reveal.css">
-                <link rel="stylesheet" href="/talks/css/theme/black.css">
+<!-- Theme used for syntax highlighting of code -->
+<link rel="stylesheet" href="/talks/lib/css/zenburn.css">
 
-                <!-- Theme used for syntax highlighting of code -->
-                <link rel="stylesheet" href="/talks/lib/css/zenburn.css">
+<!-- Printing and PDF exports -->
+<script>
+  var link = document.createElement( 'link' );
+  link.rel = 'stylesheet';
+  link.type = 'text/css';
+  link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
+  document.getElementsByTagName( 'head' )[0].appendChild( link );
+</script>
+»
+◊(def body)«
+<div class="reveal">
+  <div class="slides">
+    <section>
+      <h1>Hacking Tools: The Terminal</h1>
+      <h3>How to use the command line</h3>
+      <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
+    </section>
+    <section>
+      <section>
+        <h2>What's a Terminal?</h2>
+        <p>A way to run programs without needing a mouse or desktop</p>
+        <p><small>No, not a touchscreen</small></p>
+      </section>
+      <section>
+        <h3>(Almost) Synonyms</h3>
+        <p><small>Ask me after if you want to know the difference</small></p>
+        <ul>
+          <li>terminal</li>
+          <li>shell</li>
+          <li>bash</li>
+          <li>command prompt</li>
+      </section>
+      <section>
+        <h3>Terminals are on Windows, too!</h3>
+        <img src="/talks/img/cmd.exe.jpg">
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>What can you do with a terminal?</h2>
+        <ul>
+          <li>Find files with a certain name</li>
+          <li>Find a specific word in thousands of files</li>
+          <li>Debug your network connection</li>
+          <li>Compile code without an IDE</li>
+          <li>Use git to collaborate with other programmers</li>
+          <li>Run programs on a computer without a monitor</li>
+          <li>Run multiple programs at the same time</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Psst - for the upperclassman</h3>
+        <p>If you already know the first half of the talk, try some challenges at <a href="https://overthewire.org/wargames/bandit/">overthewire.org</a></p>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>But first, the basics</h2>
+        <h4>Directories, a.k.a. folders</h4>
+        <div class="left">
+          <img src="/talks/img/tree.png">
+        </div>
+        <div class="right">
+          <img src="/talks/img/file-manager.png">
+        </div>
+      </section>
+      <section>
+        <h3>Directory Commands</h3>
+        <ul>
+          <li>pwd - print working directory</li>
+          <li>cd - change directory</li>
+          <li>ls - list directory</li>
+          <li>mkdir - make directory</li>
+          <li>rmdir - remove directory</li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>Files</h2>
+        <div class="left">
+          <img src="/talks/img/vim.png">
+        </div>
+        <div class="right">
+          <img src="/talks/img/kate.png">
+        </div>
+      </section>
+      <section>
+        <h3>File Commands</h3>
+        <ul>
+          <li>file - what type of file is this?</li>
+          <li>cat - concatenate one or more files together</li>
+          <li>cp - copy a file</li>
+          <li>rm - remove file</li>
+          <li>mv - move (or rename) a file</li>
+          <li>vim - edit a file (see also emacs)</li>
+        </ul>
+      </section>
+      <section>
+        <h3>File permissions</h3>
+        <ul>
+          <li>Read</li>
+          <li>Write</li>
+          <li>Execute</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Executing programs</h3>
+        <ul>
+          <li>Not executable by default</li>
+          <li>You can make it executable with <br><code>chmod +x &lt;filename&gt;</code></li>
+          <li>Runs with the shell you're using</li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <h2>But really, what can I use this for?</h2>
+      <h4>SSH!</h4>
+      <p>Great for doing homework on the lab machines from home</p>
+      <pre><code>ssh -p 222 jynelson@129.252.130.195</code></pre>
+      <p>(but use your own username)</p>
+      <p>Doesn't work if you're not on the University Wifi -
+      You need to be on the <a href="https://internal.cec.sc.edu/its/access/vpn.htm">VPN</a> in that case.
+    </section>
+    <section>
+      <h2>Misc Commands</h2>
+      <ul>
+        <li>echo - write some text to the terminal</li>
+        <li>man - get help about a command</li>
+        <li>apropos - search for a command if you don't know the name</li>
+        <li>help - get help about commands that 'man' doesn't know about</li>
+        <li>history - show commands you've typed in the past</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Questions?</h2>
+    </section>
+    <section>
+      <h2>Shortcuts</h2>
+      <ul>
+        <li>tab to autocomplete (when unambiguous)</li>
+        <li>tab twice to show options</li>
+        <li>up arrow to run previous command</li>
+        <li>Ctrl+R to search through your history</li>
+        <li><code>!$</code> - the last argument to the previous command</li>
+        <li><a href="https://readline.kablamo.org/emacs.html">More readline bindings</a></li>
+        <li><a href="https://www.gnu.org/software/bash/manual/html_node/Event-Designators.html#Event-Designators">More history expansion</a> (things starting with '!')
+      </ul>
+    </section>
+  </div>
+</div>
 
-                <!-- Printing and PDF exports -->
-                <script>
-                        var link = document.createElement( 'link' );
-                        link.rel = 'stylesheet';
-                        link.type = 'text/css';
-                        link.href = window.location.search.match( /print-pdf/gi ) ? '/talks/css/print/pdf.css' : '/talks/css/print/paper.css';
-                        document.getElementsByTagName( 'head' )[0].appendChild( link );
-                </script>
-        </head>
-        <body>
-                <div class="reveal">
-                        <div class="slides">
-                          <section>
-                            <h1>Hacking Tools: The Terminal</h1>
-                            <h3>How to use the command line</h3>
-                            <p><small>Created by jyn with <a href="https://github.com/hakimel/reveal.js/">reveal.js</a></small>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>What's a Terminal?</h2>
-                              <p>A way to run programs without needing a mouse or desktop</p>
-                              <p><small>No, not a touchscreen</small></p>
-                            </section>
-                            <section>
-                              <h3>(Almost) Synonyms</h3>
-                              <p><small>Ask me after if you want to know the difference</small></p>
-                              <ul>
-                                <li>terminal</li>
-                                <li>shell</li>
-                                <li>bash</li>
-                                <li>command prompt</li>
-                            </section>
-                            <section>
-                              <h3>Terminals are on Windows, too!</h3>
-                              <img src="/talks/img/cmd.exe.jpg">
-                            </section>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>What can you do with a terminal?</h2>
-                              <ul>
-                                <li>Find files with a certain name</li>
-                                <li>Find a specific word in thousands of files</li>
-                                <li>Debug your network connection</li>
-                                <li>Compile code without an IDE</li>
-                                <li>Use git to collaborate with other programmers</li>
-                                <li>Run programs on a computer without a monitor</li>
-                                <li>Run multiple programs at the same time</li>
-                              </ul>
-                            </section>
-                            <section>
-                              <h3>Psst - for the upperclassman</h3>
-                              <p>If you already know the first half of the talk, try some challenges at <a href="https://overthewire.org/wargames/bandit/">overthewire.org</a></p>
-                            </section>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>But first, the basics</h2>
-                              <h4>Directories, a.k.a. folders</h4>
-                              <div class="left">
-                                <img src="/talks/img/tree.png">
-                              </div>
-                              <div class="right">
-                                <img src="/talks/img/file-manager.png">
-                              </div>
-                            </section>
-                            <section>
-                              <h3>Directory Commands</h3>
-                              <ul>
-                                <li>pwd - print working directory</li>
-                                <li>cd - change directory</li>
-                                <li>ls - list directory</li>
-                                <li>mkdir - make directory</li>
-                                <li>rmdir - remove directory</li>
-                              </ul>
-                            </section>
-                          </section>
-                          <section>
-                            <section>
-                              <h2>Files</h2>
-                              <div class="left">
-                                <img src="/talks/img/vim.png">
-                              </div>
-                              <div class="right">
-                                <img src="/talks/img/kate.png">
-                              </div>
-                            </section>
-                            <section>
-                              <h3>File Commands</h3>
-                              <ul>
-                                <li>file - what type of file is this?</li>
-                                <li>cat - concatenate one or more files together</li>
-                                <li>cp - copy a file</li>
-                                <li>rm - remove file</li>
-                                <li>mv - move (or rename) a file</li>
-                                <li>vim - edit a file (see also emacs)</li>
-                              </ul>
-                            </section>
-                            <section>
-                              <h3>File permissions</h3>
-                              <ul>
-                                <li>Read</li>
-                                <li>Write</li>
-                                <li>Execute</li>
-                              </ul>
-                            </section>
-                            <section>
-                              <h3>Executing programs</h3>
-                              <ul>
-                                <li>Not executable by default</li>
-                                <li>You can make it executable with <br><code>chmod +x &lt;filename&gt;</code></li>
-                                <li>Runs with the shell you're using</li>
-                              </ul>
-                            </section>
-                          </section>
-                          <section>
-                            <h2>But really, what can I use this for?</h2>
-                            <h4>SSH!</h4>
-                            <p>Great for doing homework on the lab machines from home</p>
-                            <pre><code>ssh -p 222 jynelson@129.252.130.195</code></pre>
-                            <p>(but use your own username)</p>
-                            <p>Doesn't work if you're not on the University Wifi -
-                            You need to be on the <a href="https://internal.cec.sc.edu/its/access/vpn.htm">VPN</a> in that case.
-                          </section>
-                          <section>
-                            <h2>Misc Commands</h2>
-                            <ul>
-                              <li>echo - write some text to the terminal</li>
-                              <li>man - get help about a command</li>
-                              <li>apropos - search for a command if you don't know the name</li>
-                              <li>help - get help about commands that 'man' doesn't know about</li>
-                              <li>history - show commands you've typed in the past</li>
-                            </ul>
-                          </section>
-                          <section>
-                            <h2>Questions?</h2>
-                          </section>
-                          <section>
-                            <h2>Shortcuts</h2>
-                            <ul>
-                              <li>tab to autocomplete (when unambiguous)</li>
-                              <li>tab twice to show options</li>
-                              <li>up arrow to run previous command</li>
-                              <li>Ctrl+R to search through your history</li>
-                              <li><code>!$</code> - the last argument to the previous command</li>
-                              <li><a href="https://readline.kablamo.org/emacs.html">More readline bindings</a></li>
-                              <li><a href="https://www.gnu.org/software/bash/manual/html_node/Event-Designators.html#Event-Designators">More history expansion</a> (things starting with '!')
-                            </ul>
-                          </section>
-                        </div>
-                </div>
+<script src="/talks/lib/js/head.min.js"></script>
+<script src="/talks/dist/reveal.js"></script>
 
-                <script src="/talks/lib/js/head.min.js"></script>
-                <script src="/talks/dist/reveal.js"></script>
-
-                <script>
-                        // More info about config & dependencies:
-                        // - https://github.com/hakimel/reveal.js#configuration
-                        // - https://github.com/hakimel/reveal.js#dependencies
-                        Reveal.initialize({
-                                dependencies: [
-                                        { src: '/talks/plugin/zoom-js/zoom.js', async: true },
-                                        { src: '/talks/plugin/markdown/marked.js' },
-                                        { src: '/talks/plugin/markdown/markdown.js' },
-                                        { src: '/talks/plugin/notes/notes.js', async: true },
-                                        { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
-                                ]
-                        });
-                </script>
-                <style>
+<script>
+  // More info about config & dependencies:
+  // - https://github.com/hakimel/reveal.js#configuration
+  // - https://github.com/hakimel/reveal.js#dependencies
+  Reveal.initialize({
+    dependencies: [
+      { src: '/talks/plugin/zoom-js/zoom.js', async: true },
+      { src: '/talks/plugin/markdown/marked.js' },
+      { src: '/talks/plugin/markdown/markdown.js' },
+      { src: '/talks/plugin/notes/notes.js', async: true },
+      { src: '/talks/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+    ]
+  });
+</script>
+<style>
 /* https://stackoverflow.com/questions/30861845/how-to-use-two-column-layout-with-reveal-js#38462769 */
 .left {
   left: -9%;
@@ -204,6 +203,6 @@ date: 2019-09-16
   z-index: -10;
   width: 50%;
 }
-                </style>
-        </body>
-</html>
+</style>
+»
+◊(embed "skeleton.html" {'head head 'content body})

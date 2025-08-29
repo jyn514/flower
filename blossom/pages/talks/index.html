@@ -1,0 +1,25 @@
+---
+template: base.html
+---
+◊(require '[expressions.pages :refer [date title categorize]]
+          '[expressions.utils :refer [def+]])
+◊(def+ {:keys [talks]} (categorize pages))
+
+<div class="home">
+
+  <h1 class="page-heading">Talks</h1>
+  <ul class="post-list">
+    ◊(for [talk talks])«
+      <li>
+        <span class="post-meta">
+          ◊(date talk)
+        </span>
+
+        <h2>
+          <a class="post-link" href="/◊(:flower/path talk)">◊(title talk)</a>
+        </h2>
+      </li>
+      »
+  </ul>
+
+</div>

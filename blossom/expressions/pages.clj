@@ -54,10 +54,10 @@
 
 (defn categorize [all-pages]
   ; NOTE: order is important
-  (let [[meta pages] (split-all :meta all-pages)
-        [sections regular-pages] (split-all is-section pages)
-        [talks posts] (split-all is-talk regular-pages)
-        sorted-posts (sort sort-by-date-descending posts)
-        [hidden-posts visible] (split-all is-hidden sorted-posts)
+  (let [[sections regular-pages] (split-all is-section all-pages)
+        sorted-pages (sort sort-by-date-descending regular-pages)
+        [talks all-posts] (split-all is-talk sorted-pages)
+        [meta posts] (split-all :meta all-posts)
+        [hidden-posts visible] (split-all is-hidden posts)
         [rss-only-posts main-posts] (split-all :rss_only visible)]
     (as-map meta talks sections hidden-posts rss-only-posts main-posts)))
