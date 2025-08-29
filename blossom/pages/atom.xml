@@ -1,23 +1,26 @@
-+++
-meta = true
-+++
-◊(use 'expressions.constants 'expressions.pages)
-◊(def here (str site-title "/" (:flower/path page)))
+---
+meta: true
+template: null
+---
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet href="/atom.xsl" type="text/xsl"?>
+◊(use 'expressions.constants 'expressions.pages)
+◊(def here (str site-title "/" (:flower/path page)))
+◊(def displayed-pages
+  (-> pages categorize (select-keys [:main-posts :rss-only-posts])
+      vals flatten))
+◊(def sorted-pages (sort sort-by-date-descending displayed-pages))
+◊(def last-updated (-> sorted-pages first :date (format-date :iso-date-time)))
 <feed xmlns="http://www.w3.org/2005/Atom" xml:lang="◊lang">
     <title>◊site-title</title>
     <subtitle>◊global-desc</subtitle>
     <link rel="self" type="application/atom+xml" href="◊here"/>
     <link rel="alternate" type="text/html" href="/" />
   <generator uri="https://codeberg.org/jyn514/flower/">flower</generator>
-    <updated>{{ last_updated | date(format="%+") }}</updated>
+    <updated>◊last-updated</updated>
     <id>◊here</id>
-    ◊(def displayed-pages
-      (-> pages categorize (select-keys [:main-posts :rss-only-posts])
-          vals flatten))
-    ◊(for [page (sort sort-by-date-descending displayed-pages)])«
-    <entry xml:lang="{{ page.lang }}">
+    ◊(for [page sorted-pages])«
+    <entry xml:lang="◊lang">
         <title>◊(title page)</title>
         <published>◊(date page :iso-date-time)</published>
         <updated>◊(-> page :updated (or (:date page)) (format-date :iso-date-time))</updated>
@@ -31,13 +34,10 @@ meta = true
           <name>◊site-author</name>
         </author>
         »
-        ◊(def permalink (str site-title "/" (:flower/path page)))
+        ◊(def permalink (str "/" (:flower/path page)))
         <link rel="alternate" type="text/html" href="◊permalink"/>
         <id>◊permalink</id>
         <summary type="html">◊(:description page)</summary>
-        <!-- {% else %} -->
-        <!-- <content type="html" xml:base="{{ page.permalink | escape_xml | safe }}">{{ page.content }}</content> -->
-        <!-- {% endif %} -->
     </entry>
     »
 </feed>

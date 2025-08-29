@@ -78,6 +78,7 @@
     "org.jsoup.nodes.DocumentType"
     "org.jsoup.nodes.Attribute"
     "org.jsoup.nodes.Attributes"
+    "org.jsoup.nodes.XmlDeclaration"
     "org.jsoup.parser.Parser"))
 (def reachable
   {:reflection all-dynamic

@@ -1,8 +1,8 @@
-(ns expressions.html)
-(use 'flower.utils)
+(ns expressions.html 
+  (:use flower.utils))
 (import
   (org.jsoup Jsoup)
-  (org.jsoup.nodes Attribute Attributes Element)
+  (org.jsoup.nodes Attribute Attributes Element XmlDeclaration)
   (org.jsoup.parser Parser)
   (org.jsoup.select Elements))
 
@@ -14,8 +14,9 @@
 (defn- is-root [doc]
   (let [fragment (if-not (string? doc) doc
                    (Jsoup/parse doc "" (Parser/xmlParser)))
-        root (-> fragment .ownerDocument .firstChild .nodeName)]
-    (boolean (some #{root} ["html" "#doctype"]))))
+        root (-> fragment .ownerDocument .firstChild)]
+    (or (instance? XmlDeclaration root) 
+        (boolean (some #{root} ["html" "#doctype"])))))
 
 (defn ->element
   "Convert an HTML string into a parsed HTML Element"
@@ -28,7 +29,7 @@
     ; - Jsoup/parseFragment (as far as i can tell, the same as /parse)
     ; - wrapping in <template> (strips any <html> tags, so it doesn't work for skeleton.html)
     ; - Parser.xmlParser (tries to add closing tags for self-closing tags)
-    ; do a really dumb thing:
+    ; instead, do a really dumb thing:
     ; first, check if this has an existing <html> tag or not by parsing it with XML.
     ; then, decide whether to call .body based on that.
     (let [html (Jsoup/parse doc)]
