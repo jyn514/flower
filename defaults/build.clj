@@ -2,7 +2,10 @@
 (require
   'expressions.ninja
   '[expressions.constants :refer [use-jar rebuild-flower]]
+; TODO: remove everything here but the path functions,
+; make read/write access go through flower.reflect/glob-files
   '(babashka [fs :as fs])
+  '[clojure.data.json :as json]
   '(clojure [string :as str]))
 (use 'flower.utils)
 
@@ -13,6 +16,9 @@
   (-> path fs/path fs/strip-ext (str "." ext)))
 (defn add-ext [path ext]
   (-> path fs/path (str "." ext)))
+(defn prepend-ext [path new-ext]
+  (let [[base old-ext] (-> path fs/path fs/split-ext)]
+    (str/join "." [base new-ext old-ext])))
 
 (defn all-dirs [root]
   (let [dirs (atom (if (fs/exists? root) #{root} #{}))
@@ -34,22 +40,35 @@
 
 (def expressions  (fs/glob "expressions" "**.clj"))
 (def transformers (fs/glob "transformers" "**"))
-(def all-pages (fs/glob "pages" "**"))
+(def all-pages (remove fs/directory? (fs/glob "pages" "**")))
+(def joined-frontmatter (/ builddir "all-frontmatter.json"))
+
+(defn frontmatter-path [page]
+  (/ builddir (add-ext (remove-parent page) "json")))
+
+(def all-frontmatter
+  {:rules [{:name "join-frontmatter"
+            :command (fmt "${flower_cli} join-frontmatter $in > $out")
+            :description "join all page frontmatter into a cache"}]
+   :builds [{:rule "join-frontmatter"
+             :inputs (map frontmatter-path all-pages)
+             :outputs joined-frontmatter
+             :restat true
+             :implicit ff}]})
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
 ; TODO: allow configuring :url
 (defn build-page
-  ([rule page] (build-page rule page []))
-  ([rule page implicits]
+  ([page implicits]
    (let [relative-page (remove-parent page)
-         json_frontmatter (/ builddir (add-ext relative-page "json"))
+         json_frontmatter (frontmatter-path page)
          rendered (/ builddir (replace-ext relative-page (str "rendered." (fs/extension relative-page))))
          rules [{:rule "frontmatter"
                  :inputs (str page)
                  :outputs json_frontmatter
                  :implicit ff}
-                {:rule rule
+                {:rule "page"
                  :inputs json_frontmatter
                  :outputs rendered
                  :depfile (add-ext json_frontmatter "d")
@@ -71,12 +90,14 @@
         filename (if (= "rendered" (fs/extension base))
                    (replace-ext base ext)
                    base)
+        tmpfile (prepend-ext filename "transformed")
         final (/ public (remove-parent filename))]
     ; NOTE: if you have a custom build command you have to add a :build yourself
     {:rules [{:rule "transform"
                :inputs rendered
                :outputs final
                :implicit transformers
+               :tmpfile (escape-shell tmpfile)
                :depfile depfile}]
       :out nil}))
 
@@ -117,18 +138,25 @@
     :source-map source-map
     :depfile depfile}))
 
-(def sass-builds (map sass->build sass-files))
-(def sass-outputs (map :outputs sass-builds))
+(def sass-builds {:builds (map sass->build sass-files)})
+(def sass-outputs (map :outputs (:builds sass-builds)))
+
+  ; NOTE: we are careful here not to look at frontmatter contents so we don't have to rebuild build.ninja if a post is modified.
+  ; we only look at the pages themselves.
+  ; wait jyn wtf lol just glob
 
 (def page-builds
-  (let [page-frontmatter (:pages flower.reflect/*frontmatter*)
-        [indexes pages] (split-all (fn [[_ meta]] (:index meta)) page-frontmatter)
-        index-paths (map first indexes)
-        page-paths (map first pages)
         ; sass here is a hack until i implement hash-inputs
-        index-builds (chain-page index-paths #(build-page "index" % (concat page-paths sass-outputs ["build.ninja"])))
-        page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
-    {:builds (concat index-builds page-builds)}))
+        ; all-pages and all-dirs are a hack until i implement caching for frontmatter loading
+    (let [deps (concat all-pages sass-outputs (all-dirs "pages"))
+          page-builds (chain-page all-pages #(build-page % deps))]
+    {:builds page-builds}))
+
+(defn static->build [path]
+  {:rule (if (fs/directory? path) "mkdir" "link")
+   :inputs path
+   :outputs (/ public (remove-parent path))})
+(def static-builds {:builds (map static->build (fs/glob "static" "**"))})
 
 (def defaults
   ; MANIFEST.txt gets rebuilt when we rebuild flower.
@@ -151,23 +179,15 @@
     {:name "flower-defaults"
      :command (fmt "cd ../defaults && ${flower_cli} configure")
      :description "rebuild default build.ninja"}
-    {:name "tmpdir"
+    {:name "mkdir"
      :command (str "mkdir -p " builddir)
      :description "create build dir"}
     {:name "link"
      :command "ln -f $in $out"
      :description "link $in into build dir"}
     {:name "page"
-     :command (fmt "${flower_cli} render-page < $in | ${flower_cli} split-dependencies $in.d $out > $out")
+     :command (fmt "${flower_cli} render-page < $in $in.d $out > $out")
      :description "render page $in using clojure"}
-    {:name "index"
-     :command (fmt "${flower_cli} render-index < $in | ${flower_cli} split-dependencies $in.d $out > $out")
-     :description "render index page $in using clojure"}
-    {:name "template"
-     ; NOTE: this means that all templates must depend on all other templates
-     ; TODO: `flow` should take arbitrary number of args
-     :command (fmt "${flower_cli} embed-template $template < $in > $out")
-     :description "embed $in into $template using clojure"}
     {:name "frontmatter"
      :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
@@ -180,11 +200,11 @@
    :builds
    [{:rule "ninja-meta"
      :restat true
+     :generator true
      :outputs "build.ninja"
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
-     ; TODO: remove all-pages once we get rid of render-index
-     :inputs (concat all-pages ["build.clj"] ff
+     :inputs (concat ["build.clj"] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"
@@ -194,22 +214,23 @@
        {:rule "flower-defaults"
         :outputs "../defaults/build.ninja"
         :inputs "../defaults/build.clj"})
-    {:rule "tmpdir"
+    {:rule "mkdir"
      :outputs builddir}]})
 
 (def trans-map {"clj" (str flower_cli " transform")})
 
 ; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
 (def transform
-  (let [cmds (map #(str (get trans-map (fs/extension %)) " " %) transformers)
-        pipe (str/join " | " cmds)
+        ; TODO: shell escaping
+  (let [files (->> transformers (map str) (str/join " "))
         ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
         ; instead we assume it's always relative to $in.
-        cmd (fmt "< $in ${pipe} | ${flower_cli} split-dependencies $in.d $out | ${flower_cli} jq .content -r > $out")]
-    {:rules [{:name "transform"
+        cmd "flower transform < $in $in.d $out $transform-map $transformers > $tmpfile && flower jq -r .content < $tmpfile > $out"]
+    {:variables {:transformers files
+                 :transform-map (-> trans-map json/write-str escape-shell)}
+     :rules [{:name "transform"
               :command cmd
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform page-builds
-              (update base :builds #(concat % ))))
+  (merge-deep all-frontmatter page-builds transform static-builds sass-builds base))

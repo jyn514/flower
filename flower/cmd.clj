@@ -2,8 +2,9 @@
   (:use flower.internal.utils)
   (:require
    [babashka.fs :as fs]
+   [clojure.core.reducers :as r]
    [clojure.data.json :as json]
-   [clojure.set :refer [union]]
+   [clojure.edn :as edn]
    [clojure.string :as str]
    [flower.eval :as eval]
    [flower.frontmatter :refer [split-frontmatter]]
@@ -113,6 +114,14 @@
                  (catch net.thisptr.jackson.jq.exception.JsonQueryException e
                    (fatal "failed to run jq query:" (ex-message e))))]
     (if raw-output (json/read-str res) res)))
+
+; frontmatter utils
+
+(defn join-frontmatter
+  [{files :file}]
+  (let [read-edn #(-> % fs/file edn/read)
+        all-files (pmap read-edn files)]
+    (r/reduce merge all-files)))
 
 ; preprocessing
 

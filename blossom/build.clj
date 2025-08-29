@@ -41,21 +41,34 @@
 (def expressions  (fs/glob "expressions" "**.clj"))
 (def transformers (fs/glob "transformers" "**"))
 (def all-pages (remove fs/directory? (fs/glob "pages" "**")))
+(def joined-frontmatter (/ builddir "all-frontmatter.json"))
+
+(defn frontmatter-path [page]
+  (/ builddir (add-ext (remove-parent page) "json")))
+
+(def all-frontmatter
+  {:rules [{:name "join-frontmatter"
+            :command (fmt "${flower_cli} join-frontmatter $in > $out")
+            :description "join all page frontmatter into a cache"}]
+   :builds [{:rule "join-frontmatter"
+             :inputs (map frontmatter-path all-pages)
+             :outputs joined-frontmatter
+             :restat true
+             :implicit ff}]})
 
 ; TODO: allow pages to have a `--- include: file.ext ---` metadata
 ; actually wait no, emit a `depfile` instead
 ; TODO: allow configuring :url
 (defn build-page
-  ([rule page] (build-page rule page []))
-  ([rule page implicits]
+  ([page implicits]
    (let [relative-page (remove-parent page)
-         json_frontmatter (/ builddir (add-ext relative-page "json"))
+         json_frontmatter (frontmatter-path page)
          rendered (/ builddir (replace-ext relative-page (str "rendered." (fs/extension relative-page))))
          rules [{:rule "frontmatter"
                  :inputs (str page)
                  :outputs json_frontmatter
                  :implicit ff}
-                {:rule rule
+                {:rule "page"
                  :inputs json_frontmatter
                  :outputs rendered
                  :depfile (add-ext json_frontmatter "d")
@@ -134,10 +147,8 @@
 
 (def page-builds
         ; sass here is a hack until i implement hash-inputs
-        ; all-pages is a hack until i implement caching for frontmatter loading
-    (let [deps (concat all-pages sass-outputs (all-dirs "pages"))
-          page-builds (chain-page all-pages #(build-page "page" % deps))]
-        ; page-builds (chain-page page-paths #(build-page "page" % sass-outputs))]
+    (let [deps sass-outputs
+          page-builds (chain-page all-pages #(build-page % deps))]
     {:builds page-builds}))
 
 (defn static->build [path]
@@ -221,5 +232,4 @@
               :description "run all transformers on $in"}]}))
 
 (expressions.ninja/generate
-  (merge-deep transform page-builds static-builds sass-builds
-              (update base :builds #(concat % ))))
+  (merge-deep all-frontmatter page-builds transform static-builds sass-builds base))

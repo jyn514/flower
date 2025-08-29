@@ -64,3 +64,10 @@
         merged (assoc frontmatter :flower/source-file filename :flower/path filename)]
     {:content body
      :frontmatter merged}))
+
+; (defn write-frontmatter
+;   [{:keys [content frontmatter]}])
+;
+; (defn write-all-frontmatter
+;   [{:keys [pages]}]
+;   (doall [page pages]

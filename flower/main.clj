@@ -83,9 +83,15 @@
 (defn help []
   (-> (->help) cli/format-opts println))
 
+; disallow infinite sequences, they horribly break debugging.
+; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
+(def argv-max (if *assert* 1000 100000))
 (def dispatch-table
   {"configure" (no-opts cmd/configure {})
    "split-frontmatter" (no-opts map-json split-frontmatter)
+   "join-frontmatter" {:fn cmd/join-frontmatter
+                       :coerce {:path :string}
+                       :args->opts (repeat argv-max :path)}
    "render-page" {:fn #(map-json cmd/render-page %)
                   :coerce {:depfile :string
                            :out-file :string}
@@ -97,9 +103,7 @@
                          :transformers []}
                 :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
                 :collect {:transform-map #(json/read-str %2)}
-                ; disallow infinite sequences, they horribly break debugging.
-                ; 1000 transformers is enough for anyone.
-                :args->opts (concat [:depfile :out-file :transform-map] (repeat 1000 :transformers))}
+                :args->opts (concat [:depfile :out-file :transform-map] (repeat argv-max :transformers))}
    "split-sass-dependencies"
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
