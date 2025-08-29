@@ -179,9 +179,9 @@
     (require
       '[malli.instrument :as mi]
       '[malli.dev.pretty :as pretty])
-    (eprintln "into: type assertions disabled"))
+    (info "type assertions disabled"))
   (when *assert*
-    (eprintln "info: instrumenting type signatures")
+    (info "instrumenting type signatures")
     (def flower-nss
       ['flower.beholder
        'flower.cmd

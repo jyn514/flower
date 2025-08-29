@@ -8,6 +8,9 @@
    [clojure.string :as str]
    [clojure.tools.build.api :as b]))
 
+(defn eprintln [& args]
+  (binding [*out* *err*] (apply println "native:" args)))
+
 (defn strip-prefix
   [s pre]
   (let [quoted (java.util.regex.Pattern/quote pre)
@@ -42,9 +45,8 @@
 (def manifest-path "MANIFEST.txt")
 (def default-files (set (str/split git-output #"\n")))
 (def all-files (set (map str (fs/glob "defaults" "**"))))
-(if-let [diff (symmetric-difference default-files all-files)]
-  (binding [*out* *err*]
-    (println "warning: ignoring" (count diff) "untracked default files")))
+(when-let [diff (symmetric-difference default-files all-files)]
+  (eprintln "warning: ignoring" (count diff) "untracked default files"))
 
 (def manifest-contents
   (str/join "\n"
@@ -93,6 +95,8 @@
                 :target (format "%s/%s/%s" class-dir defaults manifest-path)}))
 
 (defn uberjar [dev]
+  (let [assert (if dev "with" "without")]
+    (eprintln "Build uberjar" jar-file assert "type assertions"))
   (clean nil)
   (manifest nil)
   (b/copy-dir {:src-dirs ["src"]
@@ -141,9 +145,12 @@
 (defn graal [dev] (str/join " " (args dev)))
 
 (defn -native-helper [dev]
-  (println (graal dev))
   (uberjar dev)
-  (ps/shell (graal dev)))
+  (eprintln "Build Graal Native executable")
+  (println (graal dev))
+  (ps/shell (graal dev))
+  (let [size (-> exe fs/size (/ (* 1024 1024)) double)]
+    (eprintln "Built" exe (format "(%.2f MB)" size))))
 
 (defn native [_] (-native-helper false))
 (defn native-dev [_] (-native-helper true))

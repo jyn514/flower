@@ -62,6 +62,8 @@
     (apply prn msg)))
 (defn inspect [x] (eprn x) x)
 
+(defn info [& msg]
+  (apply eprintln (fmt "flower${*cmd*}: info:") msg))
 (defn warn [& msg]
   (apply eprintln (fmt "flower${*cmd*}: warning:") msg))
 (defn error [& msg]

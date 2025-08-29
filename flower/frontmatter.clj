@@ -57,17 +57,10 @@
           (throw (ex-info (str "failed to parse frontmatter for " filename) {} e))))
       [{} content])))
 
-; NOTE: maps use strings as keys, not keywords
+; TODO: allow customizing :flower/path
 (defn split-frontmatter
   [{:keys [filename content]}]
   (let [[frontmatter body] (parse-frontmatter filename content)
         merged (assoc frontmatter :flower/source-file filename :flower/path filename)]
     {:content body
      :frontmatter merged}))
-
-; (defn write-frontmatter
-;   [{:keys [content frontmatter]}])
-;
-; (defn write-all-frontmatter
-;   [{:keys [pages]}]
-;   (doall [page pages]

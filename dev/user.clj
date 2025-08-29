@@ -19,6 +19,7 @@
           '(jq [api :as jq])
           '[clj-yaml.core     :as yaml]
           '[toml-clj.core :as toml]
+          '[nextjournal.markdown :as md]
           '[java-time.api :as jt]
           '[nextjournal.beholder :as behold]
           '[hiccup2.core :refer [html]]
