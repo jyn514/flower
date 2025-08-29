@@ -14,7 +14,8 @@
    [hiccup.util]
    [instaparse.core :as insta]
    [java-time.api]
-   [sci.core :as sci])
+   [sci.core :as sci]
+   [sci.impl.callstack])
   (:import
    [java.io BufferedReader StringReader]
    [org.jsoup.nodes Document]
@@ -23,6 +24,7 @@
 ; types
 
 (def Span [:map [:line :int] [:column :int]])
+(def start-span {:line 0 :column 0})
 
 ; sandboxing
 
@@ -88,8 +90,9 @@
 
 (defn copy-all
   [ns vars]
-  (into {} (for [sym vars]
-             [sym (sci/copy-var* (ns-resolve ns sym) ns)])))
+  (let [binding (sci/create-ns ns)]
+    (into {} (for [sym vars]
+               [sym (sci/copy-var* (ns-resolve ns sym) binding)]))))
 
 (def clojure-core (copy-all 'clojure.core missing-core))
 
@@ -265,13 +268,14 @@
            (throw ex)))))
 
 (defn parse-string
-  ([s] (parse-string *cx* s))
-  ([cx s]
+  ([s] (parse-string *cx* start-span s))
+  ([cx span s]
    (when (env "FLOWER_DEBUG_PARSE")
      (def ^:dynamic *lisp* s) ; for repl
      (eprint "parse-string: ")
      (eprn s))
-   (try-sci cx #(sci/parse-string cx s))))
+   (let [cx (update-meta #(merge % {:flower/span span}) cx)]
+     (try-sci cx #(sci/parse-string cx s)))))
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
@@ -299,17 +303,17 @@
       (with-meta node (merge relative (abs-span start relative)))
       node)))
 
-(defn map-with-meta
-  "Given a mapper `f` and one or more nodes,
-   run `f` on the source text spanned by the combined nodes.
+(defn parse-with-meta
+  "Given a SCI context and one or more nodes,
+   parse the source text spanned by the combined nodes.
    Then, recursively update all spans on the result to be relative 
    to the span of the nodes, not the substring of the source text."
-  [f src & nodes]
+  [cx src & nodes]
   (let [l (-> nodes first insta/span first)
         r (-> nodes last insta/span last)
         start (offset->line l src)
         orig_src (apply subs src [l r])
-        mapped (f orig_src)]
+        mapped (parse-string cx start orig_src)]
     (postwalk #(->abs start %) mapped)))
 
 ; sunflower
@@ -320,13 +324,21 @@
 (defn flower-call
   ([cx src list trailer] (flower-call cx src nil list trailer))
   ([cx src syntax list trailer]
-   (let [parse #(parse-string cx %)
-         parsed-args (if (nil? syntax)
-                  (map-with-meta parse src list)
-                  (map-with-meta parse src syntax list))
+   (let [parsed-args (if (nil? syntax)
+                       (parse-with-meta cx src list)
+                       (parse-with-meta cx src syntax list))
          merged-args (with-meta (concat parsed-args trailer)
                                 (meta parsed-args))]
      (embed merged-args))))
+
+(defn outer-ident
+  ([cx src ident] (outer-ident cx src nil ident))
+  ([cx src syntax ident]
+   (let [parsed (if (nil? syntax)
+                  (parse-with-meta cx src ident)
+                  (parse-with-meta cx src syntax ident))]
+     (embed parsed))))
+
 
 (defn nested-render
   [src markup]
@@ -344,18 +356,16 @@
   (insta/transform
     {:Start vector
      :Text identity
-     :Lisp identity
      :FlowerSyntax identity
 
      :OuterComment (constantly "")
-     :OuterIdent #(embed (symbol %))
-
+     :OuterIdent #(apply outer-ident cx src %&)
      :FlowerCall #(apply flower-call cx src %&)
+
      ; don't have spans available yet; for now just combine them all into a vec
      :NestedRender vector
      :CallTrailer #(map (fn [m] (nested-render src m)) %&)
-     ; :NestedRender #(identity `(str ~@%&))
-     } tree))
+    } tree))
 
 (defn- on-parse-event [cx src ev]
   (if (string? ev) ev

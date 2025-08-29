@@ -8,20 +8,19 @@ This series is as-yet unfinished.
 
 ◊(def postmodern
   {:author "jade" :flower/path "https://jade.fyi/blog/the-postmodern-build-system/"
-   :category "tools" :title "the postmodern build system"
+   :title "the postmodern build system"
    :flower/source-file "<synthetic>" :date "2023-12-11"
-   :order 5})
+   :computer-of-the-future {:tools 1}})
 
 ◊(def grouped
   (->> pages
       (group-by (comp first keys :computer-of-the-future))
       (filter first)
       (into {})))
-◊(println (map :order (:principles grouped)))
 ◊(def posts
   (-> grouped
     (update :tools #(conj % postmodern))
-    (update-vals #(sort-by (comp first values :computer-of-the-future %)))))
+    (update-vals #(sort-by (comp first vals :computer-of-the-future) %))))
 ◊(def categories [:principles, :tools, :implementation])
 ◊(assert (= (set categories) (set (keys posts)))
          (keys posts))
@@ -31,7 +30,7 @@ This series is as-yet unfinished.
 <hr>
 <h2>◊(name category)</h2>
 
-<ol class="post-list" start="◊n">
+<ol class="post-list" start="◊@n">
 ◊(for [post (category posts)])«
   ◊(discard swap! n inc)
   <li>

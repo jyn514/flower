@@ -28,17 +28,19 @@
    (let [timer (Timer.)
          task (atom nil)]
      (fn [& args]
-         (let [new-task (proxy [TimerTask] []
-                          (run []
-                            (apply f args)
-                            (reset! task nil)
-                            (.purge timer)))]
-           ; TODO: we have a race condition here somewhere,
-           ; .schedule keeps throwing "already canceleled"
-           (when-let [t ^TimerTask @task]
-             (.cancel t))
-           (reset! task new-task)
-           (.schedule timer new-task ms)))))
+       (let [new-task (proxy [TimerTask] []
+                        (run []
+                          (apply f args)
+                          (reset! task nil)
+                          (.purge timer)))
+             old ^TimerTask @task]
+         ; NOTE: we never retry this;
+         ; an outdated value means we already scheduled a rerun,
+         ; and we don't promise that all events get through.
+         (when (compare-and-set! task old new-task)
+           (when old (.cancel old))
+           ; TODO: isn't there a race condition here still?
+           (.schedule timer new-task ms))))))
 
 (defn on-file-change
   [cb paths dirs event]

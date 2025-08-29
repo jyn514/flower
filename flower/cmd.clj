@@ -83,7 +83,7 @@
               flower.reflect/*dependencies* #{}]
       (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
-            lisp (eval/parse-string cx embedded)
+            lisp (eval/parse-string cx eval/start-span embedded)
             ; TODO: we need a mechanism for build.clj to pass back the builddir.
             ; maybe we can bind `flower.reflect/*build*` or something idk
             ; alternatively we can force this to be in flower.edn?
@@ -186,7 +186,7 @@
         ; borkdude suggests running parse-next in a loop instead, see
         ; https://clojurians.slack.com/archives/C015LCR9MHD/p1755283534353819?thread_ts=1755274827.891389&cid=C015LCR9MHD
         f (str "(do " (slurp transformer) ")")
-        transformer (eval/parse-string cx f)
+        transformer (eval/parse-string cx eval/start-span f)
         ; NOTE: does *not* call pretty-print
         run-transform '(transform page)
         ; NOTE: order is important here, see https://technomancy.us/143

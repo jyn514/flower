@@ -97,6 +97,8 @@
     (expect counts merged src)))
 
 (defexpect edge-cases
+  (expect-nodes "◊@a" {:OuterIdent 1 :ReaderAtom 1 :IdentNoBrackets 1
+                       :Text 0})
   (expect-nodes "◊(a)(b)" {:FlowerCall 1 :Text 1})
   (expect-nodes "◊(a)◊(b)" {:FlowerCall 2 :Text 0})
   (expect-nodes "◊(a)«b»" {:FlowerCall 1 :NestedRender 1 :Text 0})
