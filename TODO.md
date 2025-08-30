@@ -74,6 +74,7 @@
 - bundle [asciidoc]; suggest for highly nested md->clj->md->clj
 - allow preprocessors to edit frontmatter
 - render needs to not blindly assume that the preprocessing language is clojure
+- bundle jinja by default
 - dependencies between index pages and rendered pages
   - if we want "leads", they need to depend on contents also
     - actually wait depfiles solve this owo
@@ -132,6 +133,7 @@ ninja's api for all of these is `flower transform`
   - https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html
   - https://github.com/bonede/tree-sitter-ng
   - https://github.com/seart-group/java-tree-sitter
+  - someone mentioned on slack they got this working: https://clojurians.slack.com/archives/C03S1KBA2/p1756400041864609?thread_ts=1756162447.266729&cid=C03S1KBA2
 - bsky comments
   - https://natalie.sh/posts/bluesky-comments/
 - SVG with embedded text for code blocks

@@ -25,12 +25,7 @@
 ; CLI and IO
 
 (defn read-json []
-        ; TODO: https://clojure.atlassian.net/browse/DJSON-43
-  (let [reader (java.io.PushbackReader. *in* 64)]
-    (try (json/read reader :key-fn keyword)
-         ; bruh what is up with the json parser not having scoped exceptions
-         (catch java.lang.Exception e
-           (fatal "failed to parse JSON:" (ex-message e))))))
+  (cmd/read-json *in* "stdin"))
 
 (defn map-json
   "Given a function `f` that transforms a clojure map to a clojure map,
@@ -39,16 +34,12 @@
   [f & args]
   (let [opts (first args)
         before (read-json)
-        [after deps] (cmd/with-tracked-deps #(apply f before args))
-        ; preserve namespaces in output
-        serialize #(cond (keyword? %) (subs (str %) 1)
-                         (symbol? %) (name %)
-                         :else (str %))]
+        [after deps] (cmd/with-tracked-deps #(apply f before args))]
     (if (:depfile opts)
       (cmd/split-dependencies deps opts)
       (when (seq deps)
         (throw (ex-info "at least one file was accessed, but no depfile path was passed!" {:flower/deps deps}))))
-    (json/write after *out* :key-fn serialize)))
+    (cmd/write-json after *out*)))
 
 (defn no-opts [f & args]
   (fn [& _] (apply f args)))
@@ -86,24 +77,22 @@
 ; disallow infinite sequences, they horribly break debugging.
 ; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
 (def argv-max (if *assert* 1000 100000))
+(defn cli-read-json [opts str] (json/read-str str))
 (def dispatch-table
   {"configure" (no-opts cmd/configure {})
    "split-frontmatter" (no-opts map-json split-frontmatter)
-   "join-frontmatter" {:fn cmd/join-frontmatter
-                       :coerce {:path :string}
+   "join-frontmatter" {:fn #(cmd/join-frontmatter %)
+                       :coerce {:path []}
                        :args->opts (repeat argv-max :path)}
-   "render-page" {:fn #(map-json cmd/render-page %)
-                  :coerce {:depfile :string
-                           :out-file :string}
-                  :args->opts (concat [:depfile :out-file])}
-   "render-markdown" (no-opts map-json cmd/render-markdown)
    "transform" {:fn #(map-json cmd/transform %)
                 :coerce {:depfile :string
                          :out-file :string
+                         :all-frontmatter :string
                          :transformers []}
                 :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
-                :collect {:transform-map #(json/read-str %2)}
-                :args->opts (concat [:depfile :out-file :transform-map] (repeat argv-max :transformers))}
+                :collect {:transform-map cli-read-json}
+                :args->opts (repeat argv-max :transformers)}
+   ; TODO: get rid of this
    "split-sass-dependencies"
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
@@ -115,7 +104,7 @@
            :coerce {:template :boolean}
            :args->opts [:template]}
    ["n" "new"] (no-opts flower.defaults/materialize-all)
-   ; TODO: this overrides --data
+   ; TODO: get rid of this
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
          :coerce {:raw-input :boolean
                   :raw-output :boolean
@@ -140,7 +129,10 @@
     (let [cmds (if (string? key) [key] key)
           [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
           wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))
-          bb-map (assoc opts :cmds cmds :fn #(init wrapped-fn %))]
+          bb-map (assoc opts
+                        :cmds cmds
+                        ; :restrict true
+                        :fn #(init wrapped-fn %))]
       bb-map)))
 
 (defn init-fn [cmd-fn args]
@@ -173,27 +165,31 @@
 (defn -main [& args]
   (System/exit (apply main args)))
 
+(defmacro cfg [condition & body]
+  (when (eval condition) `(do ~@body)))
+(defmacro cfg-not [condition & body]
+  (when (not (eval condition)) `(do ~@body)))
+
 ; dynamic type checking
-(do
-  (if *assert*
-    (require
-      '[malli.instrument :as mi]
-      '[malli.dev.pretty :as pretty])
-    (info "type assertions disabled"))
-  (when *assert*
-    (info "instrumenting type signatures")
-    (def flower-nss
-      ['flower.beholder
-       'flower.cmd
-       'flower.main
-       'flower.eval
-       'flower.defaults
-       'flower.frontmatter
-       'flower.hiccup
-       'flower.internal.utils
-       'flower.reflect
-       'flower.repl
-       'flower.utils
-       'flower.watch])
-    (mi/collect! {:ns flower-nss})
-    (mi/instrument! {:report (pretty/thrower)})))
+(cfg *assert*
+  (info "instrumenting type signatures")
+  (require
+    '[malli.instrument :as mi]
+    '[malli.dev.pretty :as pretty])
+  (def flower-nss
+    ['flower.beholder
+     'flower.cmd
+     'flower.main
+     'flower.eval
+     'flower.defaults
+     'flower.frontmatter
+     'flower.hiccup
+     'flower.internal.utils
+     'flower.reflect
+     'flower.repl
+     'flower.utils
+     'flower.watch])
+  (mi/collect! {:ns flower-nss})
+  (mi/instrument! {:report (pretty/thrower)}))
+(cfg-not *assert*
+  (info "type assertions disabled"))

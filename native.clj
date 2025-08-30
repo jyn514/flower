@@ -108,6 +108,8 @@
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]
                   :bindings {#'clojure.core/*assert* (not= false dev)}
+                  ; JLine likes to bundle .dll files even on Linux. Tell it not to do that.
+                  :java-opts ["-Djline.terminal.jna=false"]
                   :class-dir class-dir})
   (let [target (str class-dir "/META-INF/native-image/flower/main/reachability-metadata.json")
         serialized (json/write-str reachable)]
@@ -137,7 +139,7 @@
   ["native-image" "-jar" jar-file exe
    "--silent"
    (when is-linux "--gc=G1")
-   (when dev "-Ob")
+   (if dev "-Ob" "-Os")
    "--no-fallback" "--exact-reachability-metadata"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])

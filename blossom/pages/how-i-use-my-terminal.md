@@ -6,6 +6,7 @@ taxonomies:
   tags:
     - workflows
 ---
+◊(defn ts [when] (html [:button {:class "timestamp"} when]))
 
 this is a whole blog post because it is "outside the overton window"; it usually takes at least a video before people even understand the thing i am trying to describe. so, here's the video:
 
@@ -14,19 +15,19 @@ this is a whole blog post because it is "outside the overton window"; it usually
 the steps here that tend to surprise people are {{ timestamp(when="0:11") }}, {{ timestamp(when="0:21") }}, and {{ timestamp(when="0:41") }}. when i say "surprise" i don't just mean that people are surprised that i've set this up, but they are surprised this is possible at all.
 
 here's what happens in that video:
-1. {{ timestamp(when="0:00") }} I start with Windows Terminal open on my laptop.
-2. {{ timestamp(when="0:02") }} I hit {{kbd(key="ctrl+shift+5")}}, which opens a new terminal tab which `ssh`'s to my home desktop and immediately launches tmux.
-3. {{ timestamp(when="0:03") }} tmux launches my default shell, `zsh`. zsh shows a prompt, while loading the full config asynchronously
-4. {{ timestamp(when="0:08") }} i use `zoxide` to fuzzy find a recent directory
-5. {{ timestamp(when="0:09") }} i start typing a ripgrep command. zsh autofills the command since i've typed it before and i accept it with {{kbd(key="ctrl+f")}}.
-6. {{ timestamp(when="0:11") }} i hit {{kbd(key="ctrl+k f")}}, which tells tmux to search all output in the scrollback for filenames. the filenames are highlighted in blue.
-7. {{ timestamp(when="0:12") }} i hold {{kbd(key="n")}} to navigate through the files. there are a lot of them, so it takes me a bit to find the one i'm looking for.
-8. {{ timestamp(when="0:21") }} i press {{kbd(key="o")}} to open the selected file in my default application (`nvim`). tmux launches it in a new pane. note that this is still running *on the remote server*; it is opening a remote file in a remote tmux pane. i do not need to have this codebase cloned locally on my laptop.
-9. {{ timestamp(when="0:26") }} i try to navigate to several references using rust-analyzer, which fails because RA doesn't understand the macros in this file. at {{ timestamp(when="0:32") }} i finally find one which works and navigate to it.
-10. {{ timestamp(when="0:38") }} i hit {{kbd(key="ctrl+k h")}}, which tells tmux to switch focus back to the left pane.
-11. {{ timestamp(when="0:39") }} i hit {{kbd(key="n")}} again. the pane is still in "copy-mode", so all the files from before are still the focus of the search. they are highlighted again and tmux selects the next file in search order.
-12. {{ timestamp(when="0:41") }} i hit {{kbd(key="o")}}, which opens a different file than before, but in the *same* instance of `nvim`.
-13. {{ timestamp(when="0:43") }} i hit {{kbd(key=" b")}}, which shows my open file buffers. in particular, this shows that the earlier file is still open. i switch back and forth between the two files a couple times before ending the stream.
+1. ◊(ts "0:00") I start with Windows Terminal open on my laptop.
+2. ◊(ts "0:02") I hit ◊(kbd "ctrl+shift+5"), which opens a new terminal tab which `ssh`'s to my home desktop and immediately launches tmux.
+3. ◊(ts "0:03") tmux launches my default shell, `zsh`. zsh shows a prompt, while loading the full config asynchronously
+4. ◊(ts "0:08") i use `zoxide` to fuzzy find a recent directory
+5. ◊(ts "0:09") i start typing a ripgrep command. zsh autofills the command since i've typed it before and i accept it with ◊(kbd "ctrl+f").
+6. ◊(ts "0:11") i hit ◊(kbd "ctrl+k f"), which tells tmux to search all output in the scrollback for filenames. the filenames are highlighted in blue.
+7. ◊(ts "0:12") i hold ◊(kbd "n") to navigate through the files. there are a lot of them, so it takes me a bit to find the one i'm looking for.
+8. ◊(ts "0:21") i press ◊(kbd "o") to open the selected file in my default application (`nvim`). tmux launches it in a new pane. note that this is still running *on the remote server*; it is opening a remote file in a remote tmux pane. i do not need to have this codebase cloned locally on my laptop.
+9. ◊(ts "0:26") }} i try to navigate to several references using rust-analyzer, which fails because RA doesn't understand the macros in this file. at {{ timestamp(when="0:32") i finally find one which works and navigate to it.
+10. ◊(ts "0:38") i hit ◊(kbd "ctrl+k h"), which tells tmux to switch focus back to the left pane.
+11. ◊(ts "0:39") i hit ◊(kbd "n") again. the pane is still in "copy-mode", so all the files from before are still the focus of the search. they are highlighted again and tmux selects the next file in search order.
+12. ◊(ts "0:41") i hit ◊(kbd "o"), which opens a different file than before, but in the *same* instance of `nvim`.
+13. ◊(ts "0:43") i hit ◊(kbd " b"), which shows my open file buffers. in particular, this shows that the earlier file is still open. i switch back and forth between the two files a couple times before ending the stream.
 ## but why??
 i got annoyed at VSCode a while back for being laggy, especially when the vim plugin was running, and at having lots of keybind conflicts between the editor, vim plugin, terminal, and window management. i tried zed but at the time it was quite immature (and still had the problem of lots of keybind conflicts).
 

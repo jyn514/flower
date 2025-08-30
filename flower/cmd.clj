@@ -4,7 +4,7 @@
    [babashka.fs :as fs]
    [clojure.core.reducers :as r]
    [clojure.data.json :as json]
-   [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.string :as str]
    [flower.eval :as eval]
    [flower.frontmatter :refer [split-frontmatter]]
@@ -15,6 +15,24 @@
    (java.io StringWriter)))
 
 ; utils
+
+(defn read-json [file desc]
+        ; TODO: https://clojure.atlassian.net/browse/DJSON-43
+  (let [reader (java.io.PushbackReader. file 64)]
+    (try (json/read reader :key-fn keyword)
+         ; bruh what is up with the json parser not having scoped exceptions
+         (catch java.lang.Exception e
+           (fatal (fmt "failed to parse JSON in ${desc}:") (ex-message e))))))
+
+(defn write-json [data out]
+        ; preserve namespaces in output
+  (let [serialize #(cond (keyword? %) (subs (str %) 1)
+                         (symbol? %) (name %)
+                         :else (str %))]
+    (json/write data out :key-fn serialize)))
+
+(defn read-json-file [path]
+  (read-json (-> path fs/file io/reader) (str path)))
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
@@ -118,10 +136,10 @@
 ; frontmatter utils
 
 (defn join-frontmatter
-  [{files :file}]
-  (let [read-edn #(-> % fs/file edn/read)
-        all-files (pmap read-edn files)]
-    (r/reduce merge all-files)))
+  [{files :path}]
+  (let [read-frontmatter #(:frontmatter (read-json-file %))
+        merged (r/foldcat (pmap read-frontmatter files))]
+    (write-json merged *out*)))
 
 ; preprocessing
 
@@ -188,8 +206,9 @@
 (defn run-transformer
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [page transformer]
-  (let [cx-opts {:bindings {'page (select-keys page [:content :frontmatter])}}
+  [all-frontmatter page transformer]
+  (let [cx-opts {:bindings {'page (select-keys page [:content :frontmatter])
+                            'pages all-frontmatter}}
         cx (eval/create-sci-cx transformer cx-opts)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ; borkdude suggests running parse-next in a loop instead, see
@@ -211,7 +230,9 @@
       (merge page moar-sandboxed)))))
 
 (defn transform
-  [parsed {:keys [transform-map transformers]}]
-  (when-not (-> transform-map keys count (= 1))
+  [parsed {:keys [transform-map transformers all-frontmatter]}]
+  (when-not (-> transform-map keys count (= 0))
     (fatal "TODO: transformers other than clojure (API and docs)"))
-  (reduce run-transformer parsed transformers))
+  (let [frontmatter (read-json-file all-frontmatter)
+        run #(apply run-transformer frontmatter %&)]
+  (reduce run parsed transformers)))

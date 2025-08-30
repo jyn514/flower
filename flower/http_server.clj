@@ -172,10 +172,11 @@
            (str/split #"-"))))
 
 (defn- read-bytes [^java.io.File f [start end]]
-  (let [end (or end (dec (min (fs/size f)
-                              (+ start (* 1024 1024)))))
+  (let [end (or end (min (fs/size f)
+                              (+ start (* 1024 1024))))
         len (- end start)
         arr (byte-array len)]
+    (println start end len)
     (with-open [r (java.io.RandomAccessFile. f "r")]
       (.seek r start)
       (.read r arr 0 len))

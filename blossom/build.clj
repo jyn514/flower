@@ -43,85 +43,6 @@
 (def all-pages (remove fs/directory? (fs/glob "pages" "**")))
 (def joined-frontmatter (/ builddir "all-frontmatter.json"))
 
-(defn frontmatter-path [page]
-  (/ builddir (add-ext (remove-parent page) "json")))
-
-(def all-frontmatter
-  {:rules [{:name "join-frontmatter"
-            :command (fmt "${flower_cli} join-frontmatter $in > $out")
-            :description "join all page frontmatter into a cache"}]
-   :builds [{:rule "join-frontmatter"
-             :inputs (map frontmatter-path all-pages)
-             :outputs joined-frontmatter
-             :restat true
-             :implicit ff}]})
-
-; TODO: allow pages to have a `--- include: file.ext ---` metadata
-; actually wait no, emit a `depfile` instead
-; TODO: allow configuring :url
-(defn build-page
-  ([page implicits]
-   (let [relative-page (remove-parent page)
-         json_frontmatter (frontmatter-path page)
-         rendered (/ builddir (replace-ext relative-page (str "rendered." (fs/extension relative-page))))
-         rules [{:rule "frontmatter"
-                 :inputs (str page)
-                 :outputs json_frontmatter
-                 :implicit ff}
-                {:rule "page"
-                 :inputs json_frontmatter
-                 :outputs rendered
-                 :depfile (add-ext json_frontmatter "d")
-                 :implicit implicits}]]
-     {:rules rules :out rendered})))
-
-(defn markdown-page [page]
-  (let [html (/ builddir (replace-ext (remove-parent page) "html"))]
-    {:rules [{:rule "markdown"
-              :inputs page
-              :outputs html
-              :implicit ff}]
-     :out html}))
-
-(defn transform-page [rendered]
-  (let [depfile (add-ext rendered "d")
-        ; a.rendered.html -> a.html
-        [base ext] (fs/split-ext rendered)
-        filename (if (= "rendered" (fs/extension base))
-                   (replace-ext base ext)
-                   base)
-        tmpfile (prepend-ext filename "transformed")
-        final (/ public (remove-parent filename))]
-    ; NOTE: if you have a custom build command you have to add a :build yourself
-    {:rules [{:rule "transform"
-               :inputs rendered
-               :outputs final
-               :implicit transformers
-               :tmpfile (escape-shell tmpfile)
-               :depfile depfile}]
-      :out nil}))
-
-(defmulti dispatch-file fs/extension)
-(defmethod dispatch-file "md" [f] (markdown-page f))
-(defmethod dispatch-file :default [f] (transform-page f))
-(defn chain-commands [in out]
-  (let [{new-rules :rules
-         new-path :out } (dispatch-file in)
-        all-rules (concat out new-rules)]
-    (if (nil? new-path)
-      all-rules
-      (recur new-path all-rules))))
-
-(defn chain-page [pages build-func]
-  (mapcat
-    #(let [{:keys [rules out]} (build-func %)]
-       (if out (chain-commands out rules) rules))
-    pages))
-
-; why doesn't split-with do this by default ;-;
-(defn split-all [f seq]
-  [(filter f seq) (filter #(not (f %)) seq)])
-
 (def sass-files
   ; excludes /_*.sass
   (filter #(-> % fs/file-name first (= \_) not)
@@ -141,15 +62,47 @@
 (def sass-builds {:builds (map sass->build sass-files)})
 (def sass-outputs (map :outputs (:builds sass-builds)))
 
-  ; NOTE: we are careful here not to look at frontmatter contents so we don't have to rebuild build.ninja if a post is modified.
-  ; we only look at the pages themselves.
-  ; wait jyn wtf lol just glob
+(defn frontmatter-path [page]
+  (/ builddir (add-ext (remove-parent page) "json")))
+
+(def all-frontmatter
+  {:rules [{:name "join-frontmatter"
+            :command (fmt "${flower_cli} join-frontmatter $in > $out")
+            :description "join all page frontmatter into a cache"}]
+   :builds [{:rule "join-frontmatter"
+             :inputs (map frontmatter-path all-pages)
+             :outputs joined-frontmatter
+             :restat true
+             :implicit ff}]})
+
+; TODO: allow configuring :flower/url
+(defn build-page
+  ([page]
+     {:rule "frontmatter"
+      :inputs page
+      :outputs (frontmatter-path page)
+      :implicit ff}))
+
+; NOTE: we are careful here not to look at frontmatter contents so we don't have to rebuild build.ninja if a post is modified.
+(defn transform-page [page implicits]
+  (let [split (frontmatter-path page)
+        depfile (add-ext split "d")
+        [filename _] (fs/split-ext split)
+        tmpfile (prepend-ext split "transformed")
+        final (/ public (remove-parent filename))]
+    ; NOTE: if you have a custom build command you have to add a :build yourself
+    {:rule "transform"
+     :page page
+     :inputs split
+     :outputs final
+     :implicit (concat transformers implicits [joined-frontmatter])
+     :tmpfile (escape-shell tmpfile)
+     :depfile depfile}))
 
 (def page-builds
-        ; sass here is a hack until i implement hash-inputs
-    (let [deps sass-outputs
-          page-builds (chain-page all-pages #(build-page % deps))]
-    {:builds page-builds}))
+  (let [split-pages (map build-page all-pages)
+        transformed (map #(transform-page % sass-outputs) all-pages)]
+    {:builds (concat split-pages transformed)}))
 
 (defn static->build [path]
   {:rule (if (fs/directory? path) "mkdir" "link")
@@ -184,18 +137,11 @@
     {:name "link"
      :command "ln -f $in $out"
      :description "link $in into build dir"}
-    {:name "page"
-     :command (fmt "${flower_cli} render-page < $in $in.d $out > $out")
-     :description "render page $in using clojure"}
     {:name "frontmatter"
      :command (fmt "${flower_cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower_cli} split-frontmatter > $out")}
     {:name "sass"
      :command (fmt "sass --quiet $in $out; ${flower_cli} split-sass-dependencies $out <$source-map >$depfile")
-     :description "compile Sass file $in to CSS"}
-    {:name "markdown"
-     ; TODO: use flower builtins
-     :command (flow "render-markdown")
-     :description "render markdown -> HTML: $in -> $out"}]
+     :description "compile Sass file $in to CSS"}]
    :builds
    [{:rule "ninja-meta"
      :restat true
@@ -216,20 +162,35 @@
     {:rule "mkdir"
      :outputs builddir}]})
 
-(def trans-map {"clj" (str flower_cli " transform")})
+(defn trans-order [p]
+  (case (-> p fs/file-name fs/strip-ext)
+    "render" 0
+    "embed" 1
+    nil))
 
-; TODO: unix pipelines are so jank lol. run this as a single `flower transform` command so we can do proper error handling.
+(defn trans-sorter [left right]
+  (let [[lscore rscore :as scores] (map trans-order [left right])]
+    (cond
+      (every? some? scores) (apply compare scores)
+      (some? lscore) -1
+      (some? rscore) 1
+      ; alphabetical
+      :else (compare left right))))
+
 (def transform
         ; TODO: shell escaping
-  (let [files (->> transformers (map str) (str/join " "))
+  (let [files (->> transformers (sort trans-sorter) (map str) (str/join " "))
         ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
         ; instead we assume it's always relative to $in.
-        cmd "flower transform < $in $in.d $out $transform-map $transformers > $tmpfile && flower jq -r .content < $tmpfile > $out"]
+        cmd (str "flower transform < $in --depfile $in.d --out-file $out "
+                 "--transform-map $transform-map --all-frontmatter $all-frontmatter "
+                 "$transformers > $tmpfile && flower jq -r .content < $tmpfile > $out")]
     {:variables {:transformers files
-                 :transform-map (-> trans-map json/write-str escape-shell)}
+                 :transform-map (-> {} json/write-str escape-shell)
+                 :all-frontmatter joined-frontmatter}
      :rules [{:name "transform"
               :command cmd
-              :description "run all transformers on $in"}]}))
+              :description "run all transformers on $page"}]}))
 
 (expressions.ninja/generate
   (merge-deep all-frontmatter page-builds transform static-builds sass-builds base))

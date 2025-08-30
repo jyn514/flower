@@ -288,11 +288,12 @@
      (eprn form))
    (let [cx (update-meta #(merge %
                                  {:flower/span (-> form insta/span first (offset->line src))}) cx)]
+     (binding [*cx* cx]
        (sci/binding [sci/out *err*
                      sci/err *err*
                      sci/ns userns
                      sci/file (-> cx meta :flower/filename)]
-         (try-sci cx #(sci/eval-form cx form))))))
+         (try-sci cx #(sci/eval-form cx form)))))))
 
 (defn ->abs
   "Given an SCI parsed form, update its metadata to be relative to `start`"
@@ -397,15 +398,17 @@
   ([src filename locals]
    ; TODO: also bind locals in `flower.locals`
    ; NOTE: we have to use `new-var` here or using `def` on a bound local will crash SCI
-   (let [bindings (into {} (for [[name val] locals] [name (sci/new-var name val)]))]
-     (binding [*cx* (if (some? *cx*)
-                      ; NOTE: state changes in the inner template are not visible in the outside context
-                      ; NOTE: :bindings doesn't work here, upstream bug
-                      ; TODO: fork this new context before merging so we don't bind 'locals into the parent
-                      (let [new-cx (sci/merge-opts *cx* {:namespaces {'user bindings}})]
-                        (with-meta new-cx {:flower/filename filename}))
-                      (create-sci-cx filename {:namespaces {'user bindings}}))]
-     (teval (parse-or-fatal parse src filename) src *cx*)))))
+   (let [bindings (into {} (for [[name val] locals]
+                             [name (sci/new-var name val)]))
+         cx (if (some? *cx*)
+              ; NOTE: state changes in the inner template are not visible in the outside context
+              ; NOTE: :bindings doesn't work here, upstream bug
+              ; TODO: fork this new context before merging so we don't bind 'locals into the parent
+              (let [new-cx (sci/merge-opts *cx* {:namespaces {'user bindings}})]
+                (with-meta new-cx {:flower/filename filename}))
+              (create-sci-cx filename {:namespaces {'user bindings}})) ]
+     (binding [*cx* cx]
+       (teval (parse-or-fatal parse src filename) src *cx*)))))
 
 (defn create-fs-cx
   [filename]

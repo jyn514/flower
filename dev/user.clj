@@ -6,6 +6,7 @@
   (import org.jsoup.Jsoup org.jsoup.parser.Parser)
   (require '(clojure [string :as str])
           '(clojure.data [json :as json])
+          '[clojure.edn :as edn]
           '[clojure.reflect :as r]
           '[clojure.walk :as walk :refer [walk postwalk prewalk]]
           '[clojure.stacktrace :refer [print-stack-trace]]
@@ -14,6 +15,7 @@
           '[malli.dev]
           '(flower [main :as flower])
           '[flower.eval :as eval]
+          '[flower.cmd :as cmd]
           '(sci [core :as sci])
           '(instaparse [core :as insta])
           '(jq [api :as jq])

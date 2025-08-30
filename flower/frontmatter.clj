@@ -8,6 +8,7 @@
    [clojure.edn       :as edn]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
+   [flower.internal.utils :refer [remove-ext remove-parent]]
    [toml-clj.core :as toml]) 
   (:import
    [java.time LocalDate LocalDateTime ZoneOffset]
@@ -61,6 +62,7 @@
 (defn split-frontmatter
   [{:keys [filename content]}]
   (let [[frontmatter body] (parse-frontmatter filename content)
-        merged (assoc frontmatter :flower/source-file filename :flower/path filename)]
-    {:content body
-     :frontmatter merged}))
+        base (-> filename remove-parent remove-ext)
+        dst (str (remove-ext base) ".html")
+        merged (assoc frontmatter :flower/source-file filename :flower/path dst)]
+    {:content body :frontmatter merged}))

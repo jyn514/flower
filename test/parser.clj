@@ -2,7 +2,6 @@
   (:require
    [clojure.string :as str]
    [clojure.core.match :refer [match]]
-   [clojure.spec.alpha :as s]
    [clojure.test.check.clojure-test :refer [defspec]]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
