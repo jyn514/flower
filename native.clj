@@ -151,8 +151,9 @@
   (eprintln "Build Graal Native executable")
   (println (graal dev))
   (ps/shell (graal dev))
-  (let [size (-> exe fs/size (/ (* 1024 1024)) double)]
-    (eprintln "Built" exe (format "(%.2f MB)" size))))
+  (let [size (-> exe fs/size (/ (* 1024 1024)) double)
+        desc (if dev "dev" "release")]
+    (eprintln "Built" exe (format "(%s %.2f MB)" desc size))))
 
 (defn native [_] (-native-helper false))
 (defn native-dev [_] (-native-helper true))

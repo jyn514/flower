@@ -7,12 +7,17 @@ taxonomies:
     - workflows
 ---
 ◊(defn ts [when] (html [:button {:class "timestamp"} when]))
+◊(def sed clojure.string/replace)
+◊(defn kbd [keys]
+  (let [transformed
+        (sed (sed keys " " "</kbd><kbd>") "+" " + ")]
+    (fmt "<kbd>${transformed}</kbd>")))
 
 this is a whole blog post because it is "outside the overton window"; it usually takes at least a video before people even understand the thing i am trying to describe. so, here's the video:
 
 <video controls><source src="/assets/terminal-recording.mp4"></video>
 
-the steps here that tend to surprise people are {{ timestamp(when="0:11") }}, {{ timestamp(when="0:21") }}, and {{ timestamp(when="0:41") }}. when i say "surprise" i don't just mean that people are surprised that i've set this up, but they are surprised this is possible at all.
+the steps here that tend to surprise people are ◊(ts "0:11"), ◊(ts "0:21"), and ◊(ts "0:41"). when i say "surprise" i don't just mean that people are surprised that i've set this up, but they are surprised this is possible at all.
 
 here's what happens in that video:
 1. ◊(ts "0:00") I start with Windows Terminal open on my laptop.
@@ -23,7 +28,7 @@ here's what happens in that video:
 6. ◊(ts "0:11") i hit ◊(kbd "ctrl+k f"), which tells tmux to search all output in the scrollback for filenames. the filenames are highlighted in blue.
 7. ◊(ts "0:12") i hold ◊(kbd "n") to navigate through the files. there are a lot of them, so it takes me a bit to find the one i'm looking for.
 8. ◊(ts "0:21") i press ◊(kbd "o") to open the selected file in my default application (`nvim`). tmux launches it in a new pane. note that this is still running *on the remote server*; it is opening a remote file in a remote tmux pane. i do not need to have this codebase cloned locally on my laptop.
-9. ◊(ts "0:26") }} i try to navigate to several references using rust-analyzer, which fails because RA doesn't understand the macros in this file. at {{ timestamp(when="0:32") i finally find one which works and navigate to it.
+9. ◊(ts "0:26") i try to navigate to several references using rust-analyzer, which fails because RA doesn't understand the macros in this file. at ◊(ts "0:32") i finally find one which works and navigate to it.
 10. ◊(ts "0:38") i hit ◊(kbd "ctrl+k h"), which tells tmux to switch focus back to the left pane.
 11. ◊(ts "0:39") i hit ◊(kbd "n") again. the pane is still in "copy-mode", so all the files from before are still the focus of the search. they are highlighted again and tmux selects the next file in search order.
 12. ◊(ts "0:41") i hit ◊(kbd "o"), which opens a different file than before, but in the *same* instance of `nvim`.

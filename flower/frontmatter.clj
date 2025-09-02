@@ -3,6 +3,7 @@
 
 (ns flower.frontmatter
   (:require
+   [babashka.fs :as fs]
    [clj-yaml.core     :as yaml]
    [clojure.data.json :as json]
    [clojure.edn       :as edn]
@@ -62,7 +63,10 @@
 (defn split-frontmatter
   [{:keys [filename content]}]
   (let [[frontmatter body] (parse-frontmatter filename content)
-        base (-> filename remove-parent remove-ext)
-        dst (str (remove-ext base) ".html")
-        merged (assoc frontmatter :flower/source-file filename :flower/path dst)]
+        [base ext] (-> filename remove-parent fs/split-ext)
+        dst (or (:path frontmatter) (str (remove-ext base) ".html"))
+        merged (assoc frontmatter
+                      :flower/source-file filename
+                      :flower/path dst
+                      :flower/filetype ext)]
     {:content body :frontmatter merged}))

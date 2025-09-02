@@ -1,5 +1,6 @@
 ; TODO: expose this as flower.defaults.build
 (require
+  '[flower.reflect :as reflect]
   'expressions.ninja
   '[expressions.constants :refer [use-jar rebuild-flower]]
 ; TODO: remove everything here but the path functions,
@@ -68,11 +69,11 @@
 (def all-frontmatter
   {:rules [{:name "join-frontmatter"
             :command (fmt "${flower_cli} join-frontmatter $in > $out")
+             :restat true
             :description "join all page frontmatter into a cache"}]
    :builds [{:rule "join-frontmatter"
              :inputs (map frontmatter-path all-pages)
              :outputs joined-frontmatter
-             :restat true
              :implicit ff}]})
 
 ; TODO: allow configuring :flower/url
@@ -83,17 +84,19 @@
       :outputs (frontmatter-path page)
       :implicit ff}))
 
-; NOTE: we are careful here not to look at frontmatter contents so we don't have to rebuild build.ninja if a post is modified.
+(defn page-frontmatter [page]
+  (-> reflect/*frontmatter* :pages (get (str page))))
+
+; NOTE: we look at frontmatter contents here, but we only register a dependency on `all-frontmatter.json` so that we don't have to rebuild when only the file contents changes.
 (defn transform-page [page implicits]
-  (let [split (frontmatter-path page)
-        depfile (add-ext split "d")
-        [filename _] (fs/split-ext split)
-        tmpfile (prepend-ext split "transformed")
-        final (/ public (remove-parent filename))]
+  (let [meta-path (frontmatter-path page)
+        depfile (add-ext meta-path "d")
+        tmpfile (prepend-ext meta-path "transformed")
+        final (->> page page-frontmatter :flower/path (/ public))]
     ; NOTE: if you have a custom build command you have to add a :build yourself
     {:rule "transform"
      :page page
-     :inputs split
+     :inputs meta-path
      :outputs final
      :implicit (concat transformers implicits [joined-frontmatter])
      :tmpfile (escape-shell tmpfile)
@@ -123,12 +126,14 @@
    :phony [{:name "flower" :depends ff}]
    :rules
    [{:name "ninja-meta"
+     :restat true
      :command (fmt "${flower_cli} configure")
      :description "rebuild build.ninja itself"}
     {:name "flower-meta"
      :command (if use-jar "cd .. && clojure -T:build uberjar" "cd .. && clojure -T:build native-dev")
      :description "rebuild flower itself"}
     {:name "flower-defaults"
+     :restat true
      :command (fmt "cd ../defaults && ${flower_cli} configure")
      :description "rebuild default build.ninja"}
     {:name "mkdir"
@@ -144,12 +149,11 @@
      :description "compile Sass file $in to CSS"}]
    :builds
    [{:rule "ninja-meta"
-     :restat true
      :generator true
      :outputs "build.ninja"
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
-     :inputs (concat ["build.clj"] ff
+     :inputs (concat ["build.clj" joined-frontmatter] ff
                      (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"
@@ -165,7 +169,8 @@
 (defn trans-order [p]
   (case (-> p fs/file-name fs/strip-ext)
     "render" 0
-    "embed" 1
+    "markdown" 1
+    "embed" 2
     nil))
 
 (defn trans-sorter [left right]

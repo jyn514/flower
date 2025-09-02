@@ -3,7 +3,7 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
-- pass original path into transformers so `flower transform` can give better errors
+- don't bind locals for transformers, only for pages (allows `ns`)
 - turn render-page into a transformer
   - calls `flower/render-file` by default
   - can use `flower.unsafe/process` for other langs

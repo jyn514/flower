@@ -176,7 +176,6 @@
                               (+ start (* 1024 1024))))
         len (- end start)
         arr (byte-array len)]
-    (println start end len)
     (with-open [r (java.io.RandomAccessFile. f "r")]
       (.seek r start)
       (.read r arr 0 len))
