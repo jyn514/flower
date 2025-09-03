@@ -11,7 +11,7 @@ Text = #'[^◊]+'
 FlowerSyntax = <'◊'> ( OuterIdent | FlowerCall | OuterComment )
 (* NOTE: we disallow strings, vectors, and maps as outer forms *)
 FlowerCall = ReaderSyntax? List CallTrailer
-CallTrailer = ( <'«'> NestedRender <'»'> )* !'«'
+CallTrailer = ( <#'\s*«'> NestedRender <'»'> )* !'«'
 NestedRender = ( #'[^»◊]+' | FlowerSyntax )*
 OuterComment = <#';[^\n]*'>
 OuterIdent = ReaderAtom? IdentNoBrackets

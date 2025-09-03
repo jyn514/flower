@@ -6,6 +6,7 @@ taxonomies:
   tags:
     - workflows
 ---
+◊(use 'expressions.shortcodes)
 ◊(defn ts [when] (html [:button {:class "timestamp"} when]))
 ◊(def sed clojure.string/replace)
 ◊(defn kbd [keys]
@@ -87,11 +88,7 @@ bind-key -T copy-mode-vi O send-keys -X copy-pipe-and-cancel \
 #### open a new pane running nvim
 here is the trick. i have created [a shell script](https://github.com/jyn514/dotfiles/blob/master/bin/hx-hax) (actually a perl script) that is the default application for all text files.
 
-{% note() %}
-
-setting up that many file associations by hand is a pain. i will write a separate blog post about the scripts that install my dotfiles onto a system. i don't use Nix partly because all my friends who use Nix have *even weirder* bugs than they already had, and partly because i don't like the philosophy of not being able to install things at runtime. i want to install things at runtime and *track* that i did so. that's a separate post too.
-
-{% end %}
+◊(note)«setting up that many file associations by hand is a pain. i will write a separate blog post about the scripts that install my dotfiles onto a system. i don't use Nix partly because all my friends who use Nix have *even weirder* bugs than they already had, and partly because i don't like the philosophy of not being able to install things at runtime. i want to install things at runtime and *track* that i did so. that's a separate post too.»
 
 the relevant part is this:
 ```perl
@@ -101,11 +98,7 @@ open(my $fd, '-|', @split) || die "can't open pipeline: $!";
 ```
 this bounces *back* to tmux. in particular, this is being very dumb and assuming that tmux is running on the machine where the file is, which happens to be the case here. this is not too bad to ensure - i just use a separate terminal *emulator* tab for each instance of tmux i care about; for example i will often have open one Windows Terminal tab for WSL on my local laptop, one for my desktop, and one for a remote work machine via a VPN.
 
-{% note() %}
-
-there's actually even more going on here—for example i am translating the `file:line:column` syntax to something vim understands, and overriding `xdg-open` so that it doesn't error out on the `:line`—but for the most part it's straightforward and not that interesting.
-
-{% end %}
+◊(note)«there's actually even more going on here—for example i am translating the `file:line:column` syntax to something vim understands, and overriding `xdg-open` so that it doesn't error out on the `:line`—but for the most part it's straightforward and not that interesting.»
 ### open a file in a running instance of nvim
 this is a perl script that scripts tmux to send keys to a running instance of nvim (actually the same perl script as before, so that both of these can be bound to the same keybind regardless of whether nvim is already open or not):
 ```perl

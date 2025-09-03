@@ -7,6 +7,7 @@ taxonomies:
     - ideas
     - walkthroughs
 ---
+◊(use 'expressions.shortcodes)
 **NOTE: if you are just here for the how-to guide, [click here](#recreating-a-theory) to skip the philosophizing.**
 ## theory building
 Peter Naur wrote a famous article in 1985 called [Programming as Theory Building]. it has some excellent ideas, such as:
@@ -208,7 +209,7 @@ i care a lot about iteration times, so i try and find how to run individual test
  
  run your tests! ideally, create and run your tests *before* modifying the code so that you can see that they start to pass after your change. tests are extra important when you don't already understand the code, because they help you verify that your new theory is correct. run existing tests as well; run those before you make changes so you know which failures are spurious (a surprisingly high number of codebases have flaky or environment-dependent tests).
 
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 i started by looking for existing tests for `:drop`:
 ```sh
 $ rg :drop test
@@ -219,7 +220,7 @@ test/old/testdir/test_excmd.vim:92:" Test for the :drop command
 test/old/testdir/test_excmd.vim:775:  call term_sendkeys(buf, ":drop Xdrop_modified.txt\<CR>")
 ```
 fortunately this had results right away and i was able to start adding my new test. `CONTRIBUTING.md` had a pointer to `test/README.md` which documented `TEST_FILE` and `mak functionaltest`. neovim has very good internal tooling and when my `screen:expect()` call failed it gave me a very helpful pointer to `screen:snapshot_util`.
-{% end %}
+»
 ## what have we learned?
 - [programming is theory building][Programming as Theory Building].
 - recovering a theory from code and docs alone is hard, but possible.
