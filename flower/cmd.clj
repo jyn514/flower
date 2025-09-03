@@ -16,6 +16,16 @@
 
 ; utils
 
+(defn write-if-modified
+  "Used by build.clj to make :restat work"
+  {:malli/schema [:-> :string :any :nil]}
+  [data path]
+  (let [fsize (try (fs/size path)
+                   (catch java.lang.Exception _ -1))
+        eq (and (= fsize (count data)) (= data (slurp path)))]
+    (when-not eq
+      (spit path data))))
+
 (defn read-json [file desc]
         ; TODO: https://clojure.atlassian.net/browse/DJSON-43
   (let [reader (java.io.PushbackReader. file 64)]
@@ -95,8 +105,7 @@
         page-meta (load-all-meta "pages")
         ; TODO: every time we hard-code a dir it makes things unconfigurable, figure out what to do
         template-meta (load-all-meta "templates")
-        frontmatter {:pages page-meta :templates template-meta}
-        dst (fs/path out)]
+        frontmatter {:pages page-meta :templates template-meta}]
     (binding [flower.reflect/*ninja* ninja-writer
               flower.reflect/*frontmatter* frontmatter
               flower.reflect/*dependencies* #{}]
@@ -111,7 +120,7 @@
         (fs/create-dirs build-dir)
         (let [contents (gen-depfile out flower.reflect/*dependencies*)]
           (fs/write-bytes depfile (String/.getBytes contents))))
-    (->> ninja-writer str .getBytes (fs/write-bytes dst)))))
+    (-> ninja-writer str (write-if-modified out)))))
 
 (defn build []
   ; TODO: doesn't handle the case where the exception trickles up to main.
@@ -136,10 +145,11 @@
 ; frontmatter utils
 
 (defn join-frontmatter
-  [{files :path}]
+  [{files :path out :out-file}]
   (let [read-frontmatter #(:frontmatter (read-json-file %))
-        merged (r/foldcat (pmap read-frontmatter files))]
-    (write-json merged *out*)))
+        merged (r/foldcat (pmap read-frontmatter files))
+        json (with-out-str (write-json merged *out*))]
+    (write-if-modified json out)))
 
 ; preprocessing
 

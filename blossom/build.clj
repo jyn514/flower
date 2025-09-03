@@ -68,8 +68,8 @@
 
 (def all-frontmatter
   {:rules [{:name "join-frontmatter"
-            :command (fmt "${flower_cli} join-frontmatter $in > $out")
-             :restat true
+            :command (fmt "${flower_cli} join-frontmatter $out $in")
+            :restat true
             :description "join all page frontmatter into a cache"}]
    :builds [{:rule "join-frontmatter"
              :inputs (map frontmatter-path all-pages)
@@ -154,7 +154,8 @@
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
      :inputs (concat ["build.clj" joined-frontmatter] ff
-                     (mapcat all-dirs ["pages" "templates" "expressions" "sass"]))}
+                     ; NOTE: normally this would need to include pages/, but we already depend on all-frontmatter and vim likes to create temporary files
+                     (mapcat all-dirs ["templates" "expressions" "sass"]))}
     (when rebuild-flower
       {:rule "flower-meta"
         :outputs ff

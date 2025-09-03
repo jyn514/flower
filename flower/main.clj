@@ -82,8 +82,9 @@
   {"configure" (no-opts cmd/configure {})
    "split-frontmatter" (no-opts map-json split-frontmatter)
    "join-frontmatter" {:fn #(cmd/join-frontmatter %)
-                       :coerce {:path []}
-                       :args->opts (repeat argv-max :path)}
+                       :coerce {:path []
+                                :out-file :string}
+                       :args->opts (concat [:out-file] (repeat argv-max :path))}
    "transform" {:fn #(map-json cmd/transform %)
                 :coerce {:depfile :string
                          :out-file :string
