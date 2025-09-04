@@ -46,42 +46,42 @@ this post is about creating theories at the "micro" level, for small portions of
 [debugging guide]: https://wizardzines.com/zines/debugging-guide/
 [A debugging manifesto]: https://jvns.ca/blog/2022/12/08/a-debugging-manifesto/
 
-{% note() %}
+◊(note)«
 i recently made a [PR to neovim][drop-cmd], having never worked on neovim before; i'll use that as an example going forward.
 i highly recommend following along with a piece of code you want to learn more about. if you don't have one in mind, i have hidden all the examples behind a drop-down menu, so you can try to apply the ideas on your own before seeing how i use them.
 
 the investigation i did in this blog post was based off [neovim commit 57d99a5].
 
-{{ expandButton() }}
+◊expand-button
 
 [drop-cmd]: https://github.com/neovim/neovim/pull/33339/
 [neovim commit 57d99a5]: https://github.com/neovim/neovim/tree/57d99a515f57454370b6c122545ea53685d22d1b
-{% end %}
+»
 
 ### where to start
 to start off, you need an idea of what change you want to make to the program. almost always, programs are too large for you to get an idea of the whole program at once. instead, you need to focus on theory-building for the parts you care about, and only understand the rest of the program to the extent that the parts you care about interact with it.
 
-{% note() %}
+◊(note)«
 in my neovim PR, i cared about the [`:drop`] command, which opens a file if it isn't loaded, or switches to the relevant buffer if it is. specifically i wanted to extend the "switch to the relevant buffer" part to also respect [`+cmd`], so that i could pass it a line number.
 
 [`:drop`]: https://neovim.io/doc/user/windows.html#%3Adrop
 [`+cmd`]: https://neovim.io/doc/user/editing.html#%2Bcmd
-{% end %}
+»
 ### finding the parts you care about
 there are several ways to get started here. the simplest is just finding the relevant part of the code or docs—if you can provoke an error that's related to the part of the code you're changing, you can search for that error directly. often, knowing *how* execution reaches that state is very helpful, which you can do by getting a backtrace. you can get backtraces for output from arbitrary programs with [liberal use of rr][unruly children], but if you're debugging rustc specifically, there's actually a built-in flag for this, so you can just use [`rustc file.rs -Z treat-err-as-bug`][treat-err-as-bug].
 
 [treat-err-as-bug]: https://rustc-dev-guide.rust-lang.org/compiler-debugging.html#getting-a-backtrace-for-errors
 
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 for `:drop`, this didn't work: it was documented on [neovim's site][`:drop`], but i didn't know a `:drop`-specific error to search for.
-{% end %}
+»
 
 [drop-docs]: https://neovim.io/doc/user/windows.html#drop
 [unruly children]: https://jade.fyi/blog/debugging-rr-children/
 
 if this doesn't print an error message, or if it's not possible to get a recording of the program, things are harder. you want to look for something you already know the name of; search for literal strings with that name, or substrings that might form part of a template.
 
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 for `:drop` i searched for the literal string `"drop"`, since *something* needs to parse commands and it's not super common for it to be on its own in a string. that pulled up the following hits:
 ```
 $ rg '"drop"' src
@@ -91,10 +91,10 @@ src/nvim/ex_docmd.c:4302:    // "drop".
 src/nvim/eval.c:7146:    len += 7 + 4;  // " ++bad=" + "keep" or "drop"
 ```
 `ex_docmd.c` looked promising, so i read the code around there.
-{% end %}
+»
 ### reading source code
 sometimes triggering the condition is hard, so instead i read the source code to reverse-engineer the stack trace. seeing all possible call sites of a function is instructive in itself, and you can usually narrow it down to only a few callers by skimming what the callers are doing. i highly recommend using an LSP for this part since the advantage comes from seeing *all* possible callers, not just most, and regex is less reliable than proper name resolution.
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 it turned out that none of the code i found in my search was for `:drop` itself, but i did find it was in a function named `get_bad_opt`. `get_bad_opt` had only one caller, `getargopt`. that was called by `do_one_cmd`. the doc-comment on `do_one_cmd` mentions that it parses the string, but i am not used to having documentation so i went up one level too far to `do_cmdline`. at that point, looking at the call site of `do_one_cmd`, i realized i had gone too far because it was passing in the whole string of the Ex command line. i found a more relevant part of the code by looking at the uses of `cmdlinep` in `do_one_cmd`:
 ```c
       char *cmdname = after_modifier ? after_modifier : *cmdlinep;
@@ -119,8 +119,7 @@ from there i went to the definition of `cmdnames` (in `build/src/nvim/auto/ex_cm
 and from there found that the function i cared about was called `ex_drop`.
 
 if i had been a little more careful, i could have found `CMD_drop` sooner with `rg -ul '"drop"'` (this time without filtering out hidden files or limiting to the source directory). but this way worked fine as well.
-
-{% end %}
+»
 ### verifying your understanding
 do mini experiments: if you see an error emitted in nearby code, try to trigger it so that you verify you're looking in the right place. when debugging, i often use process of elimination to narrow down callers: if an error would have been emitted if a certain code path was taken, or if there would have been more or less logging, i can be sure that code i am looking at was not run.
 
@@ -135,20 +134,19 @@ for more complicated code, i like to use a debugger, which lets you see much mor
 [nvim-dap-ui]: https://github.com/rcarriga/nvim-dap-ui
 [rr reverse watchpoint]: https://rr-project.org/#:~:text=more%20powerful%20is%20reverse%20execution
 
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 for `:drop`, i was quite confident i had found the right code, so i didn't bother with any experiments. there are other cases where it's more useful; i made an earlier [PR to tmux][grid padding] where there were many different places search happened, so verifying i was looking at the right one was very helpful. specifically i added `exit(1)` to the function i thought was the right place, since debug logging in tmux is non-trivial to access.
 
 i rarely use a debugger for adding new code; mostly i use it for debugging existing code. programs complicated enough that i need a debugger just to understand control flow usually have a client/server model that also makes them harder to debug, so i don't bother and just read the source code.
 
 [grid padding]: https://github.com/tmux/tmux/pull/4399
-
-{% end %}
+»
 ### writing new code
 reading source code is also useful for finding examples of how to use an API. often it handles edge cases you wouldn't know about by skimming, and uses helper functions that make your life simpler. your goal is to make your change as similar to the existing codebase as possible, both to reduce the risk of bugs and to increase the chance the maintainer likes your change.
 
 when i write new code, i will usually copy a small snippet from elsewhere in the codebase and modify it to my needs. i try to copy at most 10-15 lines; more than that indicates that i should try to reuse or create a higher-level API.
 
-{% note(hide="<code>:drop</code>") %}
+◊(note)«<code>:drop</code>»«
 once in `ex_drop`, i skimmed the code and found a snippet looked like it was handling existing files:
 ```c
   FOR_ALL_TAB_WINDOWS(tp, wp) {
@@ -199,7 +197,7 @@ out of caution, i also looked at the other places in the function that handled `
   }
 ```
 i refactored this into a helper function and then called it from both the original `:edit` command and my new code in `:drop`.
-{% end %}
+»
 ### testing new code
 this works in much the same way. try to find existing tests by using [the same techniques as finding the code you care about](#finding-the-parts-you-care-about). read them; write them using existing examples. tests are also code, after all.
 

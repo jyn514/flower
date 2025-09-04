@@ -6,10 +6,11 @@ taxonomies:
     - walkthroughs
     - workflows
 ---
+◊(use 'expressions.shortcodes)
 ## Do Not Disturb
 GNOME has a little button that lets you turn on Do-Not-Disturb for notifications:
 
-{{ img(alt="Gnome notifications menu", src="/assets/Pasted image 20250222135047.png") }}
+◊(img {:alt "Gnome notifications menu"} "/assets/Pasted image 20250222135047.png")
 
 Unfortunately, it has [no way of scheduling DnD](https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/2200).
 
@@ -58,11 +59,11 @@ $ echo $PATH
 neat. let's run  make sure our command runs.
 before: 
 
-{{ img(alt="Left side of the Gnome topbar", src="/assets/Pasted image 20250222141930.png") }}
+◊(img {:alt "Left side of the Gnome topbar"} "/assets/Pasted image 20250222141930.png")
 
 after running `toggle-dnd` in our login shell:
 
-{{ img(alt="Still the left side of the gnome topbar. In fact this is the exact same image as before.", src="/assets/Pasted image 20250222141930.png") }}
+◊(img {:alt "Still the left side of the gnome topbar. In fact this is the exact same image as before."} "/assets/Pasted image 20250222141930.png")
 
 ... nothing happened.
 we can confirm this on the CLI:

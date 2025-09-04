@@ -52,7 +52,7 @@
   [node]
   (Element/.text node))
 
-(defn html
+(defn innerHtml
   "Given an HTML Element, return its innerHtml() as a string."
   [node]
   (Element/.html node))
