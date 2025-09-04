@@ -36,7 +36,7 @@
         rendered (render-chunk parsed)
         footnote-wrapper [[:hr] [:footer.footnotes [:ol.footnotes-list footnotes]]]
         combined (if (seq footnotes) (into rendered footnote-wrapper) rendered)]
-    (hiccup/html combined)))
+    (str (hiccup/html combined))))
 
 (defn transform [{page :content meta :frontmatter :as args}]
   (if (= "md" (:flower/filetype meta))

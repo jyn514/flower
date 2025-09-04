@@ -3,8 +3,7 @@
   (:gen-class)
   (:use flower.internal.utils)
 (:require
- [babashka.cli :as cli]
- ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+ [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
  [babashka.process.pprint]
  [clojure.data.json :as json]
  [clojure.string :as str]
@@ -16,6 +15,8 @@
  [flower.internal.utils]
  [flower.reflect]
  [flower.repl :as repl]
+ [flower.unsafe]
+ [flower.unsafe :as unsafe]
  [flower.utils]
  [flower.watch]
  [hiccup.util]))
@@ -34,11 +35,13 @@
   [f & args]
   (let [opts (first args)
         before (read-json)
-        [after deps] (cmd/with-tracked-deps #(apply f before args))]
+        [after deps] (unsafe/with-drop-bomb
+                       #(cmd/with-tracked-deps
+                         (fn [] (apply f before args))))]
     (if (:depfile opts)
       (cmd/split-dependencies deps opts)
       (when (seq deps)
-        (throw (ex-info "at least one file was accessed, but no depfile path was passed!" {:flower/deps deps}))))
+        (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
     (cmd/write-json after *out*)))
 
 (defn no-opts [f & args]

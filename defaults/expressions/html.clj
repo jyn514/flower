@@ -45,7 +45,7 @@
   [doc ^String selector]
   (Element/.select (->element doc) selector))
 
-(defn text
+(defn text-content
   "Given an HTML Element, return the normalized, combined text
    of this element and all its children."
   [node]

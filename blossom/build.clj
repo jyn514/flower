@@ -1,4 +1,5 @@
 ; TODO: expose this as flower.defaults.build
+(import 'java.util.List)
 (require
   '[flower.reflect :as reflect]
   'expressions.ninja
@@ -167,12 +168,12 @@
     {:rule "mkdir"
      :outputs builddir}]})
 
+(def transss
+  ["render" "markdown" "highlight" "embed"])
+
 (defn trans-order [p]
-  (case (-> p fs/file-name fs/strip-ext)
-    "render" 0
-    "markdown" 1
-    "embed" 2
-    nil))
+  (let [i (->> p fs/file-name fs/strip-ext (.indexOf transss))]
+    (if (= -1 i) nil i)))
 
 (defn trans-sorter [left right]
   (let [[lscore rscore :as scores] (map trans-order [left right])]

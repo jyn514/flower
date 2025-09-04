@@ -71,6 +71,7 @@ $on-laptop:        12in !default;
 
 // Import partials.
 @import
+  "material-pygments",
   "minima/base",
   "minima/layout",
   "minima/syntax-highlighting"

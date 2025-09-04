@@ -70,6 +70,8 @@
     "java.lang.Class"
     "java.lang.String"
     "java.lang.Integer"
+    "java.util.List"
+    "clojure.lang.PersistentVector"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"
     "org.jsoup.nodes.Node"

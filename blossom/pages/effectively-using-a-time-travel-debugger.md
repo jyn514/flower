@@ -6,28 +6,27 @@ taxonomies:
   tags:
     - workflows
 ---
+◊(use 'expressions.shortcodes)
+
 i keep forgetting how to do this, and it keeps coming in handy. so, i am writing it down for future me. tl;dr: [be systematic](https://danluu.com/teach-debugging/#:~:text=systematically).
 
 ---
 
 say you have a program that behaves differently on two different inputs for a reason you don't understand. or, maybe it's the same input but you've changed the program. how can you figure out what is happening?
 
-{% note() %}
-
+◊(note)«
 i'm going to use a real world example, a debugging problem at work that took me nearly a week to figure out. using the steps here would have saved me about three days. i encourage you to follow along with your own nasty problem you want to figure out, just like in [theory building without a mentor](/theory-building-without-a-mentor).
 
 i work on a codebase called YottaDB, which is [open source](https://gitlab.com/YottaDB/DB/YDB). i was implementing a compiler peephole optimization that transformed an internal IR to be more efficient at runtime. for this post, i will be using commit [c978ca1c](https://gitlab.com/jyn514/YDB/-/commit/c978ca1cc9dea5cf8ab255d2c0c6f531ee2ed0f6), which has a partial implementation of the new feature that crashes on the input `	for  write ^x($job)`. to replicate, put that in a file, then run `build/yottadb -machine file.m`. run with `env ydb_dbglvl=16385` to replicate the "tree view" below.
 
 for the "two column side-by-side comparison" section below, i am comparing to [31205c980](https://gitlab.com/YottaDB/DB/YDB/-/commit/31205c980c04a21f63b201a740e6fd5065b5c987).
 
-{{ expandButton() }}
-
-{% end %}
+◊expand-button
+»
 
 you can always use printf debugging, of course. but say your data is too large for you to notice the difference between the inputs by eye[^1], or the print function itself is not showing you differences, even though the program is behaving differently (real thing i have run into!). what can you try next?
 
-{% note(hide="YDB") %}
-
+◊(note "YDB")«
 in my case, my print function was showing *one* view of the data correctly. in particular, i was seeing this tree view:
 ```
 # condensed from original for clarity
@@ -43,13 +42,11 @@ in my case, my print function was showing *one* view of the data correctly. in p
           (OC_ILIT, [   3,    0], 0xe640)
 ```
 but there are at least 3 other views, and i needed one of the others.
-
-{% end %}
+»
 
 if you have a debugger, you can run the process and stop at the first thing that goes wrong [^2].
 
-{% note(hide="YDB") %}
-
+◊(note "YDB")«
 i had a very obvious thing that went wrong: i got an assertion failure.
 ```
 %YDB-F-ASSERT, Assert failed in /home/jyn/work/YDB2/sr_port/emit_code.c line 1221 for expression (FALSE && opr->oprclass)
@@ -82,13 +79,11 @@ void emit_trip(oprtype *opr) {
 }
 ```
 note that this is not code i modified. *something* went wrong with `opr` before we got to this point, but it's entirely unclear what.
-
-{% end %}
+»
 
 sometimes the bug is obvious, like "oops we needed to check for a null pointer". but sometimes it's not. you don't know how you got to this error case, and you're confused that it's possible at all. in that case you can use a time-travel debugger, like [rr](https://rr-project.org/), to record the process execution and work backwards from there. in fact, because we know this bug is based on the input we got, we can run *two* processes side-by-side and compare the two, as long as we know what to compare.
 
-{% note(hide="YDB") %}
-
+◊(note "YDB")«
 let's run these backwards from the point that went wrong. first, let's compare `opr` in both cases. to do that, we have to know when to stop the second program to have a 1-1 comparison, so let's figure that out first.
 
 ```
@@ -170,7 +165,7 @@ Breakpoint 5 at 0x77b986e6b86f: file /home/jyn/work/YDB/sr_port/emit_code.c, lin
 </td>
 </tr></tbody></table>
 
-{% end %}
+»
 
 [^1]: if your input is a flat file you can always run `diff`, of course (actually i like `git diff --no-index`, it's very pretty, especially if you use [delta](https://dandavison.github.io/delta/)). or if it comes over a network socket you can use wireshark to save it to a file. but sometimes your input comes over something weirder, like a pipe or unix domain socket or shared memory, and now inspecting it without being in the same address space as your process is a pain. or sometimes it's "derived data" that's based on the input but does not have a 1-1 correspondence (or the code that builds that correspondence is broken). in that case looking at the original input doesn't help very much.
 

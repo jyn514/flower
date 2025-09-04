@@ -11,6 +11,7 @@
    [flower.hiccup]
    [flower.reflect]
    [flower.utils]
+   [flower.unsafe]
    [hiccup.util]
    [instaparse.core :as insta]
    [java-time.api]
@@ -129,6 +130,7 @@
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
                                        'render-file render-file)
                 'flower.eval {'pretty-print pretty-print}
+                'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'java-time.api (copy-ns 'java-time.api)
                 'babashka.fs (copy-all 'babashka.fs bb-fs)
@@ -145,6 +147,8 @@
               'md->html flower.utils/md->html}
    ; keep this in sync with `dynamic` in native.clj
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
+             'java.util.List java.util.List
+             'clojure.lang.PersistentVector clojure.lang.PersistentVector
              'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
              'java.time.OffsetDateTime 'java.time.OffsetDateTime
              'org.jsoup.Jsoup org.jsoup.Jsoup
