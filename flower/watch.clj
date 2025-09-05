@@ -185,12 +185,13 @@
            out-dir "public"
            build-dir ".build"
            ; ms
-           debounce-period 100}}]
+           debounce-period 100}
+      :as opts}]
   (println "Run `flower configure`")
   ; TODO: doesn't handle the case where the exception trickles up to main.
   ; probably that's fine though
   (binding [*cmd* "configure"]
-    (cmd/configure {:build-dir build-dir}))
+    (cmd/configure opts))
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
   ; prints its out progress info
