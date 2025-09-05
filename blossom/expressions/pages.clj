@@ -1,10 +1,9 @@
 (ns expressions.pages 
-  (:use flower.utils)
   (:require
    [babashka.fs :as fs]
-   [java-time.api :as jt]
    [clojure.string :as str]
-   [expressions.utils :refer [as-map split-all]]))
+   [expressions.utils :refer [as-map remove-ext remove-parent split-all]]
+   [java-time.api :as jt]))
 
 (defn- unslugify [filename]
   (let [name (if (= "index.html" (fs/file-name filename))

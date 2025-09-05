@@ -1,7 +1,6 @@
-; (ns transformers.markdown)
-(require '[hiccup2.core :as hiccup]
-         '[flower.utils :refer [inspect]]
-         '[nextjournal.markdown :as md])
+(ns transformers.markdown
+  (:require [hiccup2.core :as hiccup]
+            [nextjournal.markdown :as md]))
 
 (declare renderers)
 

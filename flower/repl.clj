@@ -5,7 +5,7 @@
    [clojure.stacktrace :as st]
    [flower.eval :as eval]
    [flower.reflect :as reflect]
-   [flower.internal.utils :refer [env state-dir *cmd*]])
+   [flower.utils :refer [env state-dir *cmd*]])
   (:import
    (org.jline.reader LineReader LineReader$Option LineReaderBuilder History)
    (org.jline.terminal TerminalBuilder)))

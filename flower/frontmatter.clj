@@ -9,7 +9,7 @@
    [clojure.edn       :as edn]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
-   [flower.internal.utils :refer [remove-ext remove-parent]]
+   [flower.utils :refer [remove-ext remove-parent]]
    [toml-clj.core :as toml]) 
   (:import
    [java.time LocalDate LocalDateTime ZoneOffset]

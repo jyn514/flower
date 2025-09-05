@@ -2,7 +2,7 @@
 ; https://github.com/bhurlow/clj-livereload/commit/fe8c6fb296b2f3eaf654dff9f7a9b7b76fe427f5
 
 (ns flower.watch
-  (:use flower.internal.utils)
+  (:use flower.utils)
   (:import [java.util Timer TimerTask])
   (:require
    [babashka.fs :as fs]
@@ -148,17 +148,23 @@
 
 ; ninja file watcher
 
-(defn rerun-ninja [{:keys [type path]}]
+(defn run-configure [opts]
+  ; TODO: doesn't handle the case where the exception trickles up to main.
+  ; probably that's fine though
+  (binding [*cmd* "configure"]
+    (cmd/configure opts)))
+
+(defn rerun-ninja [opts {:keys [type path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
   (when path (println type (str path)))
   ; ninja can't handle file deletes. generate a new build plan for it.
   ; TODO: delete all the outputs of the deleted file;
   ; you can get a list with `ninja -t query`
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
-  (when (= :delete type) (run-non-fatal "flower configure"))
+  (when (= :delete type) (run-configure opts))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
 
-(defn watch-ninja [build-dir debounce]
+(defn watch-ninja [opts debounce]
   ; TODO: decide whether to interrupt ninja on changes
   ; definitely shouldn't for anything in `build`
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
@@ -166,43 +172,38 @@
   ; TODO: this doesn't notice files that were added after the watch started
   ; TODO: this doesn't notice files that are only listed in depfiles
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
-        temp-file? #(str/starts-with? % (str build-dir "/"))
+        temp-file? #(str/starts-with? % (str (:build-dir opts) "/"))
         ; TODO: reconsider if we actually want to filter out build.ninja
         ; also this will be wrong when *site* is set
         important? #(not (or (temp-file? %) (= "build.ninja" %)))
         important-inputs (filter important? all-inputs)
-        watcher (watch-files rerun-ninja important-inputs debounce)]
+        watcher (watch-files #(rerun-ninja opts %) important-inputs debounce)]
     ; run once at startup
-    (future (rerun-ninja {}))
+    (future (rerun-ninja opts {}))
     watcher))
 
 ; api
 
 ; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
 (defn watch
-  [& {:keys [port out-dir build-dir debounce-period]
+  [& {:keys [port out-dir debounce-period]
       :or {port 8090
            out-dir "public"
-           build-dir ".build"
            ; ms
            debounce-period 100}
       :as opts}]
   (println "Run `flower configure`")
-  ; TODO: doesn't handle the case where the exception trickles up to main.
-  ; probably that's fine though
-  (binding [*cmd* "configure"]
-    (cmd/configure opts))
+  (run-configure opts)
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
-  ; prints its out progress info
+  ; prints out its own progress info
   (http-server/serve {:dir out-dir :port port})
   (println "Starting live reload watcher for" out-dir)
-  ; TODO: don't start this until ninja finishes
   (live-reload {:dir out-dir :port 35729 :period debounce-period})
   ; Run this last since ninja emits its own output
   (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
            "with debounce period" debounce-period)
-  (watch-ninja build-dir debounce-period)
+  (watch-ninja opts debounce-period)
   ; Block forever
   @(promise))
 

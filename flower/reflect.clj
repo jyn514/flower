@@ -1,6 +1,6 @@
 ; this is used in flower.eval. don't create a circular dependency.
 (ns flower.reflect
-  (:use flower.internal.utils)
+  (:use flower.utils)
   (:require
    [babashka.fs :as fs]) 
   (:import

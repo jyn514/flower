@@ -1,5 +1,4 @@
-(ns expressions.html 
-  (:use flower.utils))
+(ns expressions.html )
 (import
   (org.jsoup Jsoup)
   (org.jsoup.nodes Attribute Attributes Element XmlDeclaration)

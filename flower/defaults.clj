@@ -1,5 +1,5 @@
 (ns flower.defaults
-  (:use [flower utils] [flower.internal.utils])
+  (:use [flower.utils])
   (:require [babashka.fs :as fs]
             [clojure.string :as str]
             [clojure.java.io :as io]))

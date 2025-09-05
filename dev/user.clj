@@ -2,7 +2,7 @@
 (binding [*compile-files* true
           *compile-path* "target/repl-cache"]
   (require '(clojure [string :as str]))
-  (use 'clojure.repl 'clojure.repl.deps 'flower.internal.utils)
+  (use 'clojure.repl 'clojure.repl.deps 'flower.utils)
   (import org.jsoup.Jsoup org.jsoup.parser.Parser)
   (require '(clojure [string :as str])
           '(clojure.data [json :as json])

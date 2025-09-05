@@ -1,25 +1,23 @@
 (set! *warn-on-reflection* true)
 (ns flower.main
   (:gen-class)
-  (:use flower.internal.utils)
-(:require
- [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
- [babashka.process.pprint]
- [clojure.data.json :as json]
- [clojure.string :as str]
- [flower.beholder]
- [flower.cmd :as cmd]
- [flower.defaults]
- [flower.frontmatter :refer [split-frontmatter]]
- [flower.hiccup]
- [flower.internal.utils]
- [flower.reflect]
- [flower.repl :as repl]
- [flower.unsafe]
- [flower.unsafe :as unsafe]
- [flower.utils]
- [flower.watch]
- [hiccup.util]))
+  (:use flower.utils)
+  (:require
+    [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+    [babashka.process.pprint]
+    [clojure.data.json :as json]
+    [clojure.string :as str]
+    [flower.beholder]
+    [flower.cmd :as cmd]
+    [flower.defaults]
+    [flower.frontmatter :refer [split-frontmatter]]
+    [flower.hiccup]
+    [flower.utils]
+    [flower.reflect]
+    [flower.repl :as repl]
+    [flower.unsafe :as unsafe]
+    [flower.watch]
+    [hiccup.util]))
 
 (def VERSION "0.0.1")
 
@@ -204,10 +202,9 @@
      'flower.defaults
      'flower.frontmatter
      'flower.hiccup
-     'flower.internal.utils
+     'flower.utils
      'flower.reflect
      'flower.repl
-     'flower.utils
      'flower.watch])
   (mi/collect! {:ns flower-nss})
   (mi/instrument! {:report (pretty/thrower)}))

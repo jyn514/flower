@@ -57,11 +57,8 @@
 (defn all-public [& names]
   (for [t names]
     {:type t
-     :allDeclaredConstructors true
      :allPublicConstructors true
-     :allDeclaredFields true
      :allPublicFields true
-     :allDeclaredMethods true
      :allPublicMethods true}))
 ; keep this in sync with :classes in flower.eval
 (def all-dynamic
@@ -71,6 +68,7 @@
     "java.lang.String"
     "java.lang.Integer"
     "java.util.List"
+    "java.util.regex.Pattern"
     "clojure.lang.PersistentVector"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"

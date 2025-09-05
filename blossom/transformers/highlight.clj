@@ -1,6 +1,7 @@
-; (ns transformers.highlight)
-(use 'flower.utils 'expressions.meta 'expressions.html)
-(require '[clojure.string :as str])
+(ns transformers.highlight
+  (:use expressions.meta expressions.utils expressions.html)
+  (:require [clojure.string :as str]
+            [flower.unsafe]))
 
 ; https://pygments.org/docs/formatters/#HtmlFormatter
 (defn highlight

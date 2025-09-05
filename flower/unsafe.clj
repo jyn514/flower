@@ -1,7 +1,7 @@
 (ns flower.unsafe
   (:require
    [babashka.process :as ps]
-   [flower.internal.utils :refer [fatal]]
+   [flower.utils :refer [fatal]]
    [flower.reflect :as reflect]))
 
 (def ^:dynamic *drop-bomb* false)

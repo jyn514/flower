@@ -1,18 +1,19 @@
 (ns flower.eval
-  (:use flower.internal.utils)
+  (:use flower.utils)
   (:require
    [babashka.fs]
    [clj-commons.digest]
-   [clojure.data.json ]
+   [nextjournal.markdown]
+   [clojure.data.json]
    [clojure.java.io :as io]
    [clojure.repl :as repl]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
    [flower.hiccup]
    [flower.reflect]
-   [flower.utils]
    [flower.unsafe]
    [hiccup.util]
+   [hiccup2.core]
    [instaparse.core :as insta]
    [java-time.api]
    [sci.core :as sci]
@@ -108,6 +109,9 @@
     'expand-home 'home ; Technically impure but it's fine
     })
 
+; (defn print-trace [ex]
+;   (repl/print-trace ex false))
+
 (declare render-file)
 ; needs to be a function, otherwise render-file won't be bound
 (defn sci-defaults []
@@ -126,7 +130,6 @@
                 'clojure.data.json (copy-ns 'clojure.data.json)
                 ; repl/doc tries to call private functions, so we need to copy those too
                 'clojure.repl (copy-ns 'clojure.repl true)
-                'flower.utils flower.utils/bindings
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
                                        'render-file render-file)
                 'flower.eval {'pretty-print pretty-print}
@@ -139,15 +142,16 @@
    :bindings {'« "«"
               '» "»"
               '◊ "◊"
+              ;'print-trace (sci/copy-var print-trace)
               'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
               'doc (sci/copy-var repl/doc userns)
               'dir (sci/copy-var repl/dir userns)
-              'source (sci/copy-var repl/source userns)
-              'md->html flower.utils/md->html}
+              'source (sci/copy-var repl/source userns)}
    ; keep this in sync with `dynamic` in native.clj
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
              'java.util.List java.util.List
+             'java.util.regex.Pattern java.util.regex.Pattern
              'clojure.lang.PersistentVector clojure.lang.PersistentVector
              'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
              'java.time.OffsetDateTime 'java.time.OffsetDateTime
@@ -404,13 +408,14 @@
    ; NOTE: we have to use `new-var` here or using `def` on a bound local will crash SCI
    (let [bindings (into {} (for [[name val] locals]
                              [name (sci/new-var name val)]))
+         opts {:namespaces {'user bindings 'flower.locals bindings}}
          cx (if (some? *cx*)
               ; NOTE: state changes in the inner template are not visible in the outside context
               ; NOTE: :bindings doesn't work here, upstream bug
               ; TODO: fork this new context before merging so we don't bind 'locals into the parent
-              (let [new-cx (sci/merge-opts *cx* {:namespaces {'user bindings}})]
+              (let [new-cx (sci/merge-opts *cx* opts)]
                 (with-meta new-cx {:flower/filename filename}))
-              (create-sci-cx filename {:namespaces {'user bindings}})) ]
+              (create-sci-cx filename opts)) ]
      (binding [*cx* cx]
        (teval (parse-or-fatal parse src filename) src *cx*)))))
 

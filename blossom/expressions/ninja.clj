@@ -1,6 +1,6 @@
 (ns expressions.ninja
   (:require [clojure.string :as str]
-            [flower.utils :refer [fmt]]))
+            [expressions.utils :refer [fmt]]))
 
 ; bound by 'configure
 ; (def ^:dynamic *ninja* "not for public use" *err*)

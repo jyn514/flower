@@ -1,6 +1,6 @@
-(ns expressions.meta)
-(require '[flower.reflect :as reflect])
-(require '[clj-commons.digest :as digest])
+(ns expressions.meta
+  (:require [flower.reflect :as reflect]
+            [clj-commons.digest :as digest]))
 
 (defn render
   ([source] (render source {}))

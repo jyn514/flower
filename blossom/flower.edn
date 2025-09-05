@@ -1,9 +1,9 @@
 {:version 1
  :settings
  {"rebuild-flower"
-  {:default false
+  {:default "graal"
    ; TODO: use malli here
-   ; :options #{"jar" "graal"}
+   ; :options #{false "jar" "graal"}
    :help "whether to rebuild flower from source before building blossom"}
 
   "drafts"

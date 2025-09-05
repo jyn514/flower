@@ -1,5 +1,4 @@
 (ns expressions.shortcodes
-  (:use flower.utils)
   (:require
    [expressions.meta :refer [embed]]
    [hiccup2.core :as h]))
