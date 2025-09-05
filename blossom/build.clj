@@ -3,7 +3,6 @@
 (require
   '[flower.reflect :as reflect]
   'expressions.ninja
-  '[expressions.constants :refer [use-jar rebuild-flower]]
 ; TODO: remove everything here but the path functions,
 ; make read/write access go through flower.reflect/glob-files
   '(babashka [fs :as fs])
@@ -28,6 +27,10 @@
         visitor (fn [path _attrs] (update path) :continue)]
     (fs/walk-file-tree root {:pre-visit-dir visitor})
     (map str @dirs)))
+
+(def settings (:settings reflect/*metadata*))
+(def rebuild-flower (get settings "rebuild-flower"))
+(def use-jar (= "jar" rebuild-flower))
 
 (def public "public")
 (def builddir ".build")
@@ -86,7 +89,7 @@
       :implicit ff}))
 
 (defn page-frontmatter [page]
-  (-> reflect/*frontmatter* :pages (get (str page))))
+  (-> reflect/*metadata* :pages (get (str page))))
 
 ; NOTE: we look at frontmatter contents here, but we only register a dependency on `all-frontmatter.json` so that we don't have to rebuild when only the file contents changes.
 (defn transform-page [page implicits]
@@ -154,7 +157,7 @@
      :outputs "build.ninja"
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
-     :inputs (concat ["build.clj" joined-frontmatter] ff
+     :inputs (concat ["flower.edn" "build.clj" joined-frontmatter] ff
                      ; NOTE: normally this would need to include pages/, but we already depend on all-frontmatter and vim likes to create temporary files
                      (mapcat all-dirs ["templates" "expressions" "sass"]))}
     (when rebuild-flower

@@ -80,9 +80,24 @@
 ; disallow infinite sequences, they horribly break debugging.
 ; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
 (def argv-max (if *assert* 1000 100000))
-(defn cli-read-json [opts str] (json/read-str str))
+(defn cli-read-json [_opts str] (json/read-str str))
+
+(defn parse-kv [coll s]
+  (let [coll (or coll {})
+        [k v] (split-once s #"=")
+        v (if (some? v) v true)]
+    (assoc coll k v)))
+
+; reused for `watch`
+(def configure-opts
+  {:coerce {:build-dir :string
+            :set []}
+   :collect {:set parse-kv}})
+
 (def dispatch-table
-  {"configure" (no-opts cmd/configure {})
+  {"configure" (merge-deep configure-opts
+                           {:fn #(cmd/configure %)
+                            :coerce {:list :bool}})
    "split-frontmatter" (no-opts map-json split-frontmatter)
    "join-frontmatter" {:fn #(cmd/join-frontmatter %)
                        :coerce {:path []
@@ -102,11 +117,12 @@
       :coerce {:source-file :string}
       :args->opts [:source-file]}
    ["b" "build"] (no-opts cmd/build)
-   ["w" "watch"] {:fn flower.watch/watch
-            :coerce {:port :number}}
+   ["w" "watch"] (merge-deep configure-opts
+                             {:fn flower.watch/watch
+                              :coerce {:port :number}})
    ["r" "repl"] {:fn flower.repl/repl
-           :coerce {:template :boolean}
-           :args->opts [:template]}
+                 :coerce {:template :boolean}
+                 :args->opts [:template]}
    ["n" "new"] (no-opts flower.defaults/materialize-all)
    ; TODO: get rid of this
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
@@ -120,25 +136,6 @@
    ["help" "--help" "-h" "/?"] (no-opts help)
    [] {:fn unknown-command :needs-metadata true}})
 
-(defn ->bb
-  "Convert our `dispatch-table` DSL to babashka/dispatch syntax.
-
-  `init` is a function that will run before the dispatched command
-  to set up global options. It takes two arguments:
-  the function to run inside globals and the parsed options.
-  It should pass the options as an argument to the function."
-  [init key val]
-  (if (and (vector? key) (seq key))
-    (for [cmd key] (->bb init cmd val))
-    (let [cmds (if (string? key) [key] key)
-          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
-          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))
-          bb-map (assoc opts
-                        :cmds cmds
-                        ; :restrict true
-                        :fn #(init wrapped-fn %))]
-      bb-map)))
-
 (defn init-fn [cmd-fn args]
   (alter-var-root (var *cmd*) (constantly (->> args :dispatch first (str " "))))
   (binding [*site* (or (get-in args [:opts :C]) ".")
@@ -146,11 +143,30 @@
                                                    (env "FLOWER_WATCH")))]
     (cmd-fn args)))
 
+(defn ->bb
+  "Convert our `dispatch-table` DSL to babashka/dispatch syntax.
+
+  `init` is a function that will run before the dispatched command
+  to set up global options. It takes two arguments:
+  the function to run inside globals and the parsed options.
+  It should pass the options as an argument to the function."
+  [[key val]]
+  (if (and (vector? key) (seq key))
+    (for [cmd key] (->bb [cmd val]))
+    (let [cmds (if (string? key) [key] key)
+          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
+          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))
+          bb-map (assoc opts
+                        :cmds cmds
+                        ; :restrict true
+                        :fn #(init-fn wrapped-fn %))]
+      bb-map)))
+
 (defn dispatch-cmd
   "Parse the CLI args and dispatch to the appropriate clojure funciton.
   Also registers global options."
   [args]
-  (let [table (map #(apply ->bb init-fn %) dispatch-table)
+  (let [table (map ->bb dispatch-table)
         flat-table (flatten table)]
     (cli/dispatch flat-table args {:coerce {:C :string}})))
 

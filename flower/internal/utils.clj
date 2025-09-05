@@ -46,10 +46,16 @@
 (defn symmmetric-difference [A B]
   (union (set/difference A B) (set/difference B A)))
 
+(defn split-once [s delim] (str/split s delim 2))
+
 (defn update-meta
   "Given a value x, run `f` on its metadata and apply the result as x's metadata"
   [f x]
   (->> x meta f (with-meta x)))
+
+(defn pluralize [x desc]
+  (if (= 1 (count x)) desc
+    (str desc "s")))
 
 (defn eprint [& msg]
   (binding [*out* *err*]
@@ -62,12 +68,12 @@
     (apply prn msg)))
 (defn inspect [x] (eprn x) x)
 
-(defn info [& msg]
-  (apply eprintln (fmt "flower${*cmd*}: info:") msg))
-(defn warn [& msg]
-  (apply eprintln (fmt "flower${*cmd*}: warning:") msg))
-(defn error [& msg]
-  (apply eprintln (fmt "flower${*cmd*}: error:") msg))
+(defn msg [& msg]
+  (apply eprintln (fmt "flower${*cmd*}:") msg))
+(defn info [& msgs] (apply msg "info:" msgs))
+(defn warn [& msgs] (apply msg "warning:" msgs))
+(defn error [& msgs] (apply msg "error:" msgs))
+
 (defn fatal [opts & msg]
   (let [[info msg] (if (map? opts)
                      [(merge {:flower/expected true} opts) msg]

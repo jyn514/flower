@@ -14,15 +14,8 @@
 (def ^:dynamic *watching*
   "whether the site is being built with 'flower watch'"
   true) ; TODO update in main
-(def ^:dynamic *frontmatter*
-  "A {:templates Frontmatter  :pages Frontmatter} map,
-  where Frontmatter is a {\"path\" metadata-map}"
-  {}); flower.reflect/*frontmatter*
-(def ^:dynamic *transformers*
-  "a mapping from transformer file extension to how to run it.
-  transformer runners must read {html, frontmatter} JSON on stdin
-  and write the same to stdout. they should not read or write to the filesystem.
-  doing so will cause build caching to break."
+(def ^:dynamic *metadata*
+  "A {:settings {\"name\" string-or-bool} :pages {\"path\" frontmatter-map}} map"
   {})
 
 (defn read-file [path]

@@ -1,0 +1,12 @@
+{:version 1
+ :settings
+ {"rebuild-flower"
+  {:default false
+   ; TODO: use malli here
+   ; :options #{"jar" "graal"}
+   :help "whether to rebuild flower from source before building blossom"}
+
+  "drafts"
+  {:default false
+   ; :options #{true false}
+   :help "whether to build draft posts in addition to published posts"}}}

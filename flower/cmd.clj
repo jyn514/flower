@@ -4,7 +4,9 @@
    [babashka.fs :as fs]
    [clojure.core.reducers :as r]
    [clojure.data.json :as json]
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
+   [clojure.set :as set]
    [clojure.string :as str]
    [flower.eval :as eval]
    [flower.frontmatter :refer [split-frontmatter]]
@@ -12,7 +14,7 @@
    [flower.utils :refer [md->html]]
    [jq.api :as jq])
   (:import
-   (java.io StringWriter)))
+   (java.io PushbackReader StringWriter)))
 
 ; utils
 
@@ -94,20 +96,41 @@
         relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)]
     (gen-depfile source-file relative-deps)))
 
+(defn load-settings [registry cli list-settings]
+  (when list-settings
+    (msg "options available:")
+    (doseq [[name opt] registry]
+      (printf "  %s: %s (default: %s)\n" name (:help opt) (pr-str (:default opt))))
+    (flush)
+    (System/exit 0))
+  (let [default-vals (into {} (for [[k {:keys [default]}] registry]
+                                [k default]))
+        keyss #(into #{} (keys %))
+        unknown-opts (set/difference (keyss cli) (keyss default-vals))]
+    (when (seq unknown-opts)
+      (warn "unknown" (str (pluralize unknown-opts "option") ":")
+            (str/join ", " unknown-opts)))
+    (merge default-vals cli)))
+
 ; meta-build system
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
-  [{:keys [build-dir] :or {build-dir ".build"}}]
-  (let [in (str *site* "/build.clj")
+  [{settings :set list-settings :list :keys [build-dir]
+    :or {build-dir ".build"}}]
+  (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
+                      (edn/read (PushbackReader. fd)))
+        settings (load-settings (:settings global-meta) settings list-settings)
+        in (str *site* "/build.clj")
         out (str *site* "/build.ninja")
+        ; TODO: load this from flower.edn
+        ; TODO: wow this sucks :(
         ninja-writer (new StringWriter)
         page-meta (load-all-meta "pages")
-        ; TODO: every time we hard-code a dir it makes things unconfigurable, figure out what to do
-        template-meta (load-all-meta "templates")
-        frontmatter {:pages page-meta :templates template-meta}]
+        all-meta {:pages page-meta
+                     :settings settings}]
     (binding [flower.reflect/*ninja* ninja-writer
-              flower.reflect/*frontmatter* frontmatter
+              flower.reflect/*metadata* all-meta
               flower.reflect/*dependencies* #{}]
       (let [cx (eval/create-fs-cx in)
             embedded (str "(do" (slurp in) ")")
