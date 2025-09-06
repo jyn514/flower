@@ -137,40 +137,12 @@
       (fatal {:flower/parse true} (render-parse-error err description))
       ev)))
 
-(def ^:private insta-bs (str bs bs))
-(def ^:private insta-qt (str bs "'"))
-(def ^:private ninja-parser
-  ; NOTE: ninja never emits `\` outside of a quoted atom.
-  (insta/parser (fmt
-    "Start = Atom*
-     Atom = Unquoted | Quoted | QuoteMark
-     Unquoted = #'[^${insta-qt}${insta-bs}]+'
-     Quoted = <'${insta-qt}'> #'[^${insta-qt}]+' <'${insta-qt}'>
-     QuoteMark = <'${insta-bs}'> '${insta-qt}'")))
-(defn shlex-ninja
-  "This is a REALLY REALLY STUPID implementation of shlex that only works for syntax that ninja emits."
-  [path]
-  (let [parsed (ninja-parser path)]
-    (insta/transform
-      {:Start str
-       :Atom identity
-       :Unquoted identity
-       :Quoted identity
-       :QuoteMark identity}
-      parsed)))
-
-(defn parse-ninja
-  ([args] (parse-ninja args false))
-  ([args quoted]
-  (let [out (:out (run {:out :string} args))
-        ; ;-;;;;;
-        ; https://github.com/ninja-build/ninja/issues/2658
-        parse-quoted #(parse-or-fatal shlex-ninja % (fmt "`${args}`"))
-        parse (if quoted parse-quoted identity)]
+(defn parse-ninja [args]
+  (let [out (:out (run {:out :string} args))]
     ; handle empty string
     (if (seq out)
-      (map parse (str/split out #"\n"))
-      []))))
+      (str/split out #"\n")
+      [])))
 
 (defn escape-ninja
   "Escape a string for use as a ninja file path.
