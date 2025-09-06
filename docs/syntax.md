@@ -11,7 +11,7 @@ this section documents how to type them in various environments.
 ### macOS (rebinding)
 
 go to Settings -> Keyboard -> Text Replacements and enter the replacements of your choice.
-Matthew Buttrick also recommends [Typinator](https://docs.racket-lang.org/pollen/pollen-command-syntax.html#(part._.How_.M.B_types_the_lozenge)).
+[Matthew Buttrick](https://docs.racket-lang.org/pollen/pollen-command-syntax.html#(part._.How_.M.B_types_the_lozenge)) also recommends [Typinator](https://ergonis.com/typinator).
 
 ### Windows (default)
 

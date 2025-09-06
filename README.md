@@ -28,6 +28,7 @@ the escape character is `◊`. `◊(func args)` calls a function and emits the r
  »
  ◊(embed "page.html" {'body body})
 ```
+see [syntax](./docs/syntax.md) for how to type the escape characters.
 ## features
 
 all the basics [^1]:
