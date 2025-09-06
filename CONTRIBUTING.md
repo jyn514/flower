@@ -38,6 +38,12 @@ Choose the right one for whatever you're doing. I normally use the Graal binary 
 
 ## modifying flower
 
+### what to work on
+
+see https://codeberg.org/jyn514/flower/milestones. in general, please check with me before doing anything too complicated.
+
+### editing code
+
 flower is *mostly* a normal clojure project. The code lives in `./flower` and the entrypoint is `flower/main.clj`. `--help` output is [a work in progress](https://codeberg.org/jyn514/flower/issues/6). In the meantime, look at `flower.main/dispatch-table` for a list of commands and arguments.
 
 Run `clojure -X:deps aliases` to see a list of build tasks.
