@@ -54,7 +54,7 @@ and some weird ones:
 - support for arbitrary build commands
 - import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
 - post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
-- choose your own preprocessor language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- [TODO](https://codeberg.org/jyn514/flower/issues/38)
+- choose your own preprocessor language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- [TODO](https://codeberg.org/jyn514/flower/issues/55)
 - choose your own libraries. instead of "macros" and "shortcodes", flower gives you real functions, which can be in either clojure or a language of your choosing -- [TODO](https://codeberg.org/jyn514/flower/issues/31)
 - render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
 
@@ -70,7 +70,7 @@ folks the reviews for my new ssg are in
 
 ## quick start
 
-See [the quickstart docs](quickstart.md).
+See [the quickstart docs](docs/quickstart.md).
 
 ## contributing
 
