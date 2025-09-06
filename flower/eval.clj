@@ -142,6 +142,7 @@
    :bindings {'« "«"
               '» "»"
               '◊ "◊"
+              '⋄ "⋄"
               ;'print-trace (sci/copy-var print-trace)
               'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
