@@ -175,7 +175,7 @@
 (defn escape-ninja
   "Escape a string for use as a ninja file path.
    See https://ninja-build.org/manual.html#ref_lexer"
-  [s] 
+  [s]
   ; https://github.com/ninja-build/ninja/blob/370edd49a47379d0c3ff0c0ae9d825e627fd37c3/misc/ninja_syntax.py#L30
   (-> s str
       ; NOTE: $ has to come first
@@ -194,7 +194,7 @@
 
 ; https://github.com/NetLogo/NetLogo/blob/de24f273963a18cf42c257301f2921b90a4efd1b/build.sbt#L187
 (defn platform []
-  (condp str/starts-with? (System/getProperty "os.name")
+  (condp #(str/starts-with? %2 %1) (System/getProperty "os.name")
     "Windows" :win
     "Mac" :mac
     "Linux" :linux

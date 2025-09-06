@@ -11,8 +11,8 @@ be aware that flower is still very much a work in progress. for now, please plea
 1. [Install clojure](https://clojure.org/guides/install_clojure).
    Clojure is broken in many Linux package distributions. Prefer the official installer if at all possible.
 
-1. Install GraalVM. If you're on Linux, `scripts/install-graal.sh` will do this for you. On other platforms, see https://www.graalvm.org/latest/getting-started/.
-  - If you don't use the script, make sure this ends up in `target/graalvm-jdk-24.0.2+11.1/`; that's expected by the `.envrc` file
+1. Install GraalVM using `scripts/install-graal.clj`.
+  - If you don't use the script, download from https://www.graalvm.org/latest/getting-started/, make sure this ends up in `target/graalvm-jdk-24/`; that's expected by the `.envrc` file
 
 1. Install [`direnv`](https://direnv.net/).
 

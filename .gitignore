@@ -4,4 +4,7 @@
 /defaults/public
 /defaults/MANIFEST.txt
 /blossom/build.ninja
-.cpcache
+/target
+/.clj-kondo
+/.cpcache
+/.lsp
