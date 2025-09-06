@@ -76,6 +76,10 @@ let's put that all together into some real code that might be used in a flower t
 ◊(embed "page.html" {'body body})
 ```
 
+## syntax
+
+For how to type `◊«»`, see [syntax](./syntax.md).
+
 ## sandboxing
 
 flower runs clojure code in a sandbox. most access to the filesystem is disallowed. writing files is banned altogether.
