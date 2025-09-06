@@ -7,12 +7,12 @@ NOTE: <> are valid clojure idents, but disallowed unless they are in parentheses
 TODO: this doesn't give great errors on failure ...
 *)
 Start = (Text | FlowerSyntax)*
-Text = #'[^◊]+'
-FlowerSyntax = <'◊'> ( OuterIdent | FlowerCall | OuterComment )
+Text = #'[^⋄◊]+'
+FlowerSyntax = <#'[⋄◊]'> ( OuterIdent | FlowerCall | OuterComment )
 (* NOTE: we disallow strings, vectors, and maps as outer forms *)
 FlowerCall = ReaderSyntax? List CallTrailer
 CallTrailer = ( <#'\s*«'> NestedRender <'»'> )* !'«'
-NestedRender = ( #'[^»◊]+' | FlowerSyntax )*
+NestedRender = ( #'[^»⋄◊]+' | FlowerSyntax )*
 OuterComment = <#';[^\n]*'>
 OuterIdent = ReaderAtom? IdentNoBrackets
 (* NOTE: has to be a separate rule, otherwise it gets serialized as a String and we don't get metadata about spans *)
@@ -30,11 +30,11 @@ Those are defined as:
 https://www.unicode.org/reports/tr44/#XID_Start
 https://www.unicode.org/reports/tr31/tr31-41.html
 *)
-IdentNoBrackets = #'[-«»◊0-9\p{L}\p{Nl}%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
+IdentNoBrackets = #'[-«»⋄◊0-9\p{L}\p{Nl}%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
 ReaderSyntax = #"[\;@^`~']+" | ReaderForm
 ReaderForm = '#' ( #'[#:"\'_]' | Ident | & '(' )
 (* keep this in sync with OuterIdent. *)
-Ident = #'[-«»◊0-9\p{L}\p{Nl}<>%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
+Ident = #'[-«»⋄◊0-9\p{L}\p{Nl}<>%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
 Keyword = ':' Ident
 List = <'('> Sequence <')'>
 Vec = <'['> Sequence <']'>

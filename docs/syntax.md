@@ -45,7 +45,7 @@ This requires you to have a compose key somewhere on your keyboard.
 See [the Arch Wiki](https://wiki.archlinux.org/title/Xorg/Keyboard_configuration#Configuring_compose_key).
 On GNOME, you can configure it in Settings -> Keyboard -> Compose Key.
 
-- `◊`: no default binding. I plan to add `⋄` (Compose < >) as an alias, but it's not currently implemented.
+- `◊`: no default binding. Instead you can use the alias `⋄`: Compose < >
 - `«`: Compose < < 
 - `»`: Compose > >
 
