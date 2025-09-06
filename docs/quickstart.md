@@ -23,3 +23,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 `flower new` generates the skeleton of a site in the current directory.
 feel free to edit any files it generates.
+
+add your posts in `pages`. for more information, see [the guide](docs/guide.md).

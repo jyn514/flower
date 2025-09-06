@@ -149,7 +149,7 @@
      :outputs builddir}]})
 
 (def ^:private transss
-  ["render" "markdown" "highlight" "embed"])
+  ["render" "markdown" "embed" "highlight"])
 
 (defn- trans-order [p]
   (let [i (->> p fs/file-name fs/strip-ext (.indexOf transss))]

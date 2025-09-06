@@ -62,6 +62,7 @@ template embedding and includes are done with clojure function calls.
 
 let's put that all together into some real code that might be used in a flower template:
 ```html
+◊(require '[expressions.meta :refer [embed]])
 ◊(def body)«
  <div class="trigger">
     ◊(for [section subsections
@@ -75,3 +76,28 @@ let's put that all together into some real code that might be used in a flower t
 ◊(embed "page.html" {'body body})
 ```
 
+## sandboxing
+
+flower runs clojure code in a sandbox. most access to the filesystem is disallowed. writing files is banned altogether.
+
+embedded clojure can write to stderr like normal, but it cannot write to stdout, because that's used by flower for internal communication.
+attempts to do so will be redirected to stderr.
+a side-effect of this is that `println` appears directly in the terminal instead of ending up embedded in the page.
+
+## filesystem API
+
+to get a list of metadata for just the current page, use the `page` binding injected into your local scope.
+to get a list of all page metadata, use the `pages` binding.
+to read files, use `flower.reflect/read-file`, which does dependency tracking to make sure your page gets rebuilt if the file you read changes.
+
+## libraries
+
+Flower lets you use many clojure and Java libraries that are bundled with the executable.
+
+TODO: exhaustive list. for now see `flower.eval/sci-defaults` under `:namespaces`.
+
+## `flower.unsafe`
+
+if you need to do something that isn't allowed by the sandbox, use `flower.unsafe`.
+currently the only public API is `flower.unsafe/system`, which allows you to spawn processes,
+and `flower.unsafe/register-dependencies!`, which tells flower when your clojure file needs to be rebuilt.
