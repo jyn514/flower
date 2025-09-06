@@ -3,21 +3,21 @@
   (:gen-class)
   (:use flower.utils)
   (:require
-    [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
-    [babashka.process.pprint]
-    [clojure.data.json :as json]
-    [clojure.string :as str]
-    [flower.beholder]
-    [flower.cmd :as cmd]
-    [flower.defaults]
-    [flower.frontmatter :refer [split-frontmatter]]
-    [flower.hiccup]
-    [flower.utils]
-    [flower.reflect]
-    [flower.repl :as repl]
-    [flower.unsafe :as unsafe]
-    [flower.watch]
-    [hiccup.util]))
+   [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+   [babashka.process.pprint]
+   [clojure.data.json :as json]
+   [clojure.string :as str]
+   [flower.beholder]
+   [flower.cmd :as cmd]
+   [flower.defaults]
+   [flower.frontmatter :refer [split-frontmatter]]
+   [flower.hiccup]
+   [flower.utils]
+   [flower.reflect]
+   [flower.repl :as repl]
+   [flower.unsafe :as unsafe]
+   [flower.watch]
+   [hiccup.util]))
 
 (def VERSION "0.0.1")
 
@@ -35,7 +35,7 @@
         before (read-json)
         [after deps] (unsafe/with-drop-bomb
                        #(cmd/with-tracked-deps
-                         (fn [] (apply f before args))))]
+                          (fn [] (apply f before args))))]
     (if (:depfile opts)
       (cmd/split-dependencies deps opts)
       (when (seq deps)
@@ -46,11 +46,16 @@
   (fn [& _] (apply f args)))
 
 (defn unknown-command [{:keys [args]}]
-  (binding [*cmd* ""]
+  (when (empty? args)
+    (eprintln (str "flower " VERSION))
+    (eprintln "'flower help' for help")
+    (eprintln "'flower watch' to build your site"))
+
+  (when (seq? args)
     (error (str "unrecognized command: '"
                 (str/join " " args)
-                "' ('help' for help, or 'watch' to build your site)"))
-    (System/exit 1)))
+                "' ('flower help' for help)")))
+  (System/exit 1))
 
 (declare dispatch-table)
 
@@ -112,9 +117,9 @@
                 :args->opts (repeat argv-max :transformers)}
    ; TODO: get rid of this
    "split-sass-dependencies"
-     {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
-      :coerce {:source-file :string}
-      :args->opts [:source-file]}
+   {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
+    :coerce {:source-file :string}
+    :args->opts [:source-file]}
    ; TODO: this needs to take --set
    ["b" "build"] (no-opts cmd/build)
    ["w" "watch"] (merge-deep configure-opts
@@ -195,23 +200,23 @@
 
 ; dynamic type checking
 (cfg *assert*
-  (info "instrumenting type signatures")
-  (require
-    '[malli.instrument :as mi]
-    '[malli.dev.pretty :as pretty])
-  (def flower-nss
-    ['flower.beholder
-     'flower.cmd
-     'flower.main
-     'flower.eval
-     'flower.defaults
-     'flower.frontmatter
-     'flower.hiccup
-     'flower.utils
-     'flower.reflect
-     'flower.repl
-     'flower.watch])
-  (mi/collect! {:ns flower-nss})
-  (mi/instrument! {:report (pretty/thrower)}))
+     (info "instrumenting type signatures")
+     (require
+      '[malli.instrument :as mi]
+      '[malli.dev.pretty :as pretty])
+     (def flower-nss
+       ['flower.beholder
+        'flower.cmd
+        'flower.main
+        'flower.eval
+        'flower.defaults
+        'flower.frontmatter
+        'flower.hiccup
+        'flower.utils
+        'flower.reflect
+        'flower.repl
+        'flower.watch])
+     (mi/collect! {:ns flower-nss})
+     (mi/instrument! {:report (pretty/thrower)}))
 (cfg-not *assert*
-  (info "type assertions disabled"))
+         (info "type assertions disabled"))
