@@ -14,7 +14,6 @@
 
 (defn materialize
   [path bytes]
-  ; TODO: skip build.clj, that should be merged by build/generate instead of overwritten
   (if (fs/exists? path)
     (warn (fmt "'${path}' already exists, skipping"))
     (do (some-> (fs/parent path) fs/create-dirs)

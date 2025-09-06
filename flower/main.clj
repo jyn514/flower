@@ -87,6 +87,7 @@
     (assoc coll k v)))
 
 ; reused for `watch`
+; TODO: add `--drafts` as an alias for `--set drafts`
 (def configure-opts
   {:coerce {:build-dir :string
             :set []}
@@ -114,6 +115,7 @@
      {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
       :coerce {:source-file :string}
       :args->opts [:source-file]}
+   ; TODO: this needs to take --set
    ["b" "build"] (no-opts cmd/build)
    ["w" "watch"] (merge-deep configure-opts
                              {:fn flower.watch/watch
@@ -121,7 +123,10 @@
    ["r" "repl"] {:fn flower.repl/repl
                  :coerce {:template :boolean}
                  :args->opts [:template]}
-   ["n" "new"] (no-opts flower.defaults/materialize-all)
+   ["n" "new"] {:fn flower.defaults/materialize-all
+                :coerce {:build-dir :string
+                         :site-dir  :string}
+                :args->opts [:site-dir]}
    ; TODO: get rid of this
    "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
          :coerce {:raw-input :boolean

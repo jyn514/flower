@@ -5,9 +5,13 @@
    [clojure.stacktrace :as st]
    [flower.eval :as eval]
    [flower.reflect :as reflect]
-   [flower.utils :refer [env state-dir *cmd*]])
+   [flower.utils :refer [*cmd* env eprn state-dir]])
   (:import
-   (org.jline.reader LineReader LineReader$Option LineReaderBuilder History)
+   (org.jline.reader
+    History
+    LineReader
+    LineReader$Option
+    LineReaderBuilder)
    (org.jline.terminal TerminalBuilder)))
 
 (def ^:dynamic *reader*)
@@ -65,6 +69,27 @@
   (swap! first-error (constantly false))
   (println))
 
+(declare specials)
+(defn print-help [template]
+  (println "help is still a WIP, sorry")
+  (doseq [[k v] specials]
+     (printf "  %s\t\t\t%s" k (:help v)))
+  (println))
+
+(def specials
+  {:help {:help "Print this help"
+          :fn print-help}})
+
+(defn flower-eval [template]
+  (let [evaluator (if template
+                      #(eval/render-file % "<repl>")
+                      ; TODO: bind *e
+                      #(eval/eval-form % (eval/parse-string %)))]
+    (fn [str]
+      (if-let [spec (and (= \: (first str)) ((-> str (subs 1) keyword) specials))]
+        ((:fn spec) template)
+        (evaluator str)))))
+
 ; TODO: this only supports page mode. support transform mode too.
 (defn repl
   [{:keys [template]}]
@@ -74,11 +99,9 @@
     ; TODO: doesn't work because shutdown hooks can't see thread-locals
     ; (.addShutdownHook (Runtime/getRuntime)
     ;                   (Thread. #(.. *reader* getHistory save)))
-    (let [flower-eval (if template
-                        #(eval/render-file % "<repl>")
-                        ; TODO: bind *e
-                        #(eval/eval-form % (eval/parse-string %)))]
+    (let [desc (if template "template language" "clojure")]
+      (printf "Flower %s repl (:help for help)\n" desc)
       (clojure.main/repl :prompt (fn []) ; handled by readline
-                         :eval flower-eval
+                         :eval (flower-eval template)
                          :caught #(print-trace % (not template))
                          :read readline))))

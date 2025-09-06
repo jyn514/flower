@@ -48,7 +48,7 @@
   (parse-git "git ls-tree -r --name-only HEAD defaults"))
 (def ignored-files
   (parse-git "git ls-files --others --ignored --exclude-standard defaults"))
-(def all-files (difference (set (filter (complement fs/directory?)
+(def all-files (difference (set (remove fs/directory?
                                         (map str (fs/glob "defaults" "**"))))
                            ignored-files))
 

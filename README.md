@@ -82,15 +82,8 @@ two options:
 3. scroll down to "Artifacts"
 
 #### build from source
-1. [install clojure](https://clojure.org/guides/install_clojure)
-2. [install GraalVM](https://www.graalvm.org/downloads/)
-3. `git clone https://github.com/jyn514/flower`
-4. `cd flower`
-5. `clojure -T:build native`
 
-this will output a binary into `target/flower`.
-put it somewhere in PATH.
-make sure to use the binary, not the jar file - the jar is slow to start and will make your site rebuilds very slow.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### create your site
 
@@ -100,6 +93,10 @@ make sure to use the binary, not the jar file - the jar is slow to start and wil
 
 `flower new` generates the skeleton of a site in the current directory.
 feel free to edit any files it generates.
+
+## contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## overview
 four phases:
