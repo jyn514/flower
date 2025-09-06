@@ -14,7 +14,9 @@ flower’s guiding principles are:
 3. use the right language for the job.
 4. prefer composing tools to monoliths.
 ## language overview
-the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. `◊;` comments the rest of the line. `◊#_(...)` is a structural comment. `◊«`, `◊»`, and `◊◊` escape their special characters, respectively. template embedding and includes are done with clojure function calls.
+this is just a quick tour of the language. for more info, see [the language intro](docs/language.md).
+
+the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. `◊;` comments the rest of the line. template embedding and includes are done with clojure function calls.
 ```html
 ◊; you can call any clojure function in a ◊() list.
 ◊; the markup is passed as the last argument.
@@ -22,23 +24,22 @@ the escape character is `◊`. `◊(func args)` calls a function and emits the r
  <div class="trigger">
     ◊(for [section subsections
           :when (:title section)])«
-      <a class="page-link" href="◊(:path section)">(:title section)</a>
+      <a class="page-link" href="◊(:path section)">◊(:title section)</a>
     »
-    ◊; TODO: implement `a` for anchors
-    ◊#_(a {:class "page-link" :href "/computer-of-the-future"}){the computer of the next 200 years}
  </div>
  »
  ◊(embed "page.html" {'body body})
 ```
 ## features
 
-all the basics:
+all the basics [^1]:
 
 - static binaries
 - live-reload
 - extremely fast builds
-- syntax highlighting -- [TODO](https://codeberg.org/jyn514/flower/issues/22)
 - RSS feed support
+
+[^1]: syntax highlighting is a [work in progress](https://codeberg.org/jyn514/flower/issues/22)
 
 things it’s weird other SSGs don’t support:
 
@@ -71,28 +72,7 @@ folks the reviews for my new ssg are in
 
 ## quick start
 
-### [install ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
-
-### install the flower binary
-
-two options:
-#### download a static binary
-1. go to https://github.com/jyn514/flower/actions?query=event%3Apush+branch%3Adev+is%3Asuccess
-2. click on the latest successful action
-3. scroll down to "Artifacts"
-
-#### build from source
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### create your site
-
-1. `mkdir my-site`
-2. `flower new`
-3. `flower watch`
-
-`flower new` generates the skeleton of a site in the current directory.
-feel free to edit any files it generates.
+See [the quickstart docs](quickstart.md).
 
 ## contributing
 

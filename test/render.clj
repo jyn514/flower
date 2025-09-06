@@ -5,10 +5,11 @@
 
 (defn render [s] (eval/render-file s "<render-test>"))
 (defn expect-render [& args]
-  (doseq [[expanded sunflower] (partition 2 args)]
+  (doseq [[sunflower expanded] (partition 2 args)]
     (expect expanded (render sunflower) sunflower)))
 
 (defexpect edge-cases
   (expect-render
-    ""  "◊(when false)"
-    "b" "◊(if false)«a»«b»"))
+    "◊(when false)"  ""
+    "◊◊;"  "◊;"
+    "◊(if false)«a»«b»" "b"))
