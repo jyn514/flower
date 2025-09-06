@@ -4,7 +4,7 @@
    [babashka.process :as ps]
    [babashka.process.pprint]
    [clojure.data.json :as json]
-   [clojure.set :as set :refer [union]]
+   [clojure.set :as set :refer [difference union]]
    [clojure.string :as str]
    [clojure.tools.build.api :as b]))
 
@@ -39,16 +39,28 @@
   (b/delete {:path exe})
   (b/delete {:path jar-file}))
 
-(def git-output
-  (->> "git ls-tree -r --name-only HEAD defaults"
-                 (ps/shell {:out :string}) :out))
-(def manifest-path "MANIFEST.txt")
-(def default-files (set (str/split git-output #"\n")))
-(def all-files (set (map str (fs/glob "defaults" "**"))))
-(when-let [diff (symmetric-difference default-files all-files)]
-  (eprintln "warning: ignoring" (count diff) "untracked default files"))
+(defn parse-git [cmd]
+  (-> (ps/shell {:out :string} cmd)
+      :out (str/split #"\n") set))
 
-(def manifest-contents
+(def manifest-path "MANIFEST.txt")
+(def tracked-files
+  (parse-git "git ls-tree -r --name-only HEAD defaults"))
+(def ignored-files
+  (parse-git "git ls-files --others --ignored --exclude-standard defaults"))
+(def all-files (difference (set (filter (complement fs/directory?)
+                                        (map str (fs/glob "defaults" "**"))))
+                           ignored-files))
+
+(defn default-files [include-untracked]
+  (if include-untracked all-files
+    (do
+      (when-let [diff (symmetric-difference tracked-files all-files)]
+        (eprintln "warning: ignoring" (count diff) "untracked default files")
+        (prn diff))
+      tracked-files)))
+
+(defn manifest-contents [default-files]
   (str/join "\n"
             (map #(strip-prefix % "defaults/")
                  default-files)))
@@ -89,21 +101,22 @@
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
     {:glob "simplelogger.properties"}]})
 
-(defn manifest [_]
-  (fs/write-bytes (str "defaults/" manifest-path) (.getBytes manifest-contents))
+(defn manifest [{:keys [include-untracked]}]
+  (spit (str "defaults/" manifest-path) (manifest-contents (default-files include-untracked)))
   (b/copy-file {:src (str "defaults/" manifest-path)
                 :target (format "%s/%s/%s" class-dir defaults manifest-path)}))
 
-(defn uberjar [dev]
+(defn uberjar [{:keys [dev include-untracked] :as opts}]
   (let [assert (if dev "with" "without")]
     (eprintln "Build uberjar" jar-file assert "type assertions"))
   (clean nil)
-  (manifest nil)
   (b/copy-dir {:src-dirs ["src"]
                :target-dir class-dir})
-  (doseq [f default-files]
-    (b/copy-file {:src f
-                  :target (str defaults-target "/" (strip-prefix f "defaults/"))}))
+  (let [defaults (default-files include-untracked)]
+    (manifest opts)
+    (doseq [f defaults]
+      (b/copy-file {:src f
+                    :target (str defaults-target "/" (strip-prefix f "defaults/"))})))
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]
@@ -146,8 +159,8 @@
 
 (defn graal [dev] (str/join " " (args dev)))
 
-(defn -native-helper [dev]
-  (uberjar dev)
+(defn -native-helper [{:keys [dev] :as opts}]
+  (uberjar opts)
   (eprintln "Build Graal Native executable")
   (println (graal dev))
   (ps/shell (graal dev))
@@ -155,5 +168,5 @@
         desc (if dev "dev" "release")]
     (eprintln "Built" exe (format "(%s %.2f MB)" desc size))))
 
-(defn native [_] (-native-helper false))
-(defn native-dev [_] (-native-helper true))
+(defn native [opts] (-native-helper (assoc opts :dev false)))
+(defn native-dev [opts] (-native-helper (assoc opts :dev true)))

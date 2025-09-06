@@ -108,6 +108,10 @@
         prefix (re-pattern (str "^" quoted))]
     (str/replace-first s prefix "")))
 
+(defn strip-suffix [^String s ^String suffix]
+  (if-not (.endsWith s suffix) s
+    (.substring s 0 (- (count s) (count suffix)))))
+
 (defn remove-parent
   "Given an file path, remove the first N directories.
    If N is not given, assume N=1."

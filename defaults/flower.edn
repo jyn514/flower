@@ -1,0 +1,5 @@
+{:version 1
+ :settings
+ {"drafts"
+  {:default false
+   :help "whether to build draft posts in addition to published posts"}}}

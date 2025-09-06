@@ -27,9 +27,11 @@
 
 (defn current-exe []
   (if (graal?)
-    (org.graalvm.nativeimage.ProcessProperties/getExecutableName)
+    (eval '(org.graalvm.nativeimage.ProcessProperties/getExecutableName))
     ; assumes we are in an uberjar file; this breaks horribly in scripts
-    (-> clojure.lang.Atom .getProtectionDomain .getCodeSource .getLocation .getFile)))
+    (-> clojure.lang.Atom .getProtectionDomain .getCodeSource .getLocation .getFile
+        ; TODO: this is a horrible hack to make jyn.dev work nicely, but it's fine
+        (strip-suffix ".jar"))))
 
 ; TODO: this sucks! i don't like having things only available in the guest :(
 (declare render-file)

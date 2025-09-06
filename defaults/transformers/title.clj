@@ -1,6 +1,7 @@
-(use 'expressions.html 'hiccup2.core 'flower.utils)
+(ns transformers.title
+  (:use expressions.html hiccup2.core))
 (defn transform [{page :content}]
   (let [title (:content (select page "h1"))]
     (append! (select page "head")
-            (inner-html [:title title]))
+            (html [:title title]))
     page))

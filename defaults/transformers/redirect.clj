@@ -1,4 +1,5 @@
-(use 'flower.utils 'expressions.meta)
+(ns transformers.redirect
+  (:use expressions.meta))
 (defn transform [{page :content meta :frontmatter :as args}]
   (if-let [redirect (:redirect meta)]
     (let [bindings (assoc (update-keys args symbol)

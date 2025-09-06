@@ -18,6 +18,7 @@
 
 (def flower-cli (reflect/current-exe))
 (def ff [flower-cli])
+(def build-cmd (if use-jar "uberjar" "native-dev"))
 
 (def plan
   {:phony [{:name "flower" :depends ff}]
@@ -27,7 +28,7 @@
      :command (fmt "cd ../defaults && ${flower-cli} configure")
      :description "rebuild default build.ninja"}
     {:name "flower-meta"
-     :command (if use-jar "cd .. && clojure -T:build uberjar" "cd .. && clojure -T:build native-dev")
+     :command (fmt "cd .. && clojure -T:build ${build-cmd} :include-untracked true")
      :description "rebuild flower itself"}]
    :builds
    [(when rebuild-flower
