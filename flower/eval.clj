@@ -422,6 +422,7 @@
 (defn create-fs-cx
   [filename]
   (let [override {:namespaces
-                  ; TODO: sandboxing
+                  ; TODO: remove everything here but the path functions,
+                  ; make read/write access go through flower.reflect/glob-files
                   {'babashka.fs (copy-ns 'babashka.fs)}}]
     (create-sci-cx filename override)))

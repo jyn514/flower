@@ -1,19 +1,8 @@
 (ns expressions.ninja
-  (:require [clojure.string :as str]
-            [expressions.utils :refer [fmt]]))
-
-; bound by 'configure
-; (def ^:dynamic *ninja* "not for public use" *err*)
-; (def ^:dynamic *frontmatter*
-;   "A {:templates Frontmatter  :pages Frontmatter} map,
-;   where Frontmatter is a {\"path\" metadata-map}"
-;   {}); flower.reflect/*frontmatter*
-; (def ^:dynamic *transformers*
-;   "a mapping from transformer file extension to how to run it.
-;   transformer runners must read {html, frontmatter} JSON on stdin
-;   and write the same to stdout. they should not read or write to the filesystem.
-;   doing so will cause build caching to break."
-;   {})
+  (:require
+   [clojure.string :as str]
+   [expressions.utils :refer [fmt]]
+   [flower.reflect :as reflect]))
 
 (def ^:private nl "\n")
 
@@ -21,7 +10,7 @@
 
 (defn- variable [key val] (fmt "  ${key} = ${val}\n"))
 
-(defn escape-ninja
+(defn- escape-ninja
   "Escape a string for use as a ninja file path.
    See https://ninja-build.org/manual.html#ref_lexer"
   [s]
@@ -33,7 +22,7 @@
       (str/replace " " "$ ")
       (str/replace ":" "$:")))
 
-(defn format-ninja
+(defn- format-ninja
   "Given a string, escape it for use as a ninja path.
    Given a keyword, treat it as a ninja variable."
   [spec]
@@ -41,7 +30,7 @@
      (str "${" (name spec) "}")
      (escape-ninja spec)))
 
-(defn join-ninja
+(defn- join-ninja
   "Given a list of file paths, format them as a ninja dependency set."
   [xs]
   (let [xs (if (or (nil? xs) (sequential? xs))
@@ -90,8 +79,10 @@
 (defn- gen-var [[k v]]
   (format "%s = %s\n" (name k) (join-ninja v)))
 
+; public API
+
 ; NOTE: variables are resolved lexically so they have to be generated first.
-(defn generate
+(defn generate!
   ([ninja]
    (let [gen-all #(concat (map %1 (filter some? %2)) [nl])
          vars (gen-all gen-var (:variables ninja))
@@ -99,4 +90,4 @@
          rules (gen-all gen-rule (:rules ninja))
          builds (gen-all gen-build (:builds ninja))
          contents (str/join (concat vars phony rules builds))]
-     (flower.reflect/write-ninja! contents))))
+     (reflect/write-ninja! contents))))

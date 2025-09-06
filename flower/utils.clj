@@ -207,3 +207,6 @@
     (:mac :linux :unknown) (fs/xdg-state-home)))
 
 (defn state-dir [] (fs/path (platform-state-dir) "flower"))
+
+(defn graal? []
+  (some? (System/getProperty "org.graalvm.home")))
