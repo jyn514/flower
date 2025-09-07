@@ -147,6 +147,18 @@ because if i'm going to be insane enough to write my own SSG, i want it to be on
 [@edef]: https://github.com/sponsors/edef1c
 [petal]: https://codeberg.org/jyn514/flower/issues/20
 
+## the way you talk about flower doesn't sound like it's an SSG ....
+
+i think of flower as **a build system masquerading as a static site generator**.
+if you take away the trappings (CSS, RSS, the static file server) you are left with a general purpose applicative build system configured in clojure.
+you could—and in fact, i probably will at some point—separate out the build system into a reusable library useful for other projects.
+
+notably, this build system has some nice properties not found in other systems to my knowledge:
+- like CMake and Meson, the build code is clearly separated from the generated build plan. Unlike CMake, it does not have 25 years of back-compat concerns.
+- like Bazel, you get a real language in which to generate the build plan. unlike Bazel, your builds are not required to be hermetic.
+- like Tup, you get runtime dependency tracking of file accesses, including for the build code itself. unlike Tup, it's cross-platform.
+- like Cargo, many things are defined "out of the box" and don't require extensive configuration. unlike Cargo, you have escape hatches for complicated things.
+
 ## example stacktrace
 
 ```
