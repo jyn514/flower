@@ -169,9 +169,9 @@
   (let [files (->> transformers (sort trans-sorter) (map str) (str/join " "))
         ; well this kinda sucks. $in is quoted but $depfile is not, so we can't use it.
         ; instead we assume it's always relative to $in.
-        cmd (fmt (str "${flower-cli} transform < $in --depfile $in.d --out-file $out "
-                      "--transform-map $transform-map --all-frontmatter $all-frontmatter "
-                      "$transformers > $tmpfile && ${flower-cli} jq -r .content < $tmpfile > $out")]
+        cmd (str flower-cli " transform < $in --depfile $in.d --out-file $out "
+                 "--transform-map $transform-map --all-frontmatter $all-frontmatter "
+                 "$transformers > $tmpfile && " flower-cli " jq -r .content < $tmpfile > $out")]
     {:variables {:transformers files
                  :transform-map (-> {} json/write-str escape-shell)
                  :all-frontmatter joined-frontmatter}

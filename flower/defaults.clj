@@ -21,5 +21,5 @@
       ; not as nice as a warning but this should basically never happen
       (fs/write-bytes path bytes {:truncate-existing false}))))
 
-(defn materialize-all []
+(defn materialize-all [{}]
   (doseq [[p bytes] all-defaults] (materialize (str *site* "/" p) bytes)))
