@@ -154,10 +154,11 @@ if you take away the trappings (CSS, RSS, the static file server) you are left w
 you could—and in fact, i probably will at some point—separate out the build system into a reusable library useful for other projects.
 
 notably, this build system has some nice properties not found in other systems to my knowledge:
+- like Make, flower is simple to use for simple applications. Unlike Make, flower is a serious build system.
 - like CMake and Meson, the build code is clearly separated from the generated build plan. Unlike CMake, it does not have 25 years of back-compat concerns.
-- like Bazel, you get a real language in which to generate the build plan. unlike Bazel, your builds are not required to be hermetic.
-- like Tup, you get runtime dependency tracking of file accesses, including for the build code itself. unlike Tup, it's cross-platform.
-- like Cargo, many things are defined "out of the box" and don't require extensive configuration. unlike Cargo, you have escape hatches for complicated things.
+- like Bazel, you get a real language in which to generate the build plan. Unlike Bazel, flower is designed to be wrapped in a larger build system.
+- like Tup, you get runtime dependency tracking of file accesses, including for the build code itself. Unlike Tup, dependency tracking is cross-platform.
+- like Cargo, many things are defined "out of the box" and don't require extensive configuration. Unlike Cargo, you have escape hatches for complicated things.
 
 ## example stacktrace
 
