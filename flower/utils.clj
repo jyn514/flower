@@ -81,11 +81,12 @@
         formatted (apply str (interpose " " msg))]
     (throw (ex-info formatted info))))
 
-(defn run [opts & rest]
+(defn run! [opts & rest]
   (let [[opts rest] (if (map? opts)
-                      [(assoc opts :dir *site*) rest]
-                      [{:dir *site*} (into opts rest)])
-        opts (merge-deep {:extra-env {"NINJA_STATUS" "[%f/%t (%r running)] "}}
+                      [opts rest]
+                      [{} (into opts rest)])
+        opts (merge-deep {:extra-env {"NINJA_STATUS" "[%f/%t (%r running)] "}
+                          :dir *site*}
                          opts)]
     (if (sequential? rest)
       (apply ps/shell opts rest)
@@ -95,7 +96,7 @@
   "Like `run`, but if the process fails, print an error instead of throwing an exception.
   You can check if the process failed because you'll get `nil` instead of a process record."
   [opts & rest]
-  (try (apply run opts rest)
+  (try (apply run! opts rest)
        (catch clojure.lang.ExceptionInfo e
          (if (= (:type (ex-data e)) :babashka.process/error)
            (let [cmd (if (map? opts) (str/join " " rest) opts)]
@@ -138,7 +139,7 @@
       ev)))
 
 (defn parse-ninja [args]
-  (let [out (:out (run {:out :string} args))]
+  (let [out (:out (run! {:out :string} args))]
     ; handle empty string
     (if (seq out)
       (str/split out #"\n")

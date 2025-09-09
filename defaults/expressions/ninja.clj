@@ -1,8 +1,7 @@
 (ns expressions.ninja
   (:require
    [clojure.string :as str]
-   [expressions.utils :refer [fmt]]
-   [flower.reflect :as reflect]))
+   [expressions.utils :refer [fmt]]))
 
 (def ^:private nl "\n")
 
@@ -82,7 +81,7 @@
 ; public API
 
 ; NOTE: variables are resolved lexically so they have to be generated first.
-(defn generate!
+(defn generate
   ([ninja]
    (let [gen-all #(concat (map %1 (filter some? %2)) [nl])
          vars (gen-all gen-var (:variables ninja))
@@ -90,4 +89,4 @@
          rules (gen-all gen-rule (:rules ninja))
          builds (gen-all gen-build (:builds ninja))
          contents (str/join (concat vars phony rules builds))]
-     (reflect/write-ninja! contents))))
+     contents)))

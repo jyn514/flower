@@ -29,7 +29,7 @@
          task (atom nil)]
      (fn [& args]
        (let [new-task (proxy [TimerTask] []
-                        (run []
+                        (run! []
                           (apply f args)
                           (reset! task nil)
                           (.purge timer)))

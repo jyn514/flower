@@ -3,6 +3,7 @@
 /defaults/deps.edn
 /defaults/public
 /defaults/MANIFEST.txt
+/build.ninja
 /blossom/build.ninja
 /target
 /.clj-kondo

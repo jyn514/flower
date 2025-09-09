@@ -3,43 +3,34 @@
    [babashka.fs :as fs]
    [expressions.default-build :as builder]
    [expressions.ninja :as ninja]
-   [expressions.utils :refer [fmt merge-deep]]
+   [expressions.utils :refer [merge-deep]]
    [flower.reflect :as reflect]))
 
 (def settings (:settings reflect/*metadata*))
 (def rebuild-flower (not= "false" (get settings "rebuild-flower")))
 (def use-jar (= "jar" (get settings "rebuild-flower")))
 
-(def ^:private defaults
-  ; MANIFEST.txt gets rebuilt when we rebuild flower.
-  ; avoid it always showing up as dirty.
-  (remove #{(fs/path "../defaults/MANIFEST.txt")}
-          (fs/glob "../defaults" "**")))
-
 (def flower-cli (reflect/current-exe))
-(def ff [flower-cli])
 (def build-cmd (if use-jar "uberjar" "native-dev"))
 
 (def plan
-  {:phony [{:name "flower" :depends ff}]
+  {:phony [{:name "flower" :depends flower-cli}]
    :rules
-   [{:name "flower-defaults"
-     :restat true
-     :command (fmt "cd ../defaults && ${flower-cli} configure")
-     :description "rebuild default build.ninja"}
-    {:name "flower-meta"
-     :command (fmt "cd .. && clojure -T:build ${build-cmd} :include-untracked true")
-     :description "rebuild flower itself"}]
+   [{:name "flower-ninja"
+     :command (str "cd ../ && clojure -T:build gen-plan :build-cmd " build-cmd)
+     :description "rebuild the meta-build system"}
+    {:name "flower-bin"
+     :command "cd .. && ninja"
+     :description "rebuild flower"}]
    :builds
    [(when rebuild-flower
-      {:rule "flower-meta"
-        :outputs ff
-        :inputs (concat (fs/glob "../flower" "**") defaults ["../native.clj" "../flower" "../deps.edn"])})
+      {:rule "flower-ninja"
+       :outputs "../build.ninja"
+       :inputs "../native.clj"})
     (when rebuild-flower
-       {:rule "flower-defaults"
-        :outputs "../defaults/build.ninja"
-        :inputs "../defaults/build.clj"})]})
+      {:rule "flower-bin"
+       :outputs flower-cli
+       :order "../build.ninja"})]})
 
 (def default-plan (builder/default-build-plan))
-
 (ninja/generate! (merge-deep default-plan plan))

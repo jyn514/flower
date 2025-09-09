@@ -6,7 +6,9 @@
    [clojure.data.json :as json]
    [clojure.set :as set :refer [difference union]]
    [clojure.string :as str]
-   [clojure.tools.build.api :as b]))
+   [clojure.tools.build.api :as b]
+   [expressions.utils :refer [fmt]]
+   [expressions.ninja :as ninja]))
 
 (defn eprintln [& args]
   (binding [*out* *err*] (apply println "native:" args)))
@@ -32,7 +34,7 @@
 (def live-reload "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
 ; keep this in sync with eval.clj
 (def parser "META-INF/resources/flower/eval/parser.ebnf")
-(def defaults "META-INF/resources/flower/defaults")
+(def defaults-dir "META-INF/resources/flower/defaults")
 
 (defn clean [_]
   (b/delete {:path class-dir})
@@ -64,7 +66,7 @@
   (str/join "\n"
             (map #(strip-prefix % "defaults/")
                  default-files)))
-(def defaults-target (str class-dir "/" defaults))
+(def defaults-target (str class-dir "/" defaults-dir))
 
 (defn all-public [& names]
   (for [t names]
@@ -104,7 +106,7 @@
 (defn manifest [{:keys [include-untracked]}]
   (spit (str "defaults/" manifest-path) (manifest-contents (default-files include-untracked)))
   (b/copy-file {:src (str "defaults/" manifest-path)
-                :target (format "%s/%s/%s" class-dir defaults manifest-path)}))
+                :target (format "%s/%s/%s" class-dir defaults-dir manifest-path)}))
 
 (defn uberjar [{:keys [dev include-untracked] :as opts}]
   (let [assert (if dev "with" "without")]
@@ -170,3 +172,41 @@
 
 (defn native [opts] (-native-helper (assoc opts :dev false)))
 (defn native-dev [opts] (-native-helper (assoc opts :dev true)))
+
+; meta-build plan
+
+(def flower-cli "target/flower")
+(def all-defaults
+  ; MANIFEST.txt gets rebuilt when we rebuild flower.
+  ; avoid it always showing up as dirty.
+  (remove #{(fs/path "defaults/MANIFEST.txt")}
+          (fs/glob "defaults" "**")))
+
+(defn plan [{:keys [build-cmd] :or {build-cmd "uberjar"}}]
+  {:phony [{:name "flower" :depends flower-cli}]
+   :rules
+   [{:name "ninja-meta"
+     :command (fmt "clojure -T:build gen-plan :build-cmd ${build-cmd}")
+     :generator true
+     :description "rebuild meta-build.ninja"}
+    {:name "flower-defaults"
+     :restat true
+     :command (fmt "cd defaults && ${flower-cli} configure")
+     :description "rebuild default build.ninja"}
+    {:name "flower-bin"
+     :command (fmt "cd .. && clojure -T:build ${build-cmd} :include-untracked true")
+     :description "rebuild flower itself"}]
+   :builds
+   [{:rule "ninja-meta"
+     :outputs "build.ninja"
+     :inputs "native.clj"}
+    {:rule "flower-defaults"
+     :outputs "defaults/build.ninja"
+     :inputs "defaults/build.clj"}
+    {:rule "flower-bin"
+     :outputs flower-cli
+     :inputs (concat (fs/glob "flower" "**") all-defaults
+                     ["native.clj" "flower" "deps.edn"])}]})
+
+(defn gen-plan [build-cmd]
+  (->> build-cmd plan ninja/generate (spit "build.ninja")))
