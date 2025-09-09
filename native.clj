@@ -183,26 +183,19 @@
           (fs/glob "defaults" "**")))
 
 (defn plan [{:keys [build-cmd] :or {build-cmd "uberjar"}}]
-  {:phony [{:name "flower" :depends flower-cli}]
+  {:phony [{:name "flower-bin" :depends flower-cli}]
    :rules
    [{:name "ninja-meta"
      :command (fmt "clojure -T:build gen-plan :build-cmd ${build-cmd}")
      :generator true
      :description "rebuild meta-build.ninja"}
-    {:name "flower-defaults"
-     :restat true
-     :command (fmt "cd defaults && ${flower-cli} configure")
-     :description "rebuild default build.ninja"}
     {:name "flower-bin"
-     :command (fmt "cd .. && clojure -T:build ${build-cmd} :include-untracked true")
+     :command (fmt "clojure -T:build ${build-cmd} :include-untracked true")
      :description "rebuild flower itself"}]
    :builds
    [{:rule "ninja-meta"
      :outputs "build.ninja"
      :inputs "native.clj"}
-    {:rule "flower-defaults"
-     :outputs "defaults/build.ninja"
-     :inputs "defaults/build.clj"}
     {:rule "flower-bin"
      :outputs flower-cli
      :inputs (concat (fs/glob "flower" "**") all-defaults

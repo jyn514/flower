@@ -84,13 +84,11 @@
 (defn run! [opts & rest]
   (let [[opts rest] (if (map? opts)
                       [opts rest]
-                      [{} (into opts rest)])
+                      [{} (into [opts] rest)])
         opts (merge-deep {:extra-env {"NINJA_STATUS" "[%f/%t (%r running)] "}
                           :dir *site*}
                          opts)]
-    (if (sequential? rest)
-      (apply ps/shell opts rest)
-      (ps/shell opts rest))))
+    (assoc (apply ps/shell opts rest) :dir *site*)))
 
 (defn run-non-fatal
   "Like `run`, but if the process fails, print an error instead of throwing an exception.
