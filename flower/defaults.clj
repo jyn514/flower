@@ -4,6 +4,24 @@
             [clojure.string :as str]
             [clojure.java.io :as io]))
 
+; VFS
+
+; TODO: configurable build-dir
+(defn defaults-path [relative]
+  (fs/path *site* ".build" "defaults" relative))
+
+(defn path-considering-vfs [path]
+  (let [vfs (defaults-path path)
+        rel (if (and (not (fs/exists? path))
+                     (fs/exists? vfs))
+              vfs path)]
+    rel))
+
+(defn with-vfs [path f]
+  (f (path-considering-vfs path)))
+
+; materialization
+
 (def flower-defaults "META-INF/resources/flower/defaults/")
 
 (def all-defaults
@@ -23,4 +41,8 @@
 
 (defn materialize-all [{}]
   (doseq [[p bytes] all-defaults]
-    (materialize (fs/path *site* ".build" "defaults" p) bytes)))
+    (let [dst (if (or (= "flower.edn" p)
+                      (= "pages" (-> p fs/components first str)))
+                (fs/path *site* p)
+                (defaults-path p))]
+      (materialize dst bytes))))

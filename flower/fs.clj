@@ -1,25 +1,44 @@
 (ns flower.fs
   (:require
-   [flower.reflect :as reflect :refer [*dependencies*]]
    [babashka.fs :as fs]
-   [clojure.set :refer [union]]))
+   [clojure.set :refer [union]]
+   [flower.utils :refer [remove-parent]]
+   [flower.defaults :refer [defaults-path path-considering-vfs]]
+   [flower.reflect :as reflect :refer [*dependencies*]]))
 
-; TODO: VFS
+(defn- id-map [vals]
+  (into {} (map (juxt identity identity) vals)))
 
-; HACK: this probably should register a dependency, but it sucks to rebuild when any child is created/modified and not just the dir itself :/
-(def directory? fs/directory?)
+(defn- defaults-map [paths]
+  (into {} (for [p paths] [(remove-parent p 2) p])))
 
-(defn exists? [path & opts]
-  (set! *dependencies* (conj *dependencies* path))
-  (apply fs/exists? path opts))
-
-(defn glob [& args]
-  (let [paths (apply fs/glob args)
-        dirs (filter fs/directory? paths)]
+(defn glob [root & opts]
+  (let [real-paths (apply fs/glob root opts)
+        vfs-paths (apply fs/glob (defaults-path root) opts)
+        ; we do this weird map thing so that we override defaults with real paths
+        relative-paths (merge (defaults-map vfs-paths) (id-map real-paths))
+        faked-paths (keys relative-paths)
+        dirs (filter fs/directory? (vals relative-paths))]
    (set! *dependencies* (union *dependencies* (set dirs)))
-   paths))
+   faked-paths))
 
 (defn read-all-bytes [path]
-  (set! *dependencies* (conj *dependencies* path))
-  (fs/read-all-bytes path))
+  (let [rel (path-considering-vfs path)]
+    ; TODO: does this break ninja if it doesn't exist?
+    (set! *dependencies* (conj *dependencies* rel))
+    (fs/read-all-bytes rel)))
+
+(defn directory? [path]
+  ; HACK: this probably should register a dependency, but it sucks to rebuild when any child is created/modified and not just the dir itself :/
+  (fs/directory? (path-considering-vfs path)))
+
+; put this last so we don't use it by accident
+(defn exists? [path & opts]
+  (let [rel (path-considering-vfs path)]
+    (set! *dependencies* (conj *dependencies* rel))
+    (apply fs/exists? rel opts)))
+
+; bound as clojure.core/slurp, not flower.fs/slurp-
+(defn slurp- [path]
+  (String. ^bytes (flower.fs/read-all-bytes path)))
 

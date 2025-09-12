@@ -3,20 +3,21 @@
   (:require
    [babashka.fs]
    [clj-commons.digest]
-   [nextjournal.markdown]
    [clojure.data.json]
    [clojure.java.io :as io]
    [clojure.repl :as repl]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
+   [flower.defaults :refer [path-considering-vfs]]
    [flower.hiccup]
-   [flower.fs]
    [flower.reflect]
+   [flower.fs]
    [flower.unsafe]
    [hiccup.util]
    [hiccup2.core]
    [instaparse.core :as insta]
    [java-time.api]
+   [nextjournal.markdown]
    [sci.core :as sci]
    [sci.impl.callstack])
   (:import
@@ -44,7 +45,7 @@
               (str/starts-with? (name ns-) "transformers."))
       (let [as-path (str/replace ns- "." "/")
             file (str as-path ".clj")]
-        (load-sci-file file))))
+        (-> file path-considering-vfs str load-sci-file))))
 
 ; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))
@@ -93,12 +94,9 @@
     'partitionv 'partitionv-all 'splitv-at
     'update-keys 'update-vals 'with-precision})
 
-(defn slurp- [path]
-  (String. ^bytes (flower.fs/read-all-bytes path)))
-
 (def clojure-core-only-missing (copy-ns 'clojure.core {:symbols missing-core}))
 (def clojure-core (assoc clojure-core-only-missing
-                         'slurp (sci/copy-var slurp-
+                         'slurp (sci/copy-var flower.fs/slurp-
                                               (-> clojure-core-only-missing meta :ns)
                                               {:name 'slurp})))
 ; only pathlib
@@ -141,7 +139,7 @@
                 ; internals
                 'flower.eval {'pretty-print pretty-print}
                 ; flower API
-                'flower.fs (merge (copy-ns 'flower.fs)
+                'flower.fs (merge (dissoc (copy-ns 'flower.fs) 'slurp-)
                                   (copy-ns 'babashka.fs {:dst 'flower.fs
                                                          :symbols bb-fs}))
                 'flower.reflect (assoc (copy-ns 'flower.reflect)

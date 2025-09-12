@@ -7,8 +7,18 @@
    [clojure.set :as set :refer [difference union]]
    [clojure.string :as str]
    [clojure.tools.build.api :as b]
-   [expressions.utils :refer [fmt]]
+   ; HACK: be careful about recursive dependencies
+   ; TODO: separate out base-utils from utils so we don't have to duplicate all these functions
    [expressions.ninja :as ninja]))
+
+(defmacro fmt
+  "Format string mini-language.
+   Allows using `${var}` in a format string to refer to a variable in scope."
+  [^String string]
+  (let [-re #"\$\{(.*?)\}"
+        fstr (str/replace string -re "%s")
+        fargs (map #(read-string (second %)) (re-seq -re string))]
+    `(format ~fstr ~@fargs)))
 
 (defn eprintln [& args]
   (binding [*out* *err*] (apply println "native:" args)))

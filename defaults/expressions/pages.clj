@@ -1,13 +1,13 @@
 (ns expressions.pages 
   (:require
-   [babashka.fs :as fs]
+   [flower.fs :as fs]
    [clojure.string :as str]
    [expressions.utils :refer [as-map remove-ext remove-parent split-all]]
    [java-time.api :as jt]))
 
 (defn- unslugify [filename]
   (let [name (if (= "index.html" (fs/file-name filename))
-               (-> filename fs/parent (or "index") fs/file-name)
+               (-> filename fs/parent fs/file-name)
                (-> filename remove-ext))]
     (str/replace name #"-" " ")))
 

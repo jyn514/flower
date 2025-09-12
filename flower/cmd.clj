@@ -10,6 +10,7 @@
    [clojure.string :as str]
    [flower.eval :as eval]
    [flower.frontmatter :refer [split-frontmatter]]
+   [flower.defaults :refer [path-considering-vfs]]
    [flower.reflect]
    [jq.api :as jq])
   (:import
@@ -51,6 +52,7 @@
    [(str f) (:frontmatter parsed)]))
 
 ; TODO: allow pages/index.edn so we can avoid repeating configuration
+; NOTE: unlike most of flower, does not consider VFS
 (defn- load-all-meta [dir]
   (let [paths (fs/glob dir "**")
         files (filter #(not (fs/directory? %)) paths)]
@@ -117,32 +119,32 @@
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [{settings :set list-settings :list :keys [build-dir]
     :or {build-dir ".build"}}]
-  (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
-                      (edn/read (PushbackReader. fd)))
-        settings (load-settings (:settings global-meta) settings list-settings)
-        in (str *site* "/build.clj")
-        out (str *site* "/build.ninja")
-        ; TODO: load this from flower.edn
-        ; TODO: wow this sucks :(
-        ninja-writer (new StringWriter)
-        page-meta (load-all-meta "pages")
-        all-meta {:pages page-meta
-                     :settings settings}]
-    (binding [flower.reflect/*ninja* ninja-writer
-              flower.reflect/*metadata* all-meta
-              flower.reflect/*dependencies* #{}]
-      (let [cx (eval/create-sci-cx in)
-            embedded (str "(do" (slurp in) ")")
-            lisp (eval/parse-string cx eval/start-span embedded)
-            ; TODO: we need a mechanism for build.clj to pass back the builddir.
-            ; maybe we can bind `flower.reflect/*build*` or something idk
-            ; alternatively we can force this to be in flower.edn?
-            depfile (fs/path *site* build-dir "build.clj.d")]
-        (eval/eval-form cx embedded lisp)
-        (fs/create-dirs build-dir)
-        (let [contents (gen-depfile out flower.reflect/*dependencies*)]
-          (fs/write-bytes depfile (String/.getBytes contents))))
-    (-> ninja-writer str (write-if-modified out)))))
+  (binding [flower.reflect/*dependencies* #{}]
+    (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
+                        (edn/read (PushbackReader. fd)))
+          settings (load-settings (:settings global-meta) settings list-settings)
+          in (str (path-considering-vfs "build.clj"))
+          out (str *site* "/build.ninja")
+          ; TODO: load this from flower.edn
+          ; TODO: wow this sucks :(
+          ninja-writer (new StringWriter)
+          page-meta (load-all-meta "pages")
+          all-meta {:pages page-meta
+                    :settings settings}]
+      (binding [flower.reflect/*ninja* ninja-writer
+                flower.reflect/*metadata* all-meta]
+        (let [cx (eval/create-sci-cx in)
+              embedded (str "(do" (slurp in) ")")
+              lisp (eval/parse-string cx eval/start-span embedded)
+              ; TODO: we need a mechanism for build.clj to pass back the builddir.
+              ; maybe we can bind `flower.reflect/*build*` or something idk
+              ; alternatively we can force this to be in flower.edn?
+              depfile (fs/path *site* build-dir "build.clj.d")]
+          (eval/eval-form cx embedded lisp)
+          (fs/create-dirs build-dir)
+          (let [contents (gen-depfile out flower.reflect/*dependencies*)]
+            (fs/write-bytes depfile (String/.getBytes contents))))
+        (-> ninja-writer str (write-if-modified out))))))
 
 (defn build []
   ; TODO: doesn't handle the case where the exception trickles up to main.

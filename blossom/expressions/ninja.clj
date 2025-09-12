@@ -1,14 +1,14 @@
+; HACK: this file is required from native.clj itself, so it can't use any flower namespaces, not even recursively through other `expressions`.
 (ns expressions.ninja
   (:require
    [clojure.string :as str]
-   [expressions.utils :refer [fmt]]
    [flower.reflect :as reflect]))
 
 (def ^:private nl "\n")
 
 ; ninja utils
 
-(defn- variable [key val] (fmt "  ${key} = ${val}\n"))
+(defn- variable [key val] (format "  %s = %s\n" key val))
 
 (defn- escape-ninja
   "Escape a string for use as a ninja file path.
