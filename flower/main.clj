@@ -147,6 +147,7 @@
 (defn init-fn [cmd-fn args]
   (alter-var-root (var *cmd*) (constantly (->> args :dispatch first (str " "))))
   (binding [*site* (or (get-in args [:opts :C]) ".")
+            flower.unsafe/*drop-bomb* false ; for `repl`
             flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
                                                    (env "FLOWER_WATCH")))]
     (cmd-fn args)))

@@ -13,7 +13,7 @@
 (defn- is-root [doc]
   (let [fragment (if-not (string? doc) doc
                    (Jsoup/parse doc "" (Parser/xmlParser)))
-        root (-> fragment .ownerDocument .firstChild)]
+        root (-> fragment .ownerDocument .firstChild .nodeName)]
     (or (instance? XmlDeclaration root) 
         (boolean (some #{root} ["html" "#doctype"])))))
 

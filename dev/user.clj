@@ -53,6 +53,7 @@
 
 (def cx (eval/create-sci-cx "<repl>"))
 (alter-var-root #'eval/*cx* (constantly cx))
+(alter-var-root #'flower.unsafe/*drop-bomb* (constantly false))
 
 ; (defmacro trace [& args]
 ;   `(do (add-lib 'org.clojure/tools.trace)

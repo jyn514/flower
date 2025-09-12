@@ -39,7 +39,8 @@
 (defn load-fn
   "load user code on-demand"
   [{ns- :namespace}]
-    (when (str/starts-with? (name ns-) "expressions.")
+    (when (or (str/starts-with? (name ns-) "expressions.")
+              (str/starts-with? (name ns-) "transformers."))
       (let [as-path (str/replace ns- "." "/")
             file (str as-path ".clj")]
         (load-sci-file file))))
