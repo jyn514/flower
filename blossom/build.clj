@@ -1,6 +1,5 @@
 (ns build
   (:require
-   [babashka.fs :as fs]
    [expressions.default-build :as builder]
    [expressions.ninja :as ninja]
    [expressions.utils :refer [merge-deep]]

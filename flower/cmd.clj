@@ -131,7 +131,7 @@
     (binding [flower.reflect/*ninja* ninja-writer
               flower.reflect/*metadata* all-meta
               flower.reflect/*dependencies* #{}]
-      (let [cx (eval/create-fs-cx in)
+      (let [cx (eval/create-sci-cx in)
             embedded (str "(do" (slurp in) ")")
             lisp (eval/parse-string cx eval/start-span embedded)
             ; TODO: we need a mechanism for build.clj to pass back the builddir.

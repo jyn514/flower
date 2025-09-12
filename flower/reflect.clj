@@ -2,7 +2,8 @@
 (ns flower.reflect
   (:use flower.utils)
   (:require
-   [babashka.fs :as fs]) 
+   [babashka.fs :as fs]
+   [clojure.set :refer [union]]) 
   (:import
    [java.io StringWriter]))
 
@@ -17,10 +18,6 @@
 (def ^:dynamic *metadata*
   "A {:settings {\"name\" string-or-bool} :pages {\"path\" frontmatter-map}} map"
   {})
-
-(defn read-file [path]
-  (set! *dependencies* (conj *dependencies* path))
-  (fs/read-all-bytes path))
 
 (defn write-ninja! [str]
   (StringWriter/.write *ninja* ^String str))

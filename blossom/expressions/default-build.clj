@@ -1,8 +1,9 @@
 (ns expressions.default-build
   (:require
     [flower.reflect :as reflect]
+    [flower.fs :as fs]
+    flower.unsafe.fs
     expressions.ninja
-    [babashka.fs :as fs]
     [clojure.data.json :as json]
     [clojure.string :as str])
   (:use expressions.utils))
@@ -29,7 +30,7 @@
   (let [dirs (atom (if (fs/exists? root) #{root} #{}))
         update #(swap! dirs conj %)
         visitor (fn [path _attrs] (update path) :continue)]
-    (fs/walk-file-tree root {:pre-visit-dir visitor})
+    (flower.unsafe.fs/walk-file-tree root {:pre-visit-dir visitor})
     (map str @dirs)))
 
 (def ^:private flower-cli (reflect/current-exe))

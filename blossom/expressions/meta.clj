@@ -1,6 +1,8 @@
 (ns expressions.meta
-  (:require [flower.reflect :as reflect]
-            [clj-commons.digest :as digest]))
+  (:require
+   [clj-commons.digest :as digest]
+   [flower.fs :as fs]
+   [flower.reflect :as reflect]))
 
 (defn render
   ([source] (render source {}))
@@ -10,8 +12,7 @@
 (defn template [relative-path]
   (when-not relative-path
     (throw (AssertionError. "did not get a template name")))
-  (let [bs (reflect/read-file (str "templates/" relative-path))]
-    (String. ^bytes bs)))
+  (slurp (str "templates/" relative-path)))
 
 (defn embed
   "Given a template and its local variables, render that template."
@@ -28,4 +29,4 @@
 (defn hash
   "Calculate the SHA256 hash of a file."
   [filename]
-  (-> filename reflect/read-file digest/sha-256))
+  (-> filename fs/read-all-bytes digest/sha-256))

@@ -10,6 +10,7 @@
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
    [flower.hiccup]
+   [flower.fs]
    [flower.reflect]
    [flower.unsafe]
    [hiccup.util]
@@ -48,12 +49,13 @@
 ; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))
 (defn copy-ns
-  ([ns] (copy-ns ns false))
-  ([ns include-private]
-   (let [binding (sci/create-ns ns)
-         considered-vars (if include-private
-                           (ns-map ns)
-                           (ns-publics ns))
+  ([ns] (copy-ns ns {}))
+  ([ns {:keys [include-private dst symbols]}]
+   (let [binding (or dst (sci/create-ns ns))
+         considered-vars (cond
+                           symbols (into {} (for [sym symbols] [sym (ns-resolve ns sym)]))
+                           include-private (ns-map ns)
+                           :else (ns-publics ns))
          ; copy-var* assumes that it can deref any var; make sure that's true
          vars (filter (fn [[_ v]] (instance? clojure.lang.IDeref v)) considered-vars)
          bindings (update-vals vars
@@ -91,14 +93,14 @@
     'partitionv 'partitionv-all 'splitv-at
     'update-keys 'update-vals 'with-precision})
 
-(defn copy-all
-  [ns vars]
-  (let [binding (sci/create-ns ns)]
-    (into {} (for [sym vars]
-               [sym (sci/copy-var* (ns-resolve ns sym) binding)]))))
+(defn slurp- [path]
+  (String. ^bytes (flower.fs/read-all-bytes path)))
 
-(def clojure-core (copy-all 'clojure.core missing-core))
-
+(def clojure-core-only-missing (copy-ns 'clojure.core {:symbols missing-core}))
+(def clojure-core (assoc clojure-core-only-missing
+                         'slurp (sci/copy-var slurp-
+                                              (-> clojure-core-only-missing meta :ns)
+                                              {:name 'slurp})))
 ; only pathlib
 ; NOTE: canonicalize and friends intentionally missing because they resolve symlinks
 (def bb-fs
@@ -123,22 +125,31 @@
    ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
    ; maybe we can figure out a way to find dynamic vars with `dir`?
    ; but that still doesn't help find all functions that use them…
-   :namespaces {'hiccup2.core hiccup-core
-                'hiccup.util (copy-ns 'hiccup.util) 
-                'hiccup.compiler hiccup-compiler
-                'instaparse.core (copy-ns 'instaparse.core) 
+   :namespaces {; re-exported libs
                 'clojure.core clojure-core
-                'clojure.data.json (copy-ns 'clojure.data.json)
-                ; repl/doc tries to call private functions, so we need to copy those too
-                'clojure.repl (copy-ns 'clojure.repl true)
-                'flower.reflect (assoc (copy-ns 'flower.reflect)
-                                       'render-file render-file)
-                'flower.eval {'pretty-print pretty-print}
-                'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
+                'clojure.data.json (copy-ns 'clojure.data.json) 
+                'nextjournal.markdown (copy-ns 'nextjournal.markdown)
+                'hiccup2.core hiccup-core 
+                'hiccup.util (copy-ns 'hiccup.util)
+                'hiccup.compiler hiccup-compiler
+                'instaparse.core (copy-ns 'instaparse.core)
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'java-time.api (copy-ns 'java-time.api)
-                'babashka.fs (copy-all 'babashka.fs bb-fs)
-                'nextjournal.markdown (copy-ns 'nextjournal.markdown)}
+                ; repl/doc tries to call private functions, so we need to copy those too
+                ; TODO: SCI does this for us, apparently?
+                ;'clojure.repl (copy-ns 'clojure.repl {:include-private true})
+                ; internals
+                'flower.eval {'pretty-print pretty-print}
+                ; flower API
+                'flower.fs (merge (copy-ns 'flower.fs)
+                                  (copy-ns 'babashka.fs {:dst 'flower.fs
+                                                         :symbols bb-fs}))
+                'flower.reflect (assoc (copy-ns 'flower.reflect)
+                                       'render-file render-file)
+                ; TODO: use drop-bomb here too
+                'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
+                ; 'babashka.fs (copy-filtering 'babashka.fs bb-fs)
+                'flower.unsafe.fs (copy-ns 'babashka.fs {:dst 'flower.unsafe.fs})}
    ; NOTE: the strings will give a class cast exception if someone tries to rebind them
    :bindings {'« "«"
               '» "»"
@@ -420,11 +431,3 @@
               (create-sci-cx filename opts)) ]
      (binding [*cx* cx]
        (teval (parse-or-fatal parse src filename) src *cx*)))))
-
-(defn create-fs-cx
-  [filename]
-  (let [override {:namespaces
-                  ; TODO: remove everything here but the path functions,
-                  ; make read/write access go through flower.reflect/glob-files
-                  {'babashka.fs (copy-ns 'babashka.fs)}}]
-    (create-sci-cx filename override)))

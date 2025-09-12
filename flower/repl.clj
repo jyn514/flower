@@ -93,7 +93,7 @@
 ; TODO: this only supports page mode. support transform mode too.
 (defn repl
   [{:keys [template]}]
-  (binding [eval/*cx* (eval/create-fs-cx "<repl>")
+  (binding [eval/*cx* (eval/create-sci-cx "<repl>")
             reflect/*dependencies* #{}
             *reader* (make-reader template)]
     ; TODO: doesn't work because shutdown hooks can't see thread-locals

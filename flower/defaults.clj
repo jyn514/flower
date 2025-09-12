@@ -22,4 +22,5 @@
       (fs/write-bytes path bytes {:truncate-existing false}))))
 
 (defn materialize-all [{}]
-  (doseq [[p bytes] all-defaults] (materialize (str *site* "/" p) bytes)))
+  (doseq [[p bytes] all-defaults]
+    (materialize (fs/path *site* ".build" "defaults" p) bytes)))
