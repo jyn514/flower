@@ -81,7 +81,7 @@
         formatted (apply str (interpose " " msg))]
     (throw (ex-info formatted info))))
 
-(defn run! [opts & rest]
+(defn system! [opts & rest]
   (let [[opts rest] (if (map? opts)
                       [opts rest]
                       [{} (into [opts] rest)])
@@ -94,7 +94,7 @@
   "Like `run`, but if the process fails, print an error instead of throwing an exception.
   You can check if the process failed because you'll get `nil` instead of a process record."
   [opts & rest]
-  (try (apply run! opts rest)
+  (try (apply system! opts rest)
        (catch clojure.lang.ExceptionInfo e
          (if (= (:type (ex-data e)) :babashka.process/error)
            (let [cmd (if (map? opts) (str/join " " rest) opts)]
@@ -137,7 +137,7 @@
       ev)))
 
 (defn parse-ninja [args]
-  (let [out (:out (run! {:out :string} args))]
+  (let [out (:out (system! {:out :string} args))]
     ; handle empty string
     (if (seq out)
       (str/split out #"\n")

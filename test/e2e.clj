@@ -27,14 +27,14 @@
 
 (defn- flower! [dir opts & args]
   (binding [*site* dir]
-    (apply flower.utils/run! opts args)))
+    (apply flower.utils/system! opts args)))
 
 (defn- require-exe! [cmd]
   (system! (str "Required executable not found: '" cmd "'")
            {:out (StringWriter.)} cmd "--version"))
 
 (defn- build-flower! []
-  (system! "Failed to build flower executable" "ninja flower")
+  (system! "Failed to build flower executable" "ninja flower-bin")
   (when-not (fs/exists? flower-cli)
     (throw (ex-info "Missing CLI script target/flower after build" {}))))
 

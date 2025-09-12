@@ -189,6 +189,10 @@
      :command (fmt "clojure -T:build gen-plan :build-cmd ${build-cmd}")
      :generator true
      :description "rebuild meta-build.ninja"}
+    {:name "flower-defaults"
+     :restat true
+     :command (fmt "cd defaults && ../${flower-cli} configure")
+     :description "rebuild default build.ninja"}
     {:name "flower-bin"
      :command (fmt "clojure -T:build ${build-cmd} :include-untracked true")
      :description "rebuild flower itself"}]
@@ -196,6 +200,9 @@
    [{:rule "ninja-meta"
      :outputs "build.ninja"
      :inputs "native.clj"}
+    {:rule "flower-defaults"
+     :outputs "defaults/build.ninja"
+     :inputs "defaults/build.clj"}
     {:rule "flower-bin"
      :outputs flower-cli
      :inputs (concat (fs/glob "flower" "**") all-defaults
