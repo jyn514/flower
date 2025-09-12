@@ -1,9 +1,16 @@
-(ns expressions.html )
-(import
-  (org.jsoup Jsoup)
-  (org.jsoup.nodes Attribute Attributes Element XmlDeclaration)
-  (org.jsoup.parser Parser)
-  (org.jsoup.select Elements))
+(ns expressions.html
+  (:require
+   [clojure.string :as str]
+   [expressions.utils :refer [inspect]])
+  (:import
+   (org.jsoup Jsoup)
+   (org.jsoup.nodes
+    Attribute
+    Attributes
+    Element
+    XmlDeclaration)
+   (org.jsoup.parser Parser)
+   (org.jsoup.select Elements)))
 
 (declare after!)
 
@@ -12,8 +19,8 @@
 
 (defn- is-root [doc]
   (let [fragment (if-not (string? doc) doc
-                   (Jsoup/parse doc "" (Parser/xmlParser)))
-        root (-> fragment .ownerDocument .firstChild .nodeName)]
+                   (Jsoup/parse (str/triml doc) "" (Parser/xmlParser)))
+        root (some-> fragment .ownerDocument .firstChild .nodeName)]
     (or (instance? XmlDeclaration root) 
         (boolean (some #{root} ["html" "#doctype"])))))
 
@@ -31,8 +38,13 @@
     ; instead, do a really dumb thing:
     ; first, check if this has an existing <html> tag or not by parsing it with XML.
     ; then, decide whether to call .body based on that.
-    (let [html (Jsoup/parse doc)]
-      (if (is-root doc) html (.body html)))))
+    ;
+    ; NOTE: <!DOCTYPE html> must be the very first thing in a document,
+    ; including whitespace. Strip whitespace so we aren't thrown off by `◊` escapes.
+    ; TODO: https://codeberg.org/jyn514/flower/issues/23
+    (let [stripped (str/trim doc)
+          html (Jsoup/parse stripped)]
+      (if (is-root stripped) html  (.body html)))))
 
 (defn document
   "Given an HTML element, get the root document element.

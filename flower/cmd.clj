@@ -149,7 +149,7 @@
   ; probably that's fine though
   (binding [*cmd* "configure"]
     (configure {}))
-  (run! "ninja"))
+  (system! "ninja"))
 
 ; jq emulator
 
