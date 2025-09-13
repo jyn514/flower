@@ -29,8 +29,7 @@
           '(babashka [process :as ps])
           '(babashka [cli :as cli])
           '(babashka [fs :as fs])
-          '[babashka.http-server :as http-server]
-          '[clojure.core.match :as match :refer [match]]
+          '[flower.http-server :as http-server]
           '[expectations.clojure.test :as expect :refer [defexpect]]
           '[clojure.test.check.generators :as gen]))
 

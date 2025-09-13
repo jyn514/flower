@@ -42,28 +42,12 @@
            ; TODO: isn't there a race condition here still?
            (.schedule timer new-task ms))))))
 
-(defn on-file-change
-  [cb paths dirs event]
-    ; behold doesn't support file filters, only directory filters. implement them ourselves.
-    (let [p (:path event)]
-      (when (or (some #{p} paths)
-                (some #(fs/starts-with? p %) dirs))
-        (cb event))))
-
-(defn to-dir [path]
-  (let [dir (if (fs/directory? path) path (fs/parent path))]
-    (-> dir fs/real-path str)))
-
 (defn watch-files
-  ([cb paths] (watch-files cb paths nil))
-  ([cb paths period]
-   (let [form (comp fs/normalize fs/absolutize)
-         abs-paths (->> paths (map form) set)
-         interesting-dirs (filter fs/directory? abs-paths)
-         all-dirs (set (map to-dir abs-paths))
-         debouncer (if (nil? period) cb (debounce cb period))
-         on-change #(on-file-change debouncer abs-paths interesting-dirs %)]
-     (apply behold/watch on-change all-dirs))))
+  ([cb paths] (watch-files cb paths {}))
+  ([cb paths {:keys [period] :as opts}]
+   (let [debouncer (if (nil? period) cb (debounce cb period))
+         handle (apply behold/create (dissoc opts :period) paths)]
+     (behold/listen-async debouncer handle))))
 
 ; live-reload proto
 
@@ -128,7 +112,7 @@
   [& {:keys [dir port period]}]
   (watch-files #(on-output-change (assoc % :build-dir (fs/real-path dir)))
                [(fs/file-name dir)]
-               period)
+               {:period period :recursive true})
   (wss/run-server handler {:port port}))
 
 ; http-server
@@ -154,9 +138,9 @@
   (binding [*cmd* "configure"]
     (cmd/configure opts)))
 
-(defn rerun-ninja [opts {:keys [type path]}]
+(defn rerun-ninja [opts {:keys [kind path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
-  (when path (println type (str path)))
+  (when path (println kind (str path)))
   ; ninja can't handle file deletes. generate a new build plan for it.
   ; TODO: delete all the outputs of the deleted file;
   ; you can get a list with `ninja -t query`
@@ -177,7 +161,8 @@
         ; also this will be wrong when *site* is set
         important? #(not (or (temp-file? %) (= "build.ninja" %)))
         important-inputs (filter important? all-inputs)
-        watcher (watch-files #(rerun-ninja opts %) important-inputs debounce)]
+        watcher (watch-files #(rerun-ninja opts %) important-inputs
+                             {:period debounce :recursive false})]
     ; run once at startup
     (future (rerun-ninja opts {}))
     watcher))

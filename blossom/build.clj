@@ -29,6 +29,7 @@
        :inputs "../native.clj"})
     (when rebuild-flower
       {:rule "flower-bin"
+       :inputs (fs/glob "../flower" "**")
        :outputs flower-cli
        :order "../build.ninja"})]})
 
