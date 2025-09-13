@@ -55,7 +55,8 @@
         source-map (add-ext out "map")
         depfile (/ builddir (add-ext relative-path "d"))]
     {:rule "sass"
-    :inputs (str path)
+    ; needed because we pass this as a literal path to `sass`
+    :inputs (str (get reflect/all-defaults path path))
     :outputs out
     :source-map source-map
     :depfile depfile}))
@@ -112,7 +113,7 @@
 
 (defn- static->build [path]
   {:rule (if (fs/directory? path) "mkdir" "link")
-   :inputs path
+   :inputs (str (get reflect/all-defaults path path))
    :outputs (/ public (remove-parent path))})
 (def static-builds {:builds (map static->build (fs/glob "static" "**"))})
 
@@ -120,6 +121,8 @@
   ; NOTE: we can't put lists here, ninja interprets them as literal strings
   ; https://codeberg.org/jyn514/flower/issues/16
   {:variables {:builddir builddir}
+   :phony (for [[virtual real] reflect/all-defaults]
+           {:name virtual, :depends real})
    :rules
    [{:name "ninja-meta"
      :restat true

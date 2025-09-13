@@ -24,14 +24,13 @@
           '[toml-clj.core :as toml]
           '[nextjournal.markdown :as md]
           '[java-time.api :as jt]
-          '[nextjournal.beholder :as behold]
           '[hiccup2.core :refer [html]]
           '(babashka [process :as ps])
           '(babashka [cli :as cli])
           '(babashka [fs :as fs])
           '[flower.http-server :as http-server]
-          '[expectations.clojure.test :as expect :refer [defexpect]]
-          '[clojure.test.check.generators :as gen]))
+          #_'[expectations.clojure.test :as expect :refer [defexpect]]
+          #_'[clojure.test.check.generators :as gen]))
 
 (defn members [val]
   (->> val r/reflect :members (map :name) set sort))

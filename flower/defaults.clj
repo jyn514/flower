@@ -1,8 +1,10 @@
 (ns flower.defaults
   (:use [flower.utils])
-  (:require [babashka.fs :as fs]
-            [clojure.string :as str]
-            [clojure.java.io :as io]))
+  (:require
+   [babashka.fs :as fs]
+   [clojure.java.io :as io]
+   [clojure.set :refer [union]]
+   [clojure.string :as str]))
 
 ; VFS
 
@@ -10,15 +12,22 @@
 (defn defaults-path [relative]
   (fs/path *site* ".build" "defaults" relative))
 
+(defn- vfs-path
+  "Different from defaults-path because some files are never in .build.
+   Different from path-considering-vfs because it doesn't look at files on disk to make a decision."
+   [rel]
+   (if (or (= "flower.edn" rel)
+           (= "pages" (-> rel fs/components first str)))
+     (fs/path *site* rel)
+     (defaults-path rel)))
+
 (defn path-considering-vfs [path]
-  (let [vfs (defaults-path path)
-        rel (if (and (not (fs/exists? path))
+  (let [vfs (vfs-path path)
+        rel (if (and (not= vfs path)
+                     (not (fs/exists? path))
                      (fs/exists? vfs))
               vfs path)]
     rel))
-
-(defn with-vfs [path f]
-  (f (path-considering-vfs path)))
 
 ; materialization
 
@@ -29,6 +38,16 @@
         files (str/split manifest #"\n")
         contents (map #(->> % (str flower-defaults) io/resource slurp .getBytes) files)]
     (zipmap files contents)))
+
+; used in flower.reflect
+(def all-default-paths
+ "A [{:virtual path, :real path}] mapping for all defaults bundled with flower."
+ (let [files (set (keys all-defaults))
+       dirs (set (filter some? (map fs/parent files)))]
+   (into {} (for [p (union files dirs)
+                  :let [vfs (vfs-path p)]
+                  :when (= vfs (defaults-path p))]
+              [(fs/path p) vfs]))))
 
 (defn materialize
   [path bytes]
@@ -41,8 +60,4 @@
 
 (defn materialize-all [{}]
   (doseq [[p bytes] all-defaults]
-    (let [dst (if (or (= "flower.edn" p)
-                      (= "pages" (-> p fs/components first str)))
-                (fs/path *site* p)
-                (defaults-path p))]
-      (materialize dst bytes))))
+    (materialize (vfs-path p) bytes)))

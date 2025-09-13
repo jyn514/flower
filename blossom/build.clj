@@ -3,6 +3,7 @@
    [expressions.default-build :as builder]
    [expressions.ninja :as ninja]
    [expressions.utils :refer [merge-deep]]
+   [flower.fs :as fs]
    [flower.reflect :as reflect]))
 
 (def settings (:settings reflect/*metadata*))

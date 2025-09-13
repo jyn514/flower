@@ -7,7 +7,7 @@
 
 (defn- unslugify [filename]
   (let [name (if (= "index.html" (fs/file-name filename))
-               (-> filename fs/parent fs/file-name)
+               (-> filename fs/parent (or "index") fs/file-name)
                (-> filename remove-ext))]
     (str/replace name #"-" " ")))
 

@@ -52,7 +52,10 @@
 (defn copy-ns
   ([ns] (copy-ns ns {}))
   ([ns {:keys [include-private dst symbols]}]
-   (let [binding (or dst (sci/create-ns ns))
+   (let [binding (if dst
+                   ; otherwise we occasionally get "No impl of method :getName for Symbol" when printing stacktraces
+                   (if (symbol dst) (sci/create-ns dst) dst)
+                   (or dst (sci/create-ns ns)))
          considered-vars (cond
                            symbols (into {} (for [sym symbols] [sym (ns-resolve ns sym)]))
                            include-private (ns-map ns)
@@ -247,9 +250,16 @@
           (-> e ex-cause ex-cause)))
       (do
         ; TODO: make NoSuchFileExceptions relative to *site*
-        (if (instance? clojure.lang.ExceptionInfo e)
-          (println (ex-message e))
-          (println (str (pr-str (class e)) ":") (ex-message e)))
+        (let [msg (ex-message e)
+              info (ex-data e)]
+          (if (some? info)
+            (if (seq msg)
+              (println msg)
+              (if-let [type (:type info)]
+                (println type)
+                ; really don't have much to work with here ...
+                (println (ex-data e))))
+            (println (str (pr-str (class e)) ":") msg)))
         (when-let [file (-> e ex-data :flower/filename)]
           (let [span (-> e ex-data :flower/span)]
             (print "" (render-sci-frame (merge {:ns 'user :file file} span (meta e))))))

@@ -1,6 +1,7 @@
 ; this is used in flower.eval. don't create a circular dependency.
 (ns flower.reflect
   (:use flower.utils)
+  (:require [flower.defaults :as defaults])
   (:import
    [java.io StringWriter]))
 
@@ -18,6 +19,8 @@
 
 (defn write-ninja! [str]
   (StringWriter/.write *ninja* ^String str))
+
+(def all-defaults defaults/all-default-paths)
 
 (defn current-exe []
   (if (graal?)

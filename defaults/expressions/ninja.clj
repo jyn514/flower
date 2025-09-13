@@ -73,7 +73,7 @@
   (let [name (:name opts)
         deps (:depends opts)]
     (apply str "build " name ": phony "
-           (join-ninja deps))))
+           (join-ninja deps) nl)))
 
 (defn- gen-var [[k v]]
   (format "%s = %s\n" (name k) (join-ninja v)))

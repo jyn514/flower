@@ -194,11 +194,12 @@
                   'pages all-frontmatter}
         cx-opts {:bindings bindings
                  :namespaces {'flower.locals bindings}}
-        cx (eval/create-sci-cx transformer cx-opts)
+        trans-path (str (path-considering-vfs transformer))
+        cx (eval/create-sci-cx trans-path cx-opts)
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ; borkdude suggests running parse-next in a loop instead, see
         ; https://clojurians.slack.com/archives/C015LCR9MHD/p1755283534353819?thread_ts=1755274827.891389&cid=C015LCR9MHD
-        f (str "(do " (slurp transformer) ")")
+        f (str "(do " (slurp trans-path) ")")
         transformer (eval/parse-string cx eval/start-span f)
         ; NOTE: does *not* call pretty-print
         run-transform '(transform flower.locals/page)

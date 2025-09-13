@@ -1,17 +1,13 @@
 #!/bin/sh
+set -e
 
 PATH=~/src/flower/target:$PATH
 export PATH
 
-cd ~/src/flower
-(cd blossom
-# rerun configure since we often modify defaults just before running this script
-../target/flower configure
-# run this even if configure failed
-ninja flower)
-# clojure -T:build native :include-untracked true
-
-set -e
+if ! [ -e build.ninja ]; then
+	clojure -T:build gen-plan
+fi
+ninja flower-bin
 
 cd ..
 rm -rf flower-test
