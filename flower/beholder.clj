@@ -59,7 +59,9 @@
       (if-not recursive
         (register! handle root root events)
         (Files/walkFileTree root
-          (proxy [FileVisitor] []
+          (reify FileVisitor
+            (visitFile [_ _ _] FileVisitResult/CONTINUE)
+            (postVisitDirectory [_ _ _] FileVisitResult/CONTINUE)
             (preVisitDirectory [_this dir _attrs]
               (register! handle dir root events)
               FileVisitResult/CONTINUE)))))))
