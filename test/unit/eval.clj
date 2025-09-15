@@ -1,11 +1,11 @@
-(ns eval
+(ns unit.eval
   (:require
    [clojure.string :as str]
    [clojure.test.check.clojure-test :refer [defspec]]
    [clojure.test.check.properties :as prop]
    [expectations.clojure.test :as expect :refer [expect more-of]]
    [flower.eval :as eval]
-   [parser :refer [gen-sunflower]]))
+   [unit.parser :refer [gen-sunflower]]))
 
 ; (s/def :flower.eval/exception
 ;   (s/keys :req [:flower.eval/

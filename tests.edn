@@ -1,4 +1,9 @@
 #kaocha/v1
-{:tests [{:test-paths ["test"]
-          :kaocha/source-paths ["flower"]
-          :ns-patterns [".*"]}]}
+{:tests
+ [{:id :unit, :test-paths ["test/unit"]
+   :kaocha/source-paths ["flower"]
+   :ns-patterns [".*"]}
+
+  {:id :process, :test-paths ["test/process"]
+   :kaocha/source-paths ["flower"]
+   :ns-patterns [".*"]}]}

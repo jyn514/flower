@@ -1,4 +1,4 @@
-(ns e2e
+(ns process.e2e
   (:require
    [babashka.fs :as fs]
    [babashka.process :as ps]
