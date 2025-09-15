@@ -37,6 +37,8 @@
   metosin/malli {:mvn/version "0.19.1"}
   ; CLI parsing
   org.babashka/cli {:mvn/version "0.8.66"}
+  ; ANSI terminal codes
+  org.clj-commons/pretty {:mvn/version "3.6.4"}
   ; repl
   org.jline/jline {:mvn/version "3.30.0"}
   ; live-reload server

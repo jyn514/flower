@@ -33,4 +33,4 @@
        :outputs flower-cli
        :order "../build.ninja"})]})
 
-(-> (builder/default-build-plan) (merge plan) ninja/generate reflect/write-ninja!)
+(->> (builder/default-build-plan) (merge-deep plan) ninja/generate reflect/write-ninja!)

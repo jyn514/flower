@@ -2,6 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as ps]
+   [clj-commons.ansi :as ansi]
    [clojure.set :as set :refer [union]]
    [clojure.string :as str]
    [instaparse.core :as insta]))
@@ -70,9 +71,11 @@
 
 (defn msg [& msg]
   (apply eprintln (fmt "flower${*cmd*}:") msg))
-(defn info [& msgs] (apply msg "info:" msgs))
-(defn warn [& msgs] (apply msg "warning:" msgs))
-(defn error [& msgs] (apply msg "error:" msgs))
+(defn color-msg [color & msgs]
+  (msg (ansi/compose [color (str/join " " msgs)])))
+(defn info [& msgs] (apply color-msg :green "info:" msgs))
+(defn warn [& msgs] (apply color-msg :yellow "warning:" msgs))
+(defn error [& msgs] (apply color-msg :red "error:" msgs))
 
 (defn fatal [opts & msg]
   (let [[info msg] (if (map? opts)

@@ -2,10 +2,10 @@
   (:require
    [babashka.fs :as fs]
    [clojure.main]
-   [clojure.stacktrace :as st]
    [flower.eval :as eval]
    [flower.reflect :as reflect]
-   [flower.utils :refer [*cmd* env eprn state-dir]])
+   [flower.stacktrace :refer [print-trace]]
+   [flower.utils :refer [state-dir]])
   (:import
    (org.jline.reader
     History
@@ -42,35 +42,8 @@
          exit)
        (catch org.jline.reader.UserInterruptException _ fresh)))
 
-(def first-error (atom true))
-(def first-eval-error (atom true))
-
-(defn any-eval-err [ex]
-  (loop [e ex]
-    (if (:flower/eval (ex-data e))
-      true
-      (if-let [cause (ex-cause e)]
-        (recur cause)
-        false))))
-
-(defn print-trace [ex transform-repl]
-  (print (str "flower" *cmd* ": error: "))
-  ; TODO: env variables suck lmao, do something else
-  (if-not (env "FLOWER_HOST_TRACE")
-    (do (eval/print-cause-trace ex)
-        (when @first-error
-          (println "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback")))
-    ; TODO: pretty-printer that hides `invoke` if it's not relevant
-    ; maybe do this for apply and LazySeq too?
-    (st/print-cause-trace ex))
-  (when (and @first-eval-error (not transform-repl) (not (env "FLOWER_DEBUG_EVAL")) (any-eval-err ex))
-    (println "Set FLOWER_DEBUG_EVAL=1 to show the desugared clojure code (e.g. for running in `flower repl`)")
-    (swap! first-eval-error (constantly false)))
-  (swap! first-error (constantly false))
-  (println))
-
 (declare specials)
-(defn print-help [template]
+(defn print-help [_template]
   (println "help is still a WIP, sorry")
   (doseq [[k v] specials]
      (printf "  %s\t\t\t%s" k (:help v)))

@@ -2,6 +2,7 @@
   (:use flower.utils)
   (:require
    [babashka.fs]
+   [clj-commons.ansi :as ansi]
    [clj-commons.digest]
    [clojure.data.json]
    [clojure.java.io :as io]
@@ -9,9 +10,10 @@
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
    [flower.defaults :refer [path-considering-vfs]]
+   [flower.fs]
    [flower.hiccup]
    [flower.reflect]
-   [flower.fs]
+   [flower.stacktrace :refer [print-trace]]
    [flower.unsafe]
    [hiccup.util]
    [hiccup2.core]
@@ -156,7 +158,7 @@
               '» "»"
               '◊ "◊"
               '⋄ "⋄"
-              ;'print-trace (sci/copy-var print-trace)
+              'print-trace (sci/copy-var print-trace userns)
               'html (sci/copy-var flower.hiccup/html-2 userns)
               'fmt (sci/copy-var fmt userns)
               'doc (sci/copy-var repl/doc userns)
@@ -189,7 +191,7 @@
    (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
      (with-meta cx {:flower/filename filename}))))
 
-; eval and tracebacks
+; span tracking
 
 (defn offset->line
   "Given a start byte offset and source string, return a Span."
@@ -216,62 +218,7 @@
              (+ relative-column start-column)
              relative-column)})
 
-(defn render-sci-frame [frame]
-  (let [{:keys [line column ns name file]
-         :or {name "<top-level>"
-              file (if (:sci/built-in frame)
-                   "<clojure-runtime>"
-                   "<bound-host-function>")}} frame
-        var (str ns "/" name)
-        span (cond
-               (and line column) (str " " line ":" column)
-               line (str " " line)
-               :else "")]
-    (fmt " [${var} ${file}${span}]\n")))
-
-(defn print-sci-trace [e stacktrace dup]
-  (let [useful? #(or (:name %) (:line %) (not= (:ns %) 'user))
-        ; TODO: don't print out clojure.core/{let,fn} - those happen during name res and are never useful
-        useful-frames (dedupe (filter useful? stacktrace))]
-    (when (and dup (not (instance? clojure.lang.ExceptionInfo dup)))
-      (-> dup type pr-str (str ": ") print))
-    (apply print
-      (ex-message e)
-      "\n"
-      (map render-sci-frame useful-frames))))
-
-(defn print-stack-trace [e]
-  (if-let [sci-ex (sci/stacktrace e)]
-      ; skip the inner error, sci duplicates messages >:(
-      (let [inner (some-> e ex-cause ex-message)
-            dup (= inner (ex-message e))]
-        (print-sci-trace e sci-ex (when dup (ex-cause e)))
-        (when dup
-          (-> e ex-cause ex-cause)))
-      (do
-        ; TODO: make NoSuchFileExceptions relative to *site*
-        (let [msg (ex-message e)
-              info (ex-data e)]
-          (if (some? info)
-            (if (seq msg)
-              (println msg)
-              (if-let [type (:type info)]
-                (println type)
-                ; really don't have much to work with here ...
-                (println (ex-data e))))
-            (println (str (pr-str (class e)) ":") msg)))
-        (when-let [file (-> e ex-data :flower/filename)]
-          (let [span (-> e ex-data :flower/span)]
-            (print "" (render-sci-frame (merge {:ns 'user :file file} span (meta e))))))
-          (ex-cause e))))
-
-(defn print-cause-trace [ex]
-  (loop [e ex
-         first-loop true]
-    (when (not first-loop)
-      (print " Caused by: "))
-    (when-let [cause (print-stack-trace e)]
-      (recur cause false))))
+; parsing, eval, and error handling
 
 (defn map-ex-info
   "Updates `ex-data` for `ex`, preserving message, cause, and stack trace."
@@ -288,7 +235,7 @@
        (catch clojure.lang.ExceptionInfo cause
          (let [file (-> cx meta :flower/filename)
                span (-> cx meta :flower/span)
-               msg (fmt "failed to eval ${file}")
+               msg (str "failed to eval " (ansi/compose [:green file]))
                new-cause (map-ex-info cause
                            #(assoc %
                              :flower/filename file
@@ -370,7 +317,6 @@
                   (parse-with-meta cx src syntax ident))]
      (embed parsed))))
 
-
 (defn nested-render
   [src markup]
   ; first, add spans to all inner (str) calls
@@ -407,6 +353,8 @@
   ([tree src cx]
    (let [events (transformer tree src cx)]
      (apply str (map #(on-parse-event cx src %) events)))))
+
+;; API
 
 ; TODO: needs to account for pages not in clojure
 ; TODO: should include metadata parsed from frontmatter

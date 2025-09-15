@@ -12,10 +12,11 @@
    [flower.defaults]
    [flower.frontmatter :refer [split-frontmatter]]
    [flower.hiccup]
-   [flower.utils]
    [flower.reflect]
-   [flower.repl :as repl]
+   [flower.repl]
+   [flower.stacktrace :refer [print-trace]]
    [flower.unsafe :as unsafe]
+   [flower.utils]
    [flower.watch]
    [hiccup.util]))
 
@@ -185,7 +186,7 @@
     0
     (catch java.lang.Exception e
       (binding [*out* *err*]
-        (repl/print-trace e false))
+        (print-trace e false))
       1)
     (finally
       (shutdown-agents)
