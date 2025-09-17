@@ -45,9 +45,10 @@
   [{ns- :namespace}]
     (when (or (str/starts-with? (name ns-) "expressions.")
               (str/starts-with? (name ns-) "transformers."))
-      (let [as-path (str/replace ns- "." "/")
-            file (str as-path ".clj")]
-        (-> file path-considering-vfs str load-sci-file))))
+      (let [load #(-> % str load-sci-file)
+            path (-> ns- (str/replace "." "/")  (str ".clj"))]
+        (->> [path (str/replace path "-" "_")] (map path-considering-vfs)
+             (filter babashka.fs/exists?) first load))))
 
 ; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))

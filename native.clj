@@ -153,8 +153,7 @@
 ; https://github.com/babashka/babashka/blob/e2316f1bbef9daa9e5ec801a9bcbc0ece703d076/resources/META-INF/native-image/babashka/babashka/native-image.properties#L15
 
 (def java-interop
-  ["net.thisptr.jackson.jq"
-   "org.yaml.snakeyaml"
+  ["org.yaml.snakeyaml"
    "org.commonmark"
    "org.jsoup"
    "org.nibor.autolink"

@@ -137,7 +137,7 @@
      :command "ln -f $in $out"
      :description "link $in into build dir"}
     {:name "frontmatter"
-     :command (fmt "${flower-cli} jq -R --filename $in '{filename: $$filename, content: .}' < $in | ${flower-cli} split-frontmatter > $out")}
+     :command (fmt "${flower-cli} split-frontmatter --filename $in < $in > $out")}
     {:name "sass"
      :command (fmt "sass --quiet $in $out; ${flower-cli} split-sass-dependencies $out <$source-map >$depfile")
      :description "compile Sass file $in to CSS"}]

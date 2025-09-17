@@ -9,10 +9,9 @@
    [clojure.set :as set]
    [clojure.string :as str]
    [flower.eval :as eval]
-   [flower.frontmatter :refer [split-frontmatter]]
+   [flower.frontmatter]
    [flower.defaults :refer [path-considering-vfs]]
-   [flower.reflect]
-   [jq.api :as jq])
+   [flower.reflect])
   (:import
    (java.io PushbackReader StringWriter)))
 
@@ -51,7 +50,7 @@
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
-        parsed (split-frontmatter {:filename f :content content})]
+        parsed (flower.frontmatter/split-frontmatter {:filename f :content content})]
    [(str f) (:frontmatter parsed)]))
 
 ; TODO: allow pages/index.edn so we can avoid repeating configuration
@@ -162,20 +161,13 @@
   (run-configure opts)
   (system! "ninja"))
 
-; jq emulator
-
-; the clojure library is buggy and the underlying java library is hideously complicated.
-; rather than try to figure out their api, just parse and reserialize the string.
-(defn jq
-  [{:keys [data query raw-input raw-output] :as m}]
-  (let [in (if raw-input (json/write-str data) data)
-        vars (dissoc m :data :query :raw-input :raw-output)
-        res (try (jq/execute in query {:vars vars})
-                 (catch net.thisptr.jackson.jq.exception.JsonQueryException e
-                   (fatal "failed to run jq query:" (ex-message e))))]
-    (if raw-output (json/read-str res) res)))
-
 ; frontmatter utils
+
+(defn split-frontmatter
+  [opts]
+  (write-json
+    (flower.frontmatter/split-frontmatter
+      (assoc opts :content (slurp *in*)))))
 
 (defn join-frontmatter
   [{files :path out :out-file}]

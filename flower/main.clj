@@ -38,15 +38,6 @@
         (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
     after))
 
-(defn map-json
-  "Given a function `f` that transforms a clojure map to a clojure map,
-  read the map as JSON from stdin and write it to stdout.
-  If any `args` are present, they will be passed after the map."
-  [f & args]
-  (let [before (cmd/read-stdin-json)
-        after (apply run-tracked f before args)]
-    (cmd/write-json after)))
-
 (defn no-opts [f & args]
   (fn [& _] (apply f args)))
 
@@ -107,7 +98,8 @@
   {"configure" (merge-deep configure-opts
                            {:fn #(cmd/configure %)
                             :coerce {:list :bool}})
-   "split-frontmatter" (no-opts map-json split-frontmatter)
+   "split-frontmatter" {:fn #(run-tracked cmd/split-frontmatter %)
+                        :coerce {:filename :string}}
    "join-frontmatter" {:fn #(cmd/join-frontmatter %)
                        :coerce {:path []
                                 :out-file :string}
@@ -141,14 +133,6 @@
                 :coerce {:build-dir :string
                          :site-dir  :string}
                 :args->opts [:site-dir]}
-   ; TODO: get rid of this
-   "jq" {:fn #(println (cmd/jq (assoc % :data (slurp *in*))))
-         :coerce {:raw-input :boolean
-                  :raw-output :boolean
-                  :data :string
-                  :query :string}
-         :aliases {:R :raw-input :r :raw-output}
-         :args->opts [:query]}
    ["version" "--version"] (no-opts println VERSION)
    ["help" "--help" "-h" "/?"] (no-opts help)
    [] {:fn unknown-command :needs-metadata true}})
