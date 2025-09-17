@@ -132,12 +132,6 @@
 
 ; ninja file watcher
 
-(defn run-configure [opts]
-  ; TODO: doesn't handle the case where the exception trickles up to main.
-  ; probably that's fine though
-  (binding [*cmd* "configure"]
-    (cmd/configure opts)))
-
 (defn rerun-ninja [opts {:keys [kind path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
   (when path (println kind (str path)))
@@ -145,7 +139,7 @@
   ; TODO: delete all the outputs of the deleted file;
   ; you can get a list with `ninja -t query`
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
-  (when (= :delete type) (run-configure opts))
+  (when (= :delete type) (cmd/run-configure opts))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
 
 (defn watch-ninja [opts debounce]
@@ -178,7 +172,7 @@
            debounce-period 100}
       :as opts}]
   (println "Run `flower configure`")
-  (run-configure opts)
+  (cmd/run-configure opts)
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
   ; prints out its own progress info

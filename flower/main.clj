@@ -24,24 +24,28 @@
 
 ; CLI and IO
 
-(defn read-json []
-  (cmd/read-json *in* "stdin"))
-
-(defn map-json
-  "Given a function `f` that transforms a clojure map to a clojure map,
-   read the map as JSON from stdin and write it to stdout.
-   If any `args` are present, they will be passed after the map."
+(defn run-tracked
+  "Given a function `f` that takes `args`, run it in a flower environment that
+  does dependency tracking and allows access to `flower.unsafe`."
   [f & args]
   (let [opts (first args)
-        before (read-json)
         [after deps] (unsafe/with-drop-bomb
                        #(cmd/with-tracked-deps
-                          (fn [] (apply f before args))))]
+                         (fn [] (apply f args))))]
     (if (:depfile opts)
       (cmd/split-dependencies deps opts)
       (when (seq deps)
         (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
-    (cmd/write-json after *out*)))
+    after))
+
+(defn map-json
+  "Given a function `f` that transforms a clojure map to a clojure map,
+  read the map as JSON from stdin and write it to stdout.
+  If any `args` are present, they will be passed after the map."
+  [f & args]
+  (let [before (cmd/read-stdin-json)
+        after (apply run-tracked f before args)]
+    (cmd/write-json after)))
 
 (defn no-opts [f & args]
   (fn [& _] (apply f args)))
@@ -108,21 +112,25 @@
                        :coerce {:path []
                                 :out-file :string}
                        :args->opts (concat [:out-file] (repeat argv-max :path))}
-   "transform" {:fn #(map-json cmd/transform %)
-                :coerce {:depfile :string
+   "transform" {:fn #(run-tracked cmd/transform %)
+                :coerce {:raw-input :boolean
+                         :raw-output :boolean
+                         :depfile :string
                          :out-file :string
                          :all-frontmatter :string
+                         :standalone :bool
                          :transformers []}
+                :aliases {:R :raw-input :r :raw-output}
                 :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
                 :collect {:transform-map cli-read-json}
                 :args->opts (repeat argv-max :transformers)}
    ; TODO: get rid of this
    "split-sass-dependencies"
-   {:fn #(-> (read-json) (cmd/split-sass-dependencies %) println)
+   {:fn #(-> (cmd/read-stdin-json) (cmd/split-sass-dependencies %) println)
     :coerce {:source-file :string}
     :args->opts [:source-file]}
    ; TODO: this needs to take --set
-   ["b" "build"] (no-opts cmd/build)
+   ["b" "build"] (merge-deep configure-opts {:fn #(cmd/build %)})
    ["w" "watch"] (merge-deep configure-opts
                              {:fn flower.watch/watch
                               :coerce {:port :number}})

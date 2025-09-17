@@ -40,7 +40,8 @@
 (def ^:private public "public")
 (def ^:private builddir ".build")
 
-(def ^:private transformers (fs/glob "transformers" "**"))
+; NOTE: only looks at top-level transformers
+(def ^:private transformers (fs/glob "transformers" "*"))
 (def ^:private all-pages (remove fs/directory? (fs/glob "pages" "**")))
 (def ^:private joined-frontmatter (/ builddir "all-frontmatter.json"))
 
@@ -56,7 +57,8 @@
         depfile (/ builddir (add-ext relative-path "d"))]
     {:rule "sass"
     ; needed because we pass this as a literal path to `sass`
-    :inputs (str (get reflect/all-defaults path path))
+    :inputs (if (fs/exists? path) path
+              (str (get reflect/all-defaults path path)))
     :outputs out
     :source-map source-map
     :depfile depfile}))
@@ -152,20 +154,27 @@
     {:rule "mkdir"
      :outputs builddir}]})
 
-(def ^:private transss
+(def ^:private transss "trans sorter start"
   ["render" "markdown" "embed" "highlight"])
 
 (defn- trans-order [p]
-  (let [i (->> p fs/file-name fs/strip-ext (.indexOf transss))]
+  (let [i (.indexOf transss p)]
     (if (= -1 i) nil i)))
 
+; -1 means left comes first, 1 means right comes first
 (defn- trans-sorter [left right]
-  (let [[lscore rscore :as scores] (map trans-order [left right])]
+  (let [[left right] (map #(-> % fs/file-name fs/strip-ext) [left right])
+        [lscore rscore :as scores] (map trans-order [left right])]
     (cond
+      ; content always comes last
+      (= "content" left) 1
+      (= "content" right) -1
+      ; if both have a defined order, compare them
       (every? some? scores) (apply compare scores)
+      ; otherwise, transformers with a defined order come first
       (some? lscore) -1
       (some? rscore) 1
-      ; alphabetical
+      ; otherwise, alphabetical
       :else (compare left right))))
 
 (def ^:private transform
@@ -175,7 +184,7 @@
         ; instead we assume it's always relative to $in.
         cmd (str flower-cli " transform < $in --depfile $in.d --out-file $out "
                  "--transform-map $transform-map --all-frontmatter $all-frontmatter "
-                 "$transformers > $tmpfile && " flower-cli " jq -r .content < $tmpfile > $out")]
+                 "--raw-output $transformers > $out")]
     {:variables {:transformers files
                  :transform-map (-> {} json/write-str escape-shell)
                  :all-frontmatter joined-frontmatter}

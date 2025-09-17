@@ -10,7 +10,6 @@
           '[clojure.set :as set :refer [union]]
           '[clojure.reflect :as r]
           '[clojure.walk :as walk :refer [walk postwalk prewalk]]
-          '[clojure.stacktrace :refer [print-stack-trace]]
           '[clojure.java.io :as io]
           '[clj-commons.ansi :as ansi]
           '[malli.core :as m]
@@ -18,6 +17,7 @@
           '(flower [main :as flower])
           '[flower.eval :as eval]
           '[flower.cmd :as cmd]
+          '[flower.stacktrace]
           '(sci [core :as sci])
           '(instaparse [core :as insta])
           '(jq [api :as jq])
@@ -48,7 +48,7 @@
   (postwalk #(do (print % ": ") (some-> % meta println) %) src))
 
 (defn with-err-handler [f & args]
-  (try (apply f args) (catch clojure.lang.ExceptionInfo e (eval/print-cause-trace e))))
+  (try (apply f args) (catch clojure.lang.ExceptionInfo e (flower.stacktrace/print-cause-trace e))))
 
 (def cx (eval/create-sci-cx "<repl>"))
 (alter-var-root #'eval/*cx* (constantly cx))

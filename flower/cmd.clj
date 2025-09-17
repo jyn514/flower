@@ -36,12 +36,15 @@
          (catch java.lang.Exception e
            (fatal (fmt "failed to parse JSON in ${desc}:") (ex-message e))))))
 
-(defn write-json [data out]
+(defn read-stdin-json []
+  (read-json *in* "stdin"))
+
+(defn write-json [data]
         ; preserve namespaces in output
   (let [serialize #(cond (keyword? %) (subs (str %) 1)
                          (symbol? %) (name %)
                          :else (str %))]
-    (json/write data out :key-fn serialize)))
+    (json/write data *out* :key-fn serialize)))
 
 (defn read-json-file [path]
   (read-json (-> path fs/file io/reader) (str path)))
@@ -117,8 +120,11 @@
 
 (defn configure
   "Run `build.clj` to generate a build.ninja and save the output to disk."
-  [{settings :set list-settings :list :keys [build-dir]
+  [{settings :set, list-settings :list, :keys [build-dir] :as opts
     :or {build-dir ".build"}}]
+  (let [defaults (fs/path build-dir "defaults")]
+    (when-not (fs/exists? defaults)
+      (flower.defaults/materialize-all opts)))
   (binding [flower.reflect/*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))
@@ -146,11 +152,14 @@
             (fs/write-bytes depfile (String/.getBytes contents))))
         (-> ninja-writer str (write-if-modified out))))))
 
-(defn build []
+(defn run-configure [opts]
   ; TODO: doesn't handle the case where the exception trickles up to main.
   ; probably that's fine though
-  (binding [*cmd* "configure"]
-    (configure {}))
+  (binding [*cmd* " configure"]
+    (configure opts)))
+
+(defn build [opts]
+  (run-configure opts)
   (system! "ninja"))
 
 ; jq emulator
@@ -172,7 +181,7 @@
   [{files :path out :out-file}]
   (let [read-frontmatter #(:frontmatter (read-json-file %))
         merged (r/foldcat (pmap read-frontmatter files))
-        json (with-out-str (write-json merged *out*))]
+        json (with-out-str (write-json merged))]
     (write-if-modified json out)))
 
 ; preprocessing
@@ -189,7 +198,7 @@
 (defn run-transformer
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [all-frontmatter page transformer]
+  [{:keys [raw-output]} all-frontmatter page transformer last]
   (let [bindings {'page (select-keys page [:content :frontmatter])
                   'pages all-frontmatter}
         cx-opts {:bindings bindings
@@ -206,19 +215,31 @@
         ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)
         transformed (eval/eval-form cx f lisp)]
-    (if (string? transformed)
-      (assoc page :content transformed)
-      ; allow overriding :content, and any frontmatter except :source-file
-      (let [sandboxed (select-keys transformed [:content :frontmatter])
-            moar-sandboxed (update sandboxed :frontmatter
-                                   #(merge (:frontmatter page) %
-                                           (select-keys page [:flower/source-file])))]
-      (merge page moar-sandboxed)))))
+    ; for raw output transformers, trust them to return exactly what they say
+    (if (and raw-output last) transformed
+      ; if a transformer returns a string, preserve existing metadata
+      (if (string? transformed) (assoc page :content transformed)
+        ; otherwise, allow overriding :content, and any frontmatter except :source-file
+        (let [sandboxed (select-keys transformed [:content :frontmatter])
+              moar-sandboxed (update sandboxed :frontmatter
+                                     #(merge (:frontmatter page) %
+                                             (select-keys page [:flower/source-file])))]
+          (merge page moar-sandboxed))))))
 
 (defn transform
-  [parsed {:keys [transform-map transformers all-frontmatter]}]
+  [{:keys [transform-map transformers all-frontmatter
+           standalone raw-input raw-output]
+    :as opts}]
   (when-not (-> transform-map keys count (= 0))
     (fatal "TODO: transformers other than clojure (API and docs)"))
-  (let [frontmatter (read-json-file all-frontmatter)
-        run #(apply run-transformer frontmatter %&)]
-  (reduce run parsed transformers)))
+  (let [frontmatter (when-not standalone (read-json-file all-frontmatter))
+        last (dec (count transformers))
+        run (fn [page [i t]] (run-transformer opts frontmatter page t (= last i)))
+        before (if raw-input (slurp *in*) (read-stdin-json))
+        after (reduce run before (enumerate transformers))]
+    (if raw-output
+      (do
+        (when-not (string? after)
+          (fatal "--raw-output is only valid when the transformed output is a raw string"))
+        (print after))
+      (write-json after))))

@@ -79,7 +79,7 @@
                         (if-let [type (:type info)] type
                           ; really don't have much to work with here ...
                           (ex-data e)))
-                      (str (pr-str (class e)) ":"))]
+                      (str (pr-str (class e)) ": " msg))]
           (println (ansi/compose [:bold.red error])))
         (when-let [file (-> e ex-data :flower/filename)]
           (let [span (-> e ex-data :flower/span)]
