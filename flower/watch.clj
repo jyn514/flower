@@ -148,13 +148,16 @@
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
   ; TODO: this doesn't notice files that were added after the watch started
+  ;       we can mostly work around this if we watch whole directories, i think?
   ; TODO: this doesn't notice files that are only listed in depfiles
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
         temp-file? #(str/starts-with? % (str (:build-dir opts) "/"))
         ; TODO: reconsider if we actually want to filter out build.ninja
         ; also this will be wrong when *site* is set
         important? #(not (or (temp-file? %) (= "build.ninja" %)))
-        important-inputs (filter important? all-inputs)
+        ; templates are a workaround for not noticing depfiles
+        important-inputs (concat [{:path "templates" :recursive true}]
+                                 (filter important? all-inputs))
         watcher (watch-files #(rerun-ninja opts %) important-inputs
                              {:period debounce :recursive false})]
     ; run once at startup

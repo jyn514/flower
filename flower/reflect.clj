@@ -28,6 +28,9 @@
 
 (def all-defaults defaults/all-default-paths)
 
+(defn current-user []
+  (System/getProperty "user.name"))
+
 (defn current-exe []
   (if (graal?)
     (eval '(org.graalvm.nativeimage.ProcessProperties/getExecutableName))

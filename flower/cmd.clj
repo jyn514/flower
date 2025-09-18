@@ -91,6 +91,8 @@
   "Run `build.clj` to generate a build.ninja and save the output to disk."
   [{settings :set, list-settings :list, :keys [build-dir] :as opts
     :or {build-dir ".build"}}]
+  (when-not (fs/exists? "flower.edn")
+    (fatal "this doesn't look like a flower site. Consider running `flower new` first."))
   (let [defaults (fs/path build-dir "defaults")]
     (when-not (fs/exists? defaults)
       (flower.defaults/materialize-all opts)))

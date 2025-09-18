@@ -1,7 +1,6 @@
 +++
-index = true
 title = "posts"
-template = "base.html"
+template = "base.html
 +++
 ◊(require '[java-time.api :as jt]
           '[clojure.string :as str]
@@ -16,7 +15,6 @@ template = "base.html"
     ◊(for [post main-posts])«
       <li>
         <span class="post-meta">
-          ◊#_(println post)
           ◊(date post)
           ◊(when-let [audience (-> post :extra :audience)])«
             • audience—◊audience

@@ -1,10 +1,7 @@
-/defaults/.build
-/defaults/build.ninja
-/defaults/deps.edn
-/defaults/public
+.build
+build.ninja
+public
 /defaults/MANIFEST.txt
-/build.ninja
-/blossom/build.ninja
 /target
 /.clj-kondo
 /.cpcache

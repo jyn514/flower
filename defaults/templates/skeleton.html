@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 ◊; NOTE: doctype must always be the first line of the document, it cannot be preceded by whitespace
-◊(require '[expressions.constants :refer [lang]])
+◊(require '[expressions.constants :refer [lang site-author site-title]]
+          '[flower.fs :as fs])
 <html lang=◊lang>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!-- <meta name=description content="set automatically by a transformor TODO"> -->
-    <!-- TODO: `meta name=author` support -->
-    <!-- TODO: RSS feed support -->
-      <!-- <link rel="alternate" type="application/atom+xml" title="{{ config.title | escape }}" href="/atom.xml"> -->
-    <link rel="icon" type="image/x-icon" href="/favicon.jpg">
+    <meta name="author" content="◊site-author" />
+    ◊(if (fs/exists? "pages/atom.xml"))«
+      <link rel="alternate" type="application/atom+xml" title="◊site-title" href="/atom.xml">
+    »
+    ◊(if (fs/exists? "static/favicon.jpg"))«
+    <link rel="icon" type="image/x-icon" href="/favicon.jpg?v=◊(hash "static/favicon.js")">
+    »
+    <link rel="stylesheet" href='/main.css?v=◊(hash "static/main.css")'>
+    ◊; NOTE: css lives in base.html, since you might not want it on 404 pages
     ◊(if (resolve 'head) (eval 'head))
   </head>
   <body>
