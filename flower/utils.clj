@@ -146,6 +146,8 @@
       (str/split out #"\n")
       [])))
 
+; ninja
+
 (defn escape-ninja
   "Escape a string for use as a ninja file path.
    See https://ninja-build.org/manual.html#ref_lexer"
@@ -158,9 +160,34 @@
       (str/replace " " "$ ")
       (str/replace ":" "$:")))
 
+; The following is quoted from ninja/src/depfile_parser.in.cc:
+;
+; Rather than implement all of above, we follow what GCC/Clang produces:
+; Backslashes escape a space or hash sign.
+; When a space is preceded by 2N+1 backslashes, it is represents N backslashes
+; followed by space.
+; When a space is preceded by 2N backslashes, it represents 2N backslashes at
+; the end of a filename.
+; A hash sign is escaped by a single backslash. All other backslashes remain
+; unchanged.
+(defn escape-depfile
+  [s]
+  ; NOTE: \ has to come first
+  (let [specials "\\ #:%*~$"]
+    (reduce #(str/replace %1 (str %2) (str "\\" %2)) s specials)))
+
+(defn gen-depfile
+  [out deps]
+  (let [out (escape-depfile out)
+        deps (->> deps (map escape-depfile) (str/join " "))]
+        (fmt "${out}: ${deps}")))
+; error handling
+
 ; TODO: i think this won't return the initial `ex` :(
 (defn ex-causes [ex]
   (iteration ex-cause :initk ex))
+
+; system and platform interaction
 
 (def env System/getenv)
 

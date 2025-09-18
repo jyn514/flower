@@ -62,42 +62,12 @@
 
 ; dependency tracking
 
-; The following is quoted from ninja/src/depfile_parser.in.cc:
-;
-; Rather than implement all of above, we follow what GCC/Clang produces:
-; Backslashes escape a space or hash sign.
-; When a space is preceded by 2N+1 backslashes, it is represents N backslashes
-; followed by space.
-; When a space is preceded by 2N backslashes, it represents 2N backslashes at
-; the end of a filename.
-; A hash sign is escaped by a single backslash. All other backslashes remain
-; unchanged.
-(defn escape-depfile
-  [s]
-  ; NOTE: \ has to come first
-  (let [specials "\\ #:%*~$"]
-    (reduce #(str/replace %1 (str %2) (str "\\" %2)) s specials)))
-
-(defn gen-depfile
-  [out deps]
-  (let [out (escape-depfile out)
-        deps (->> deps (map escape-depfile) (str/join " "))]
-        (fmt "${out}: ${deps}")))
-
 (defn split-dependencies
   [dependencies {:keys [depfile out-file]}]
   (when (some nil? [depfile out-file dependencies])
     (throw (ex-info (str "got <nil> when trying to write a depfile for " out-file) {})))
   (let [formatted (gen-depfile out-file dependencies)]
     (spit depfile formatted)))
-
-; TODO: take out-dir as an arg
-(defn split-sass-dependencies
-  [parsed {:keys [source-file]}]
-  (let [out-dir "public"
-        deps (:sources parsed)
-        relative-deps (map #(fs/relativize "." (str out-dir "/" %)) deps)]
-    (gen-depfile source-file relative-deps)))
 
 (defn load-settings [registry cli list-settings]
   (when list-settings
@@ -190,8 +160,9 @@
 (defn run-transformer
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [{:keys [raw-output]} all-frontmatter page transformer last]
-  (let [bindings {'page (select-keys page [:content :frontmatter])
+  [{:keys [raw-output] :as opts} all-frontmatter page transformer last]
+  (let [page (merge (select-keys page [:content :frontmatter]) {:variables (dissoc opts :raw-output)})
+        bindings {'page page
                   'pages all-frontmatter}
         cx-opts {:bindings bindings
                  :namespaces {'flower.locals bindings}}
@@ -226,7 +197,9 @@
     (fatal "TODO: transformers other than clojure (API and docs)"))
   (let [frontmatter (when-not standalone (read-json-file all-frontmatter))
         last (dec (count transformers))
-        run (fn [page [i t]] (run-transformer opts frontmatter page t (= last i)))
+        bindings (dissoc opts :transform-map :transformers :all-frontmatter
+                              :standalone :raw-input)
+        run (fn [page [i t]] (run-transformer bindings frontmatter page t (= last i)))
         before (if raw-input (slurp *in*) (read-stdin-json))
         after (reduce run before (enumerate transformers))]
     (if raw-output

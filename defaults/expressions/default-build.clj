@@ -139,7 +139,7 @@
     {:name "frontmatter"
      :command (fmt "${flower-cli} split-frontmatter --filename $in < $in > $out")}
     {:name "sass"
-     :command (fmt "sass --quiet $in $out; ${flower-cli} split-sass-dependencies $out <$source-map >$depfile")
+     :command (fmt "sass --quiet $in $out; ${flower-cli} transform transformers/standalone/split-sass-dependencies.clj --standalone --raw-output --source-file=$out <$source-map >$depfile")
      :description "compile Sass file $in to CSS"}]
    :builds
    [{:rule "ninja-meta"

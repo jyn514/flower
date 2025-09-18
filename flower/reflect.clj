@@ -20,6 +20,11 @@
 (defn write-ninja! [str]
   (StringWriter/.write *ninja* ^String str))
 
+; NOTE: ideally this would be an expression, but that means we have to generate
+; a depfile for the transformer that's itself generating a depfile, which is a
+; whole mess...just make it a built-in for now.
+(def gen-depfile flower.utils/gen-depfile)
+
 (def all-defaults defaults/all-default-paths)
 
 (defn current-exe []

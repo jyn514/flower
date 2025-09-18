@@ -10,7 +10,7 @@
    [flower.beholder]
    [flower.cmd :as cmd]
    [flower.defaults]
-   [flower.frontmatter :refer [split-frontmatter]]
+   [flower.frontmatter]
    [flower.hiccup]
    [flower.reflect]
    [flower.repl]
@@ -116,12 +116,6 @@
                 :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
                 :collect {:transform-map cli-read-json}
                 :args->opts (repeat argv-max :transformers)}
-   ; TODO: get rid of this
-   "split-sass-dependencies"
-   {:fn #(-> (cmd/read-stdin-json) (cmd/split-sass-dependencies %) println)
-    :coerce {:source-file :string}
-    :args->opts [:source-file]}
-   ; TODO: this needs to take --set
    ["b" "build"] (merge-deep configure-opts {:fn #(cmd/build %)})
    ["w" "watch"] (merge-deep configure-opts
                              {:fn flower.watch/watch
