@@ -1,7 +1,8 @@
 ; this is used in flower.eval. don't create a circular dependency.
 (ns flower.reflect
-  (:use flower.utils)
-  (:require [flower.defaults :as defaults])
+  (:require
+    [flower.utils :refer [graal? strip-suffix]]
+    [flower.defaults :as defaults])
   (:import
    [java.io StringWriter]))
 

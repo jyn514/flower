@@ -19,21 +19,21 @@
 (defn unique-by [k coll]
   (vals (into {} (map (juxt k identity) coll))))
 
-(defn- system!
+(defn system!
   [desc opts & args]
   (try (apply ps/shell opts args)
        (catch clojure.lang.ExceptionInfo e
          (throw (ex-info desc (ex-data e))))))
 
-(defn- flower! [dir opts & args]
+(defn flower! [dir opts & args]
   (binding [*site* dir]
     (apply flower.utils/system! opts args)))
 
-(defn- require-exe! [cmd]
+(defn require-exe! [cmd]
   (system! (str "Required executable not found: '" cmd "'")
            {:out (StringWriter.)} cmd "--version"))
 
-(defn- build-flower! []
+(defn build-flower! []
   (system! "Failed to build flower executable" "ninja flower-bin")
   (when-not (fs/exists? flower-cli)
     (throw (ex-info "Missing CLI script target/flower after build" {}))))
