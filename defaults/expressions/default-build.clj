@@ -57,7 +57,7 @@
         depfile (/ builddir (add-ext relative-path "d"))]
     {:rule "sass"
     ; needed because we pass this as a literal path to `sass`
-    :inputs (if (fs/exists? path) path
+    :inputs (if (fs/exists? path {:no-vfs true}) path
               (str (get reflect/all-defaults path path)))
     :outputs out
     :source-map source-map
