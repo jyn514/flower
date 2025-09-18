@@ -143,6 +143,7 @@
                 :target (str class-dir "/" live-reload)})
   (b/copy-file {:src parser
                 :target (str class-dir "/" parser)})
+  ; TODO: on macOS this doesn't update the modified time, which causes ninja to unconditionally rebuild
   (b/copy-file {:src "scripts/run-jar.sh"
                 :target "target/flower"})
   (b/uber {:class-dir class-dir
