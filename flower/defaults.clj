@@ -17,7 +17,7 @@
    Different from path-considering-vfs because it doesn't look at files on disk to make a decision."
    [rel]
    (if (or (= "flower.edn" rel)
-           (= "pages" (-> rel fs/components first str)))
+           (some #{(-> rel fs/components first str)} #{"pages" "templates" "static"}))
      (fs/path *site* rel)
      (defaults-path rel)))
 
