@@ -87,49 +87,109 @@
         v (if (some? v) v true)]
     (assoc coll k v)))
 
+(def default-opts
+  {:build-dir ".build"
+   :site-dir "."
+   :out-dir "public"
+   :port 8090})
+
+(def build-dir
+  {:build-dir {:coerce :string
+               :desc "Set the path for the ninja temporary directory."}})
+
 ; reused for `watch`
 ; TODO: add `--drafts` as an alias for `--set drafts`
 (def configure-opts
-  {:coerce {:build-dir :string
-            :set []}
-   :collect {:set parse-kv}})
+  (merge build-dir
+         {:set
+          {:coerce []
+           :collect parse-kv
+           :desc (str "Parse a key-value option pair and pass it to `build.clj` in `flower.reflect/*metadata*:settings`. "
+                      "Settings are enumerated in `flower.edn`; run `flower configure --list` to print them.")}}))
 
 (def dispatch-table
-  {"configure" (merge-deep configure-opts
-                           {:fn #(cmd/configure %)
-                            :coerce {:list :bool}})
-   "split-frontmatter" {:fn #(run-tracked cmd/split-frontmatter %)
-                        :coerce {:filename :string}}
-   "join-frontmatter" {:fn #(cmd/join-frontmatter %)
-                       :coerce {:path []
-                                :out-file :string}
-                       :args->opts (concat [:out-file] (repeat argv-max :path))}
-   "transform" {:fn #(run-tracked cmd/transform %)
-                :coerce {:raw-input :boolean
-                         :raw-output :boolean
-                         :depfile :string
-                         :out-file :string
-                         :all-frontmatter :string
-                         :standalone :bool
-                         :transformers []}
-                :aliases {:R :raw-input :r :raw-output}
-                :spec {:transform-map {:desc "A list of mappings from file extension to command runners"}}
-                :collect {:transform-map cli-read-json}
-                :args->opts (repeat argv-max :transformers)}
-   ["b" "build"] (merge-deep configure-opts {:fn #(cmd/build %)})
-   ["w" "watch"] (merge-deep configure-opts
-                             {:fn flower.watch/watch
-                              :coerce {:port :number}})
-   ["r" "repl"] {:fn flower.repl/repl
-                 :coerce {:template :boolean}
-                 :args->opts [:template]}
-   ["n" "new"] {:fn flower.defaults/materialize-all
-                :coerce {:build-dir :string
-                         :site-dir  :string}
-                :args->opts [:site-dir]}
-   ["version" "--version"] (no-opts println VERSION)
+   ;; meta commands
+  {[] {:fn unknown-cmd :needs-metadata true}
    ["help" "--help" "-h" "/?"] (no-opts help)
-   [] {:fn unknown-command :needs-metadata true}})
+   ["version" "--version"] (no-opts println VERSION)
+
+   ;; user-facing commands
+   ["n" "new"]
+   {:fn flower.defaults/materialize-all
+    :args->opts [:site-dir]
+    :spec (merge build-dir
+                 {:site-dir {:coerce :string
+                             :desc "The directory in which to create a new flower site. "}})}
+   ["c" "configure"]
+   {:fn #(cmd/configure %)
+    :spec (merge-deep configure-opts
+                      {:list {:coerce :bool
+                              :desc "List all settings configured in `flower.edn`."}})}
+   ["b" "build"]
+   {:fn #(cmd/build %)
+    :spec configure-opts}
+
+   ["w" "watch"]
+   {:fn flower.watch/watch
+    :spec (merge configure-opts
+                 ; TODO: support `-i/--interface`
+                 {:port {:coerce :number
+                         :alias :p
+                         :desc "The TCP port for the HTTP server to listen on."}})}
+   ["r" "repl"]
+   {:fn flower.repl/repl
+    :args->opts [:template]
+    :spec {:template {:coerce :boolean
+                      :desc (str "Whether to use a 'template' REPL, where input is treated as the sunflower template language. "
+                                 "By default, input is treated as Clojure code.")}}}
+
+   ;; dataflow commands
+   ; TODO: *-frontmatter can probably both be transformers
+   ; https://codeberg.org/jyn514/flower/issues/58
+   "split-frontmatter"
+   {:fn #(run-tracked cmd/split-frontmatter %)
+    :spec {:filename {:coerce :string
+                      :desc "Split a page into a {frontmatter, content} JSON map."}}}
+
+   "join-frontmatter"
+   {:fn #(cmd/join-frontmatter %)
+    :args->opts (concat [:out-file] (repeat argv-max :path))
+    :spec {:path {:coerce []
+                  :desc "A list of files whose frontmatter will be joined together into a cache."}
+           :out-file {:coerce :string
+                      :desc "The file path of the output cache."}}}
+
+   "transform"
+   {:fn #(run-tracked cmd/transform %)
+    :args->opts (repeat argv-max :transformers)
+    :spec {:raw-input {:coerce :boolean
+                       :alias :R
+                       :desc "Treat the input as a raw string, not a JSON object."}
+           :raw-output {:coerce :boolean
+                        :alias :r
+                        :desc (str "Serialize the output directly with (str), not as a JSON object. "
+                                   "In other words, trust the transformer to determine the output format.")}
+           :depfile {:coerce :string
+                     :desc "Path in which to store a dependency file, used by ninja to track rebuilds."}
+           :out-file {:coerce :string
+                      :desc (str "Path in which to store the output of the transformers. "
+                                 ; TODO: this is very silly lol
+                                 "Note that `transform` does not actually write to this file, it just uses it for :depfile.")}
+           :all-frontmatter {:coerce :string
+                             :desc (str "Path to a file storing a JSON object with the frontmatter of all pages in the site. "
+                                        "Ignored when `--standalone` is passed.")}
+           :standalone {:coerce :boolean
+                        :desc "Whether this is a 'standalone' transformer that doesn't need access to all pages in the site."}
+           :transform-map {:coerce {}
+                           :collect cli-read-json
+                           :desc "A list of mappings from file extension to command runners. Currently ignored."}
+           :transformers {:coerce []
+                          :desc (str "A list of clojure files ('transformers') to run on the input. "
+                                     "Transformers are run in the order they are passed, each accepting input from the previous transformer. "
+                                     "The input to the first transformer is read from stdin as JSON (but see --raw-input). "
+                                     "The output from the last transformer is written to stdout as JSON (but see --raw-output). "
+                                     "Within a transformer, *out* is redirected to stderr, "
+                                     "allowing it to use println debugging without interfering with data transformations.")}}}})
 
 (defn init-fn [cmd-fn args]
   (alter-var-root (var *cmd*) (constantly (->> args :dispatch first (str " "))))
