@@ -3,6 +3,7 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
+- rename beholder to spectacle
 - don't bind locals for transformers, only for pages (allows `ns`)
 - turn render-page into a transformer
   - calls `flower/render-file` by default

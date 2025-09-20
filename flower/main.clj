@@ -41,40 +41,57 @@
 (defn no-opts [f & args]
   (fn [& _] (apply f args)))
 
-(defn unknown-command [{:keys [args]}]
-  (when (empty? args)
-    (eprintln (str "flower " VERSION))
-    (eprintln "'flower help' for help")
-    (eprintln "'flower watch' to build your site"))
-
-  (when (seq? args)
+(defn unknown-cmd [{:keys [args]}]
+  (if (empty? args)
+    (do
+      (eprintln (str "flower " VERSION))
+      (eprintln "'flower help' for help")
+      (eprintln "'flower watch' to build your site"))
     (error (str "unrecognized command: '"
                 (str/join " " args)
                 "' ('flower help' for help)")))
-  (System/exit 1))
+  (throw (ex-info "" {::silent true})))
 
+(defn stop-at-duplicates
+  "Given a list and a cutoff for a number of duplicate occurences,
+  return [<list stopping at duplicates>, duplicate].
+  The duplicate can be `nil`."
+  [xs cutoff]
+  (loop [seen []
+         remaining xs]
+    (if (empty? remaining) [seen nil]  ; base case
+      (let [[head tail] [(first remaining) (rest remaining)]
+            trail (take-last (dec cutoff) seen)]
+        (if (and (= (dec cutoff) (count trail)) (apply = head trail))
+          [(drop-last cutoff seen) head] ; without last
+          (recur (conj seen head) tail))))))
+
+(defn format-args [args->opts]
+  (let [[unique dup] (stop-at-duplicates args->opts 3)
+        args (for [k unique]
+               (str "<" (name k) ">"))
+        varargs (if dup (str "[<" (name dup) ">...]") "")]
+    (str (str/join " " args) varargs)))
+
+(declare global-spec)
 (declare dispatch-table)
-
-(defn ->help-1
-  "Convert our `dispatch-table` DSL to babashka/format-opts syntax.
-  format-opts expects the following input:
-  `{:spec [[:option {:parse-opts-opt :val}]]}`"
-  [[k v]]
-  [(keyword k) (if (map? v) v {})])
-
-; wait can i just do this lmao
-  ; (let [table (map #(apply ->bb init-fn %) dispatch-table)
-  ;       flat-table (flatten table)]
-(defn ->help
-  []
-  {:spec (->> (for [[ks v] dispatch-table]
-                (if (sequential? ks)
-                  (for [k ks] (->help-1 [k v]))
-                  [(->help-1 [ks v])]))
-              (apply concat))})
-
-(defn help []
-  (-> (->help) cli/format-opts println))
+(defn help
+  [{:keys [args]}]
+  (if (empty? args)
+    ; global help, no arguments
+    (let [rows (concat (cli/opts->table (:spec global-spec)) ; TODO: print defaults
+                       (for [[cmd meta] dispatch-table
+                             :when (string? cmd)]
+                         [cmd (:desc meta)]))]
+      (printf "flower %s\n" VERSION)
+      (println "Commands:")
+      (println (cli/format-table {:rows rows})))
+    ; help for subcommand
+    (let [cmd (first args)
+          cmd-meta (get dispatch-table cmd)]
+      (if (nil? cmd-meta) (help {})  ; unknown command
+        (do (println "Usage: flower" cmd (format-args (:args->opts cmd-meta)))
+            (-> cmd-meta (select-keys [:spec]) cli/format-opts println))))))
 
 ; disallow infinite sequences, they horribly break debugging.
 ; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
@@ -89,8 +106,8 @@
 
 (def default-opts
   {:build-dir ".build"
-   :site-dir "."
    :out-dir "public"
+   :site "."
    :port 8090})
 
 (def build-dir
@@ -107,61 +124,92 @@
            :desc (str "Parse a key-value option pair and pass it to `build.clj` in `flower.reflect/*metadata*:settings`. "
                       "Settings are enumerated in `flower.edn`; run `flower configure --list` to print them.")}}))
 
-(def dispatch-table
+(def global-spec
+  {:exec-args default-opts
+   :spec {:site {:coerce :string
+                 :alias :C
+                 :desc "The directory to treat as your site"}}})
+
+(def dispatch-dsl
    ;; meta commands
   {[] {:fn unknown-cmd :needs-metadata true}
-   ["help" "--help" "-h" "/?"] (no-opts help)
-   ["version" "--version"] (no-opts println VERSION)
+   "help"
+   {:fn help
+    :needs-metadata true
+    :aliases #{"--help" "-h" "/?"}
+    :desc "Print this help"}
+   "version"
+   {:fn (no-opts println VERSION)
+    :aliases #{"--version", "-V"}
+    :desc (format "Print flower's version (%s)" VERSION)}
 
    ;; user-facing commands
-   ["n" "new"]
+   "new"
    {:fn flower.defaults/materialize-all
+    :aliases #{"n"}
+    :desc "Create a new flower site."
     :args->opts [:site-dir]
     :spec (merge build-dir
                  {:site-dir {:coerce :string
-                             :desc "The directory in which to create a new flower site. "}})}
-   ["c" "configure"]
-   {:fn #(cmd/configure %)
-    :spec (merge-deep configure-opts
-                      {:list {:coerce :bool
-                              :desc "List all settings configured in `flower.edn`."}})}
-   ["b" "build"]
+                             :desc "The directory in which to create a new flower site."}})}
+   "build"
    {:fn #(cmd/build %)
+    :aliases #{"b"}
+    :desc "Build a flower site."
     :spec configure-opts}
 
-   ["w" "watch"]
+   "watch"
    {:fn flower.watch/watch
+    :aliases #{"w"}
+    :desc "Build a flower site, serve its content over HTTP, and automatically rebuild on changes."
     :spec (merge configure-opts
                  ; TODO: support `-i/--interface`
                  {:port {:coerce :number
                          :alias :p
                          :desc "The TCP port for the HTTP server to listen on."}})}
-   ["r" "repl"]
+   "repl"
    {:fn flower.repl/repl
+    :aliases #{"r"}
     :args->opts [:template]
+    :desc "Start a REPL with access to the Clojure in your site."
     :spec {:template {:coerce :boolean
                       :desc (str "Whether to use a 'template' REPL, where input is treated as the sunflower template language. "
                                  "By default, input is treated as Clojure code.")}}}
 
    ;; dataflow commands
+   "configure"
+   {:fn #(cmd/configure %)
+    :aliases #{"c"}
+    :desc "Create a build.ninja file by running build.clj."
+    :spec (merge-deep configure-opts
+                      {:list {:coerce :bool
+                              :desc "Instead of creating a build.ninja, list all settings configured in `flower.edn`."}})}
    ; TODO: *-frontmatter can probably both be transformers
    ; https://codeberg.org/jyn514/flower/issues/58
    "split-frontmatter"
    {:fn #(run-tracked cmd/split-frontmatter %)
+    :desc "Split a page into a {frontmatter, content} JSON map."
     :spec {:filename {:coerce :string
-                      :desc "Split a page into a {frontmatter, content} JSON map."}}}
+                      :desc "Path to the page"}}}
 
    "join-frontmatter"
    {:fn #(cmd/join-frontmatter %)
     :args->opts (concat [:out-file] (repeat argv-max :path))
+    :desc "Join many different files containing JSON maps into a single file containing only their :frontmatter keys."
     :spec {:path {:coerce []
-                  :desc "A list of files whose frontmatter will be joined together into a cache."}
+                  :desc "List of files to join"}
            :out-file {:coerce :string
-                      :desc "The file path of the output cache."}}}
+                      :desc "Path to the output cache"}}}
 
    "transform"
    {:fn #(run-tracked cmd/transform %)
     :args->opts (repeat argv-max :transformers)
+    :desc (str "Given an input on stdin, run a set of clojure files ('transformers') transforming it, then print it to stdout. "
+               "Transformers are run in the order they are passed, each accepting input from the previous transformer. "
+               "The input to the first transformer is read from stdin as JSON (but see --raw-input). "
+               "The output from the last transformer is written to stdout as JSON (but see --raw-output). "
+               "Within a transformer, *out* is redirected to stderr, "
+               "allowing it to use println debugging without interfering with data transformations.")
     :spec {:raw-input {:coerce :boolean
                        :alias :R
                        :desc "Treat the input as a raw string, not a JSON object."}
@@ -184,20 +232,7 @@
                            :collect cli-read-json
                            :desc "A list of mappings from file extension to command runners. Currently ignored."}
            :transformers {:coerce []
-                          :desc (str "A list of clojure files ('transformers') to run on the input. "
-                                     "Transformers are run in the order they are passed, each accepting input from the previous transformer. "
-                                     "The input to the first transformer is read from stdin as JSON (but see --raw-input). "
-                                     "The output from the last transformer is written to stdout as JSON (but see --raw-output). "
-                                     "Within a transformer, *out* is redirected to stderr, "
-                                     "allowing it to use println debugging without interfering with data transformations.")}}}})
-
-(defn init-fn [cmd-fn args]
-  (alter-var-root (var *cmd*) (constantly (->> args :dispatch first (str " "))))
-  (binding [*site* (or (get-in args [:opts :C]) ".")
-            flower.unsafe/*drop-bomb* false ; for `repl`
-            flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
-                                                   (env "FLOWER_WATCH")))]
-    (cmd-fn args)))
+                          :desc "List of transformers to run on the input."}}}})
 
 (defn ->bb
   "Convert our `dispatch-table` DSL to babashka/dispatch syntax.
@@ -206,33 +241,76 @@
   to set up global options. It takes two arguments:
   the function to run inside globals and the parsed options.
   It should pass the options as an argument to the function."
-  [[key val]]
-  (if (and (vector? key) (seq key))
-    (for [cmd key] (->bb [cmd val]))
-    (let [cmds (if (string? key) [key] key)
-          [my-fn opts] (if (map? val) [(:fn val) val] [val {}])
-          wrapped-fn (if (:needs-metadata opts) my-fn #(my-fn (:opts %)))
-          bb-map (assoc opts
-                        :cmds cmds
-                        ; :restrict true
-                        :fn #(init-fn wrapped-fn %))]
-      bb-map)))
+  [[key {my-fn :fn :keys [needs-metadata] :as opts}]]
+  (let [wrapped-fn (if needs-metadata my-fn #(my-fn (:opts %)))
+        bb-map (assoc opts
+                      :cmd key
+                      ; :cmds cmds
+                      ; :restrict true
+                      :fn wrapped-fn)]
+    ;:fn #(init-fn wrapped-fn %))]
+  bb-map))
+
+
+(def dispatch-table
+  (->> dispatch-dsl (map ->bb) flatten
+       (map (juxt :cmd identity)) (into {})))
+
+(def dispatch-aliases
+  (into {} (apply concat (for [[cmd {aliases :aliases}] dispatch-table
+                               :when aliases]
+                           (for [a aliases] [a cmd])))))
+
+#_(def dispatch-table
+  (into {}
+        (for [subcmd dispatch-table] [(:cmd subcmd) subcmd]))
+  (flatten (map ->bb dispatch-dsl)))
+
+(defn init-fn [cmd-fn cmd-name args]
+  (alter-var-root (var *cmd*) (constantly (str " " cmd-name)));(constantly (->> args :dispatch first (str " "))))
+  (binding [*site* (or (get-in args [:opts :C]) ".")
+            flower.unsafe/*drop-bomb* false ; for `repl`
+            flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
+                                                   (env "FLOWER_WATCH")))]
+    (cmd-fn args)))
+
+  ; this is a really really stupid CLI parser that only handles global options and subcommands
+  ; opts = {}
+  ; args = iter(args)
+  ; for arg in args:
+  ;   if any(arg == opt for opt in (:spec global-opts)):
+  ;     opts[arg] = next(args)
+  ;   else:
+  ;     cmd = arg
+  ;     break
+(defn worlds-worst-cli-parser [args]
+  ; TODO: this isn't even a parser lol
+  [{} (first args) (rest args)])
 
 (defn dispatch-cmd
-  "Parse the CLI args and dispatch to the appropriate clojure funciton.
+  "cli/dispatch with blackjack and hookers.
+  Parse the CLI args and dispatch to the appropriate clojure funciton.
   Also registers global options."
   [args]
-  (let [table (map ->bb dispatch-table)
-        flat-table (flatten table)]
-    (cli/dispatch flat-table args {:coerce {:C :string}})))
+  ; TODO: this is wrong if a later argument contains -C
+  ; I think we can avoid this by merging *all* subcommand's options into a big map so bb knows about them
+  (let [[global-opts cmd rest] (worlds-worst-cli-parser args)
+        resolved-cmd (get dispatch-aliases cmd cmd)
+        cmd-meta (get dispatch-table resolved-cmd)]
+    (when-not cmd-meta
+      (unknown-cmd {:args args}))
+    (let [opts (cli/parse-args rest (dissoc cmd-meta :aliases))
+          merged-opts (update opts :opts merge global-opts)]
+      (init-fn (:fn cmd-meta) cmd merged-opts))))
 
 (defn main [& args]
   (try
     (dispatch-cmd args)
     0
     (catch java.lang.Exception e
-      (binding [*out* *err*]
-        (print-trace e false))
+      (when-not (::silent (ex-data e))
+        (binding [*out* *err*]
+          (print-trace e false)))
       1)
     (finally
       (shutdown-agents)
