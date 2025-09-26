@@ -3,7 +3,9 @@
 - `◊span[{:class "author"}]{jyn}`
 - `◊tag['span {:class "author"}]{jyn}`
 
-- rename beholder to spectacle
+- want to implement preprocessors before writing the docs site so i don't need double-escaping
+- test all subcommands exhaustively, assert that i have tested them all
+
 - don't bind locals for transformers, only for pages (allows `ns`)
 - turn render-page into a transformer
   - calls `flower/render-file` by default

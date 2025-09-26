@@ -1,4 +1,4 @@
-(ns flower.beholder
+(ns flower.spectacle
   (:require
    [babashka.fs :as fs])
   (:import
@@ -127,7 +127,7 @@
 (defn- default-err-handler
   [err]
   (binding [*out* *err*]
-    (println "beholder:" err))
+    (println "spectacle:" err))
   true)
 
 (defn listen-async
@@ -152,7 +152,7 @@
                                 (catch java.lang.Throwable e
                                   (error-cb e)))]
                     (when err (recur))))))
-            "flower.beholder file watcher")]
+            "flower.spectacle file watcher")]
       (when daemonize (Thread/.setDaemon thread true))
       (.start thread)
       (assoc handle :thread thread))))

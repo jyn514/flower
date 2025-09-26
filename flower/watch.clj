@@ -11,7 +11,7 @@
    [clojure.stacktrace]
    [clojure.string :as str]
    [flower.http-server :as http-server]
-   [flower.beholder :as behold]
+   [flower.spectacle :as spectacle]
    [flower.cmd :as cmd]
    [org.httpkit.server :as wss]))
 
@@ -46,8 +46,8 @@
   ([cb paths] (watch-files cb paths {}))
   ([cb paths {:keys [period] :as opts}]
    (let [debouncer (if (nil? period) cb (debounce cb period))
-         handle (apply behold/create (dissoc opts :period) paths)]
-     (behold/listen-async debouncer handle))))
+         handle (apply spectacle/create (dissoc opts :period) paths)]
+     (spectacle/listen-async debouncer handle))))
 
 ; live-reload proto
 

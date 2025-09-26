@@ -7,7 +7,7 @@
    [babashka.process.pprint]
    [clojure.data.json :as json]
    [clojure.string :as str]
-   [flower.beholder]
+   [flower.spectacle]
    [flower.cmd :as cmd]
    [flower.defaults]
    [flower.frontmatter]
@@ -324,7 +324,7 @@
       '[malli.instrument :as mi]
       '[malli.dev.pretty :as pretty])
      (def flower-nss
-       ['flower.beholder
+       ['flower.spectacle
         'flower.cmd
         'flower.main
         'flower.eval
