@@ -1,9 +1,11 @@
 #kaocha/v1
-{:tests
- [{:id :unit, :test-paths ["test/unit"]
+{:plugins [:hooks]
+ :kaocha.hooks/pre-run [test.snapshot/on-reload]
+ :tests
+ [{:id :unit, :test-paths ["test"]
    :kaocha/source-paths ["flower"]
-   :ns-patterns [".*"]}
+   :ns-patterns ["test.unit"]}
 
-  {:id :process, :test-paths ["test/process"]
+  {:id :process, :test-paths ["test"]
    :kaocha/source-paths ["flower"]
-   :ns-patterns [".*"]}]}
+   :ns-patterns ["test.process"]}]}

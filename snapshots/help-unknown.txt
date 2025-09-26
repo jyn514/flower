@@ -1,0 +1,12 @@
+flower 0.0.1
+Commands:
+  join-frontmatter  Join many different files containing JSON maps into a single file containing only their :frontmatter keys.
+  split-frontmatter Split a page into a {frontmatter, content} JSON map.
+  new               Create a new flower site.
+  configure         Create a build.ninja file by running build.clj.
+  transform         Given an input on stdin, run a set of clojure files ('transformers') transforming it, then print it to stdout. Transformers are run in the order they are passed, each accepting input from the previous transformer. The input to the first transformer is read from stdin as JSON (but see --raw-input). The output from the last transformer is written to stdout as JSON (but see --raw-output). Within a transformer, *out* is redirected to stderr, allowing it to use println debugging without interfering with data transformations.
+  watch             Build a flower site, serve its content over HTTP, and automatically rebuild on changes.
+  build             Build a flower site.
+  repl              Start a REPL with access to the Clojure in your site.
+  version           Print flower's version (0.0.1)
+  help              Print this help

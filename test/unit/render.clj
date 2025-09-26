@@ -1,4 +1,4 @@
-(ns unit.render
+(ns test.unit.render
   (:require
    [expectations.clojure.test :refer [defexpect expect]]
    [flower.eval :as eval]))

@@ -1,0 +1,6 @@
+Usage: flower build 
+
+ Build a flower site. 
+
+  --build-dir Set the path for the ninja temporary directory.
+  --set       Parse a key-value option pair and pass it to `build.clj` in `flower.reflect/*metadata*:settings`. Settings are enumerated in `flower.edn`; run `flower configure --list` to print them.

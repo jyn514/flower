@@ -91,6 +91,7 @@
           cmd-meta (get dispatch-table cmd)]
       (if (nil? cmd-meta) (help {})  ; unknown command
         (do (println "Usage: flower" cmd (format-args (:args->opts cmd-meta)))
+            (println "\n" (:desc cmd-meta) "\n")
             (-> cmd-meta (select-keys [:spec]) cli/format-opts println))))))
 
 ; disallow infinite sequences, they horribly break debugging.
@@ -245,10 +246,7 @@
   (let [wrapped-fn (if needs-metadata my-fn #(my-fn (:opts %)))
         bb-map (assoc opts
                       :cmd key
-                      ; :cmds cmds
-                      ; :restrict true
                       :fn wrapped-fn)]
-    ;:fn #(init-fn wrapped-fn %))]
   bb-map))
 
 
@@ -260,11 +258,6 @@
   (into {} (apply concat (for [[cmd {aliases :aliases}] dispatch-table
                                :when aliases]
                            (for [a aliases] [a cmd])))))
-
-#_(def dispatch-table
-  (into {}
-        (for [subcmd dispatch-table] [(:cmd subcmd) subcmd]))
-  (flatten (map ->bb dispatch-dsl)))
 
 (defn init-fn [cmd-fn cmd-name args]
   (alter-var-root (var *cmd*) (constantly (str " " cmd-name)));(constantly (->> args :dispatch first (str " "))))
