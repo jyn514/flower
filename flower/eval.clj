@@ -6,13 +6,12 @@
    [clj-commons.digest]
    [clojure.data.json]
    [clojure.java.io :as io]
-   [clojure.repl :as repl]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
    [flower.defaults :refer [path-considering-vfs]]
    [flower.fs]
    [flower.hiccup]
-   [flower.reflect]
+   [flower.reflect :as reflect]
    [flower.stacktrace :refer [print-trace]]
    [flower.unsafe]
    [hiccup.util]
@@ -37,7 +36,7 @@
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
 
 (defn load-sci-file [file] 
-  (set! flower.reflect/*dependencies* (conj flower.reflect/*dependencies* file))
+  (set! reflect/*dependencies* (conj reflect/*dependencies* file))
   {:file file :source (slurp file)})
 
 (defn load-fn
@@ -126,8 +125,8 @@
 ; (defn print-trace [ex]
 ;   (repl/print-trace ex false))
 
-(declare render-file)
-; needs to be a function, otherwise render-file won't be bound
+(declare preprocess-sunflower preprocess-sunflower)
+; needs to be a function, otherwise preprocess-file won't be bound
 (defn sci-defaults []
   {
    :load-fn load-fn
@@ -156,7 +155,8 @@
                                   (copy-ns 'babashka.fs {:dst 'flower.fs
                                                          :symbols bb-fs}))
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
-                                       'render-file render-file)
+                                       'preprocess-file preprocess-sunflower
+                                       'preprocess-sunflower preprocess-sunflower)
                 ; TODO: use drop-bomb here too
                 'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
                 ; 'babashka.fs (copy-filtering 'babashka.fs bb-fs)
@@ -262,14 +262,13 @@
 
 (defn eval-form
   "form eval. innermost function; use this instead of sci/eval-form directly."
-  ([src form] (eval-form *cx* src form))
-  ([cx src form]
+  ([form {:keys [cx span src] :or {cx *cx*}}]
    (when (env "FLOWER_DEBUG_EVAL")
      (def ^:dynamic *form* form) ; for repl
      (eprint "eval-form: ")
      (eprn form))
-   (let [cx (update-meta #(merge %
-                                 {:flower/span (-> form insta/span first (offset->line src))}) cx)]
+   (let [span (or span (-> form insta/span first (offset->line src)))
+         cx (update-meta #(merge % {:flower/span span}) cx)]
      (binding [*cx* cx]
        (sci/binding [sci/out *err*
                      sci/err *err*
@@ -352,7 +351,7 @@
 
 (defn- on-parse-event [cx src ev]
   (if (string? ev) ev
-    (eval-form cx src ev)))
+    (eval-form ev {:src src :cx cx})))
 
 (defn teval
   "tree eval"
@@ -360,36 +359,38 @@
    (let [events (transformer tree src cx)]
      (apply str (map #(on-parse-event cx src %) events)))))
 
+;; utils
+
+(defn merge-cx [bindings filename]
+  ; NOTE: :bindings doesn't work here, upstream bug
+  (let [opts {:namespaces {'user bindings 'flower.locals bindings}}]
+    (if (some? *cx*)
+      ; NOTE: state changes in the inner template are not visible in the outside context
+      ; TODO: fork this new context before merging so we don't bind 'locals into the parent
+      (with-meta (sci/merge-opts *cx* opts) {:flower/filename filename})
+      (create-sci-cx filename opts))))
+
 ;; API
 
-; TODO: needs to account for pages not in clojure
 ; TODO: should include metadata parsed from frontmatter
 ; actually hm. we don't need to deal with *preprocessing* other than clojure,
 ; or at least, `◊(render ...)` doesn't need to.
 ; we only need to deal with *markup languages* other than markdown.
-; i think we need to split `render-in-context` from `render-file` and only expose the former through flower.reflect.
-; for now i'm going to treat this as `render-in-context`, i'll write `render-file` later.
-; render-file will need to:
+; i think we need to split `render-in-context` from `preprocess-file` and only expose the former through flower.reflect.
+; for now i'm going to treat this as `render-in-context`, i'll write `preprocess-file` later.
+; preprocess-file will need to:
 ; - look at frontmatter.preprocessors and run them in sequence
 ; - once all preprocessors have run, convert the markup language to html
 ; for now, hard-code the clojure preprocessor and language markdown.
 ; actually no, the markup renderer needs to live in build.clj so people can write custom commands.
-(defn render-file
-  "Render content with local variables available"
+(defn preprocess-sunflower
+  "Preprocess a sunflower page with local variables available"
   ; TODO: this causes nothing but problems, replace it with an options map
-  ([src filename] (render-file src filename {}))
+  ([src filename] (preprocess-sunflower src filename {}))
   ([src filename locals]
-   ; TODO: also bind locals in `flower.locals`
    ; NOTE: we have to use `new-var` here or using `def` on a bound local will crash SCI
    (let [bindings (into {} (for [[name val] locals]
                              [name (sci/new-var name val)]))
-         opts {:namespaces {'user bindings 'flower.locals bindings}}
-         cx (if (some? *cx*)
-              ; NOTE: state changes in the inner template are not visible in the outside context
-              ; NOTE: :bindings doesn't work here, upstream bug
-              ; TODO: fork this new context before merging so we don't bind 'locals into the parent
-              (let [new-cx (sci/merge-opts *cx* opts)]
-                (with-meta new-cx {:flower/filename filename}))
-              (create-sci-cx filename opts)) ]
+         cx (merge-cx bindings filename)]
      (binding [*cx* cx]
        (teval (parse-or-fatal parse src filename) src *cx*)))))

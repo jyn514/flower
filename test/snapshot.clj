@@ -1,5 +1,6 @@
 (ns test.snapshot 
   (:require
+   [flower.reflect :as reflect]
    [babashka.fs :as fs]
    [clojure.repl :refer [demunge]]
    [clojure.test :as t]))
@@ -9,11 +10,9 @@
 
 (def ^:private assertion-counts (atom {}))
 (defn on-reload [cx]
+  (binding [*out* *err*] (println "running reload hooks"))
   (reset! assertion-counts {})
   cx)
-#_(defn run-test [run]
-  (binding [*assert-fn* t/is]
-    (run)))
 
 ; https://groups.google.com/g/clojure/c/Zpc2yaZDxqA/m/GbmgHK5RAwAJ
 (defmacro get-calling-fn []

@@ -205,7 +205,7 @@
      :description "rebuild default build.ninja"}
     {:name "flower-bin"
      :command (fmt "clojure -T:build ${build-cmd} :include-untracked true")
-     :description "rebuild flower itself"}]
+     :description (fmt "rebuild flower itself (${build-cmd})")}]
    :builds
    [{:rule "ninja-meta"
      :outputs "build.ninja"

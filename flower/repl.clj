@@ -55,9 +55,9 @@
 
 (defn flower-eval [template]
   (let [evaluator (if template
-                      #(eval/render-file % "<repl>")
+                      #(eval/preprocess-sunflower % "<repl>")
                       ; TODO: bind *e
-                      #(eval/eval-form % (eval/parse-string %)))]
+                      #(eval/eval-form (eval/parse-string %) {:src %}))]
     (fn [str]
       (if-let [spec (and (= \: (first str)) ((-> str (subs 1) keyword) specials))]
         ((:fn spec) template)
@@ -76,5 +76,6 @@
       (printf "Flower %s repl (:help for help)\n" desc)
       (clojure.main/repl :prompt (fn []) ; handled by readline
                          :eval (flower-eval template)
+                         ; TODO: bind `sci/*e`
                          :caught #(print-trace % (not template))
                          :read readline))))

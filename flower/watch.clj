@@ -180,7 +180,7 @@
   (fs/create-dirs out-dir)
   ; prints out its own progress info
   (http-server/serve {:dir out-dir :port port})
-  (println "Starting live reload watcher for" out-dir)
+  (println "Starting live reload watcher for" (str out-dir "/"))
   (live-reload {:dir out-dir :port 35729 :period debounce-period})
   ; Run this last since ninja emits its own output
   (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"

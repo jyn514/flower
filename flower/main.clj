@@ -260,7 +260,7 @@
                            (for [a aliases] [a cmd])))))
 
 (defn init-fn [cmd-fn cmd-name args]
-  (alter-var-root (var *cmd*) (constantly (str " " cmd-name)));(constantly (->> args :dispatch first (str " "))))
+  (alter-var-root (var *cmd*) (constantly (str " " cmd-name)))
   (binding [*site* (or (get-in args [:opts :C]) ".")
             flower.unsafe/*drop-bomb* false ; for `repl`
             flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
@@ -294,7 +294,7 @@
       (unknown-cmd {:args args}))
     (let [opts (cli/parse-args rest (dissoc cmd-meta :aliases))
           merged-opts (update opts :opts merge global-opts)]
-      (init-fn (:fn cmd-meta) cmd merged-opts))))
+      (init-fn (:fn cmd-meta) resolved-cmd merged-opts))))
 
 (defn main [& args]
   (try

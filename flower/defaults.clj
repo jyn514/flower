@@ -22,11 +22,12 @@
      (defaults-path rel)))
 
 (defn path-considering-vfs [path]
-  (let [vfs (vfs-path path)
-        rel (if (and (not= vfs path)
-                     (not (fs/exists? path))
+  (let [site-path (fs/path *site* path)
+        vfs (vfs-path path)
+        rel (if (and (not= vfs site-path)
+                     (not (fs/exists? site-path))
                      (fs/exists? vfs))
-              vfs path)]
+              vfs site-path)]
     rel))
 
 ; materialization

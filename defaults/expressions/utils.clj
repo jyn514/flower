@@ -66,7 +66,7 @@
 (defn remove-parent
   "Given an file path, remove the first N directories.
    If N is not given, assume N=1."
-  ([path] (remove-parent path 1))
+  ([path] (if (= 1 (count (fs/components path))) path (remove-parent path 1)))
   ([path n] (->> path fs/components (drop n) (apply fs/path))))
 
 (defn remove-ext

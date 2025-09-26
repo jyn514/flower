@@ -8,10 +8,10 @@
    [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as str]
+   [flower.defaults :refer [path-considering-vfs]]
    [flower.eval :as eval]
    [flower.frontmatter]
-   [flower.defaults :refer [path-considering-vfs]]
-   [flower.reflect])
+   [flower.reflect :as reflect])
   (:import
    (java.io PushbackReader StringWriter)))
 
@@ -96,7 +96,7 @@
   (let [defaults (fs/path build-dir "defaults")]
     (when-not (fs/exists? defaults)
       (flower.defaults/materialize-all opts)))
-  (binding [flower.reflect/*dependencies* #{}]
+  (binding [reflect/*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))
           settings (load-settings (:settings global-meta) settings list-settings)
@@ -108,18 +108,18 @@
           page-meta (load-all-meta "pages")
           all-meta {:pages page-meta
                     :settings settings}]
-      (binding [flower.reflect/*ninja* ninja-writer
-                flower.reflect/*metadata* all-meta]
+      (binding [reflect/*ninja* ninja-writer
+                reflect/*metadata* all-meta]
         (let [cx (eval/create-sci-cx in)
               embedded (str "(do" (slurp in) ")")
               lisp (eval/parse-string cx eval/start-span embedded)
               ; TODO: we need a mechanism for build.clj to pass back the builddir.
-              ; maybe we can bind `flower.reflect/*build*` or something idk
+              ; maybe we can bind `reflect/*build*` or something idk
               ; alternatively we can force this to be in flower.edn?
               depfile (fs/path *site* build-dir "build.clj.d")]
-          (eval/eval-form cx embedded lisp)
+          (eval/eval-form lisp {:cx cx, :src embedded})
           (fs/create-dirs build-dir)
-          (let [contents (gen-depfile out flower.reflect/*dependencies*)]
+          (let [contents (gen-depfile out reflect/*dependencies*)]
             (fs/write-bytes depfile (String/.getBytes contents))))
         (-> ninja-writer str (write-if-modified out))))))
 
@@ -153,10 +153,10 @@
 ; index preprocessing
 
 (defn with-tracked-deps [f]
-  (binding [flower.reflect/*dependencies* #{}]
+  (binding [reflect/*dependencies* #{}]
     (let [out-map (f)]
       ; TODO: should be keyed by output file so we can minimize rebuilds
-      [out-map flower.reflect/*dependencies*])))
+      [out-map reflect/*dependencies*])))
 
 ; transforming
 (defn run-transformer
@@ -170,16 +170,18 @@
                  :namespaces {'flower.locals bindings}}
         trans-path (str (path-considering-vfs transformer))
         cx (eval/create-sci-cx trans-path cx-opts)
+
         ; NOTE: parse-string only parses a single form, so we have to wrap the file in `do`
         ; borkdude suggests running parse-next in a loop instead, see
         ; https://clojurians.slack.com/archives/C015LCR9MHD/p1755283534353819?thread_ts=1755274827.891389&cid=C015LCR9MHD
-        f (str "(do " (slurp trans-path) ")")
-        transformer (eval/parse-string cx eval/start-span f)
+        trans-file (str "(do " (slurp trans-path) ")")
+        transformer (eval/parse-string cx eval/start-span trans-file)
         ; NOTE: does *not* call pretty-print
         run-transform '(transform flower.locals/page)
         ; NOTE: order is important here, see https://technomancy.us/143
         lisp `(do ~transformer ~run-transform)
-        transformed (eval/eval-form cx f lisp)]
+
+        transformed (eval/eval-form lisp {:cx cx :src trans-file})]
     ; for raw output transformers, trust them to return exactly what they say
     (if (and raw-output last) transformed
       ; if a transformer returns a string, preserve existing metadata

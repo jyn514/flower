@@ -7,7 +7,7 @@
 (defn render
   ([source] (render source {}))
   ([source locals]
-    (reflect/render-file source "<inline>" locals)))
+    (reflect/preprocess-file source "<inline>" locals)))
 
 (defn template [relative-path]
   (when-not relative-path
@@ -19,7 +19,7 @@
   [template-name locals]
   (let [content (template template-name)
         path (str "templates/" template-name)
-        data (reflect/render-file content path locals)]
+        data (reflect/preprocess-file content path locals)]
     data))
 
 (defn include

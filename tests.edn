@@ -1,8 +1,11 @@
 #kaocha/v1
 {:plugins [:hooks]
- :kaocha.hooks/pre-run [test.snapshot/on-reload]
+ :kaocha.hooks/pre-load [test.snapshot/on-reload]
+ :bindings {kaocha.stacktrace/*stacktrace-stop-list* ["kaocha.runner" "kaocha.type" "kaocha.watch"]
+            kaocha.stacktrace/*stacktrace-filters* ["clojure.java.io" "clojure.lang" "sci.impl" "clojure.core.protocols"]}
  :tests
  [{:id :unit, :test-paths ["test"]
+   ; TODO: want to live-reload `defaults` but it breaks horribly because a bunch of dynamic globals aren't bound
    :kaocha/source-paths ["flower"]
    :ns-patterns ["test.unit"]}
 

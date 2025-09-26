@@ -112,4 +112,5 @@
     (println (ansi/compose [grey
       "Set FLOWER_DEBUG_EVAL=1 to show the desugared clojure code (e.g. for running in `flower repl`)"]))
     (swap! first-eval-error (constantly false)))
-  (swap! first-error (constantly false)))
+  (swap! first-error (constantly false))
+  (flush))

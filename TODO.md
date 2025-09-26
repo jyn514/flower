@@ -29,22 +29,9 @@
   - css: port https://github.com/mathiasbynens/CSS.escape/blob/master/css.escape.js
   - js: https://commons.apache.org/proper/commons-lang/javadocs/api-2.6/org/apache/commons/lang/StringEscapeUtils.html#escapeJavaScript(java.lang.String)
 - hiccup syntax is ok for embedded clojure, but it would be nice to have a simpler standalone syntax based on css selectors
-  - https://haml.info/tutorial.html
-  - https://web.archive.org/web/20190630223046/http://jade-lang.com/
-  - https://code.google.com/archive/p/zen-coding/
-  - https://maud.lambda.xyz/
-
+    - https://codeberg.org/jyn514/flower/issues/20
 - prelude module? maybe inject `(eval "expressions/prelude.clj")`?
-- `transformers/redirect.clj`
-  - allows relative paths with /foo.html
-- `flower help` is broken lol lmao
-- fix spans for SCI eval
-- template defaults
-- add the rest of the HTML selector apis lol
 - allow configuring build dirs in `flower.edn`
-- sandbox fs APIs for build.clj
-- file watcher should debounce nvim delete/recreate
-  - https://github.com/clojure/core.async
 - file watcher should cancel existing ninja processes if a new input is changed
 - generated build.ninja can't handle file deletes
   - probably i can avoid this by deleting all the outputs of `ninja -t query <deleted file>`
@@ -55,11 +42,7 @@
   - build/generate lets you pass `:task "drafts"` for each `:build`, defaults to `"default"`
   - note that `ninja -t browse` defaults to `all`. hm.
 - flower emojis
-- should not lose `page` with `embed-template`
-- maybe `◊include` should be relative to `includes` instead of `templates`?
-  - nah
 - bundle [asciidoc]; suggest for highly nested md->clj->md->clj
-- allow preprocessors to edit frontmatter
 - render needs to not blindly assume that the preprocessing language is clojure
 - bundle jinja by default
 - dependencies between index pages and rendered pages
@@ -115,15 +98,7 @@ ninja's api for all of these is `flower transform`
 
 ## goodies
 
-- RSS feed
-- syntax highlighting
-  - https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html
-  - https://github.com/bonede/tree-sitter-ng
-  - https://github.com/seart-group/java-tree-sitter
-  - someone mentioned on slack they got this working: https://clojurians.slack.com/archives/C03S1KBA2/p1756400041864609?thread_ts=1756162447.266729&cid=C03S1KBA2
 - bsky comments
   - https://natalie.sh/posts/bluesky-comments/
 - SVG with embedded text for code blocks
   - https://wheybags.com/blog/macroblog.html#better_code_snippets
-- blog pingback protocol
-  - oh this isn't actually real lol

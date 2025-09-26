@@ -29,7 +29,7 @@
           (ex-data (ex-cause e)) (ex-cause e)))
 
 (defn expect-valid-or-trace [s]
-  (try (eval/render-file s "<proptest>")
+  (try (eval/preprocess-sunflower s "<proptest>")
        (catch clojure.lang.ExceptionInfo e
          (condp #(get %2 %1) (ex-data e)
            :flower/parse (expect-parse-error e)

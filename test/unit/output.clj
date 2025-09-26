@@ -17,7 +17,9 @@
   (with-out-str
     (flower/dispatch-cmd args)))
 
+; env FLOWER_UPDATE_SNAPSHOTS=1 clojure -M:test --focus test.unit.output
 (deftest cli-error
+  ; TODO: this doesn't rebind `*cmd*` properly on file reloads
   (snapshot/expect (fake-main ["x"]) "unknown-cmd")
   (snapshot/expect (dispatch ["-h"]) "help-opt")
   (snapshot/expect (dispatch ["help"]) "help-cmd")
