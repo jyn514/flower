@@ -116,6 +116,13 @@
     'expand-home 'home ; Technically impure but it's fine
     })
 
+(def repl-bindings
+  (let [empty-cx (sci/init {})
+        symbols #{'dir 'doc 'source 'apropos 'pst 'demunge}]
+    (into {} (for [s symbols]
+               [s (sci/resolve empty-cx
+                               (symbol (str "clojure.repl/" (name s))))]))))
+
 ; (defn print-trace [ex]
 ;   (repl/print-trace ex false))
 
@@ -155,16 +162,14 @@
                 ; 'babashka.fs (copy-filtering 'babashka.fs bb-fs)
                 'flower.unsafe.fs (copy-ns 'babashka.fs {:dst 'flower.unsafe.fs})}
    ; NOTE: the strings will give a class cast exception if someone tries to rebind them
-   :bindings {'« "«"
-              '» "»"
-              '◊ "◊"
-              '⋄ "⋄"
-              'print-trace (sci/copy-var print-trace userns)
-              'html (sci/copy-var flower.hiccup/html-2 userns)
-              'fmt (sci/copy-var fmt userns)
-              'doc (sci/copy-var repl/doc userns)
-              'dir (sci/copy-var repl/dir userns)
-              'source (sci/copy-var repl/source userns)}
+   :bindings (merge repl-bindings
+               {'« "«"
+                '» "»"
+                '◊ "◊"
+                '⋄ "⋄"
+                'print-trace (sci/copy-var print-trace userns)
+                'html (sci/copy-var flower.hiccup/html-2 userns)
+                'fmt (sci/copy-var fmt userns)})
    ; keep this in sync with `dynamic` in native.clj
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
              'java.util.List java.util.List
