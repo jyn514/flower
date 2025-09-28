@@ -1,3 +1,6 @@
+---
+preprocessors: []
+---
 the smallest flower site is simply a markdown file with your content:
 ```
 $ cat pages/look-ma-new-SSG.md

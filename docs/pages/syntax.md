@@ -1,3 +1,6 @@
+---
+preprocessors: []
+---
 sunflower uses the following special characters outside US-ASCII: `◊«»`.
 this section documents how to type them in various environments.
 

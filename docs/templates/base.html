@@ -1,0 +1,30 @@
+◊(use 'expressions.constants 'expressions.meta)
+◊(require
+  '[expressions.utils :refer [def+]]
+  '[expressions.pages :refer [categorize]]
+  '[flower.fs :as fs])
+
+◊(def head)«
+  ◊(if (fs/exists? "static/main.js"))«
+    <script src='/main.js?v=◊(hash "static/main.js")"' defer></script>
+  »
+»
+◊(def+ {:keys [sections]} (categorize pages))
+◊(def body)«
+  <header class="site-header" role="banner">
+    <a class="site-title" href="/">◊site-title</a>
+    <nav class="site-nav">
+      ◊(for [section sections
+            :when (:title section)])«
+        <a class="page-link" href="◊(:path section)">◊(:title section)</a>
+      »
+    </nav>
+  </header>
+
+  <main class="page-content" aria-label="Content">
+    <div class="wrapper">
+      ◊content
+    </div>
+  </main>
+»
+◊(embed "skeleton.html" {'content body 'head head})

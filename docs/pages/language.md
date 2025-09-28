@@ -1,3 +1,6 @@
+---
+preprocessors: []
+---
 ## sunflower
 
 The flower template language is a very thin wrapper around a clojure interpreter.
