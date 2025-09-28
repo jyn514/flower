@@ -97,6 +97,7 @@
     "java.lang.Integer"
     "java.util.List"
     "java.util.regex.Pattern"
+    "java.net.URI"
     "clojure.lang.PersistentVector"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"

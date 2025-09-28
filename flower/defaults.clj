@@ -16,7 +16,7 @@
   "Different from defaults-path because some files are never in .build.
    Different from path-considering-vfs because it doesn't look at files on disk to make a decision."
    [rel]
-   (if (or (= "flower.edn" rel)
+   (if (or (some #{rel} #{"flower.edn" "expressions/constants.clj"})
            (some #{(-> rel fs/components first str)} #{"pages" "templates" "static"}))
      (fs/path *site* rel)
      (defaults-path rel)))

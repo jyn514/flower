@@ -110,14 +110,17 @@
     (into {} key-vals)))
 
 (defn set-attr!
-  "Add an attribute to an HTML element"
+  "Add an attribute to an HTML element.
+  'key' can be either a keyword, symbol, or a string.
+  'val' can be either a string or a boolean."
   [node key val]
-  (Element/.attr node key val))
+  (Element/.attr node (name key) val))
 
 (defn remove-attr!
-  "Remove an attribute from an HTML element"
+  "Remove an attribute from an HTML element.
+  'key' can be either a keyword, symbol, or a string."
   [node key]
-  (Element/.removeAttr node key))
+  (Element/.removeAttr node (name key)))
 
 (defn add-class!
   [node name]

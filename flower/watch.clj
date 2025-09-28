@@ -68,10 +68,10 @@
 (def channels (atom #{}))
 
 (defn- on-open [ch]
-  (println "new websocket connected" (str ch))
+  #_(println "new websocket connected" (str ch))
   (swap! channels conj ch))
 (defn- on-close [ch status]
-  (println "websocket disconnected" (str ch) status)
+  #_(println "websocket disconnected" (str ch) status)
   (swap! channels disj ch))
 (defn- on-receive [ch data]
   (let [cmd (get (json/read-str data) "command")]

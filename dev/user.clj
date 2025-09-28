@@ -41,7 +41,7 @@
   (eval/transformer (eval/parse src) src (eval/create-sci-cx "<repl>")))
 
 (defn render [src]
-  (eval/preprocess-file src "<repl>"))
+  (eval/preprocess-sunflower src "<repl>"))
 
 (defn spans [src]
   (postwalk #(do (print % ": ") (some-> % meta println) %) src))

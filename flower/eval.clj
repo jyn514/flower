@@ -173,6 +173,7 @@
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
              'java.util.List java.util.List
              'java.util.regex.Pattern java.util.regex.Pattern
+             'java.net.URI java.net.URI
              'clojure.lang.PersistentVector clojure.lang.PersistentVector
              'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
              'java.time.OffsetDateTime 'java.time.OffsetDateTime
