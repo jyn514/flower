@@ -41,10 +41,14 @@
 (def exe (str "target/flower" (when is-win ".exe")))
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with watch.clj
-(def live-reload "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
+(defn flower-resource [path] (str "META-INF/resources/flower/" path))
+(def live-reload (flower-resource "watch/livereload-4.0.2/livereload.js"))
 ; keep this in sync with eval.clj
-(def parser "META-INF/resources/flower/eval/parser.ebnf")
-(def defaults-dir "META-INF/resources/flower/defaults")
+(def parser (flower-resource "eval/parser.ebnf"))
+(def defaults-dir (flower-resource "defaults"))
+(def git-hash (flower-resource "git-hash"))
+
+(def GIT-HASH (->> "git describe --always" (ps/shell {:out :string}) :out str/trimr))
 
 (defn clean [_]
   (b/delete {:path class-dir})
@@ -143,6 +147,7 @@
                 :target (str class-dir "/" live-reload)})
   (b/copy-file {:src parser
                 :target (str class-dir "/" parser)})
+  (spit (str class-dir "/" git-hash) GIT-HASH)
   ; TODO: on macOS this doesn't update the modified time, which causes ninja to unconditionally rebuild
   (b/copy-file {:src "scripts/run-jar.sh"
                 :target "target/flower"})

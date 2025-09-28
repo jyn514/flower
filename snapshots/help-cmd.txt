@@ -1,4 +1,4 @@
-flower 0.0.1
+flower 0.0.1 (<unknown commit>)
 Commands:
   join-frontmatter  Join many different files containing JSON maps into a single file containing only their :frontmatter keys.
   split-frontmatter Split a page into a {frontmatter, content} JSON map.
@@ -8,5 +8,5 @@ Commands:
   watch             Build a flower site, serve its content over HTTP, and automatically rebuild on changes.
   build             Build a flower site.
   repl              Start a REPL with access to the Clojure in your site.
-  version           Print flower's version (0.0.1)
+  version           Print flower's version: 0.0.1 (<unknown commit>)
   help              Print this help

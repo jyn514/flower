@@ -6,21 +6,23 @@
    [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
    [babashka.process.pprint]
    [clojure.data.json :as json]
+   [clojure.java.io :as io]
    [clojure.string :as str]
-   [flower.spectacle]
    [flower.cmd :as cmd]
    [flower.defaults]
    [flower.frontmatter]
    [flower.hiccup]
    [flower.reflect]
    [flower.repl]
+   [flower.spectacle]
    [flower.stacktrace :refer [print-trace]]
    [flower.unsafe :as unsafe]
    [flower.utils]
    [flower.watch]
    [hiccup.util]))
 
-(def VERSION "0.0.1")
+(defn git-hash [] (-> "META-INF/resources/flower/git-hash" io/resource slurp))
+(defn version [] (format "0.0.1 (%s)" (git-hash)))
 
 ; CLI and IO
 
@@ -44,7 +46,7 @@
 (defn unknown-cmd [{:keys [args]}]
   (if (empty? args)
     (do
-      (eprintln (str "flower " VERSION))
+      (eprintln (str "flower " (version)))
       (eprintln "'flower help' for help")
       (eprintln "'flower watch' to build your site"))
     (error (str "unrecognized command: '"
@@ -83,7 +85,7 @@
                        (for [[cmd meta] dispatch-table
                              :when (string? cmd)]
                          [cmd (:desc meta)]))]
-      (printf "flower %s\n" VERSION)
+      (printf "flower %s\n" (version))
       (println "Commands:")
       (println (cli/format-table {:rows rows})))
     ; help for subcommand
@@ -140,9 +142,9 @@
     :aliases #{"--help" "-h" "/?"}
     :desc "Print this help"}
    "version"
-   {:fn (no-opts println VERSION)
+   {:fn (no-opts println (version))
     :aliases #{"--version", "-V"}
-    :desc (format "Print flower's version (%s)" VERSION)}
+    :desc (format "Print flower's version: %s" (version))}
 
    ;; user-facing commands
    "new"
