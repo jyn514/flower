@@ -155,7 +155,6 @@
                                   (copy-ns 'babashka.fs {:dst 'flower.fs
                                                          :symbols bb-fs}))
                 'flower.reflect (assoc (copy-ns 'flower.reflect)
-                                       'preprocess-file preprocess-sunflower
                                        'preprocess-sunflower preprocess-sunflower)
                 ; TODO: use drop-bomb here too
                 'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)

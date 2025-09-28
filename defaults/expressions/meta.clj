@@ -1,13 +1,13 @@
 (ns expressions.meta
   (:require
    [clj-commons.digest :as digest]
-   [flower.fs :as fs]
-   [flower.reflect :as reflect]))
+   [transformers.preprocess :refer [preprocess-file]]
+   [flower.fs :as fs]))
 
 (defn render
   ([source] (render source {}))
   ([source locals]
-    (reflect/preprocess-file source "<inline>" locals)))
+    (preprocess-file source "<inline>" locals)))
 
 (defn template [relative-path]
   (when-not relative-path
@@ -19,7 +19,7 @@
   [template-name locals]
   (let [content (template template-name)
         path (str "templates/" template-name)
-        data (reflect/preprocess-file content path locals)]
+        data (preprocess-file content path locals)]
     data))
 
 (defn include

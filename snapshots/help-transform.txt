@@ -2,12 +2,11 @@ Usage: flower transform [<transformers>...]
 
  Given an input on stdin, run a set of clojure files ('transformers') transforming it, then print it to stdout. Transformers are run in the order they are passed, each accepting input from the previous transformer. The input to the first transformer is read from stdin as JSON (but see --raw-input). The output from the last transformer is written to stdout as JSON (but see --raw-output). Within a transformer, *out* is redirected to stderr, allowing it to use println debugging without interfering with data transformations. 
 
-      --transformers    List of transformers to run on the input.
-      --standalone      Whether this is a 'standalone' transformer that doesn't need access to all pages in the site.
-      --depfile         Path in which to store a dependency file, used by ninja to track rebuilds.
-      --preprocessor    Path to a standalone transformer to use for nested `reflect/preprocess-file` calls.
-      --transform-map   A list of mappings from file extension to command runners. Currently ignored.
-      --all-frontmatter Path to a file storing a JSON object with the frontmatter of all pages in the site. Ignored when `--standalone` is passed.
-      --out-file        Path in which to store the output of the transformers. Note that `transform` does not actually write to this file, it just uses it for :depfile.
-  -r, --raw-output      Serialize the output directly with (str), not as a JSON object. In other words, trust the transformer to determine the output format.
   -R, --raw-input       Treat the input as a raw string, not a JSON object.
+  -r, --raw-output      Serialize the output directly with (str), not as a JSON object. In other words, trust the transformer to determine the output format.
+      --depfile         Path in which to store a dependency file, used by ninja to track rebuilds.
+      --out-file        Path in which to store the output of the transformers. Note that `transform` does not actually write to this file, it just uses it for :depfile.
+      --all-frontmatter Path to a file storing a JSON object with the frontmatter of all pages in the site. Ignored when `--standalone` is passed.
+      --standalone      Whether this is a 'standalone' transformer that doesn't need access to all pages in the site.
+      --transform-map   A list of mappings from file extension to command runners. Currently ignored.
+      --transformers    List of transformers to run on the input.

@@ -10,7 +10,6 @@
 ; so they must record their file dependencies.
 
 (def ^:dynamic *dependencies* "not for public use; see flower.fs and flower.unsafe" #{})
-(def ^:dynamic *preprocessor* "not for public use; see preprocess-file" nil)
 (def ^:dynamic *ninja* "not for public use; see write-ninja!" "")
 (def ^:dynamic *watching*
   "whether the site is being built with 'flower watch'"
@@ -41,5 +40,4 @@
         (strip-suffix ".jar"))))
 
 ; TODO: this sucks! i don't like having things only available in the guest :(
-(declare preprocess-file)
 (declare preprocess-sunflower)
