@@ -3,7 +3,7 @@
   (:require
     [clojure.string :as str]
     [expressions.html :refer :all]
-    [expressions.utils :refer [inspect remove-parent]]
+    [expressions.utils :refer [remove-parent]]
     [flower.locals :refer [pages]])
   (:import
     java.net.URI))
@@ -20,21 +20,19 @@
 
 (defn normalize [rel all-srcs]
   (let [parsed (URI. rel)
-        normalized (str/replace (.getPath parsed) #"^\./" "")]
+        normalized (some-> parsed .getPath (str/replace #"^\./" ""))]
     (when (and (not (.getScheme parsed))
                (str/ends-with? normalized ".md")
                (some #{normalized} all-srcs))
       (str (with-path parsed
              (str/replace normalized #"\.md" ".html"))))))
 
-(defn transform [{:keys [content frontmatter]}]
-  (if-not (= "md" (:flower/filetype frontmatter))
-    content
-    (let [doc (->element content)
+(defn transform [{:keys [content]}]
+  (let [doc (->element content)
           get-src #(-> % :flower/source-file remove-parent str)
           all-srcs (map get-src pages)]
       (doseq [a (select doc "a")
               :let [dst (-> a attrs :href (normalize all-srcs))]
               :when dst]
         (set-attr! a :href dst))
-      (str doc))))
+      (str doc)))

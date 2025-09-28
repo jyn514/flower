@@ -1,10 +1,12 @@
+◊(use 'expressions.constants)
+
 ## setup
 
 ### [install ninja](https://github.com/ninja-build/ninja/wiki/Pre-built-Ninja-packages)
 
 ### install the flower binary
 
-two options:
+Two options:
 #### download a static binary
 1. go to https://github.com/jyn514/flower/actions?query=event%3Apush+branch%3Adev+is%3Asuccess
 2. click on the latest successful action
@@ -12,7 +14,7 @@ two options:
 
 #### build from source
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md).
+See [contributing.md](./contributing.md).
 
 ## create your site
 
@@ -22,6 +24,29 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md).
 4. `flower watch`
 
 `flower new` generates the skeleton of a site in the current directory.
-feel free to edit any files it generates.
+Feel free to edit any files it generates.
 
-add your posts in `pages`. for more information, see [the guide](docs/guide.md).
+## write a post
+
+Add your posts in `pages`.
+Flower infers the filetype from the file extension.
+Currently, only `.md` (markdown) and `.html` (HTML) are supported.
+Pages can use the [sunflower template language](./language.md) to embed clojure.
+
+## modify the defaults
+
+Most of flower's defaults can be used as-is without changes.
+One default you will want to modify, however, is `expressions/constants.clj`.
+This contains various constant values that are used in various places through the site.
+Here are the constants for the flower docs themselves, which you can use as an example:
+```
+(def site-title ◊site-title)
+(def site-author ◊site-author)
+(def global-desc site-title)
+(def lang ◊lang)
+```
+
+You likely will also want to change the HTML templates for your pages.
+The default template is `templates/default.html`.
+
+For more information, see [the guide](./guide.md).

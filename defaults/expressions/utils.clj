@@ -79,3 +79,6 @@
         prefix (re-pattern (str "^" quoted))]
     (str/replace-first s prefix "")))
 
+(defn strip-suffix [^String s ^String suffix]
+  (if-not (.endsWith s suffix) s
+    (.substring s 0 (- (count s) (count suffix)))))

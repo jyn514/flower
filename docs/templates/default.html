@@ -20,7 +20,6 @@
       »
       ◊(for [[term tags] (:taxonomies frontmatter)
              :when (= :tags term)
-             ; TODO: oh my godddd this is a bug lmao
              tag tags])«
         • <a href="/tags/◊tag">◊tag</a>
       »
@@ -35,13 +34,6 @@
 
   ◊(if-let [depth (-> frontmatter :extra :toc)])«
     <flower-toc depth=◊depth />
-  »
-  ◊(if-let [part (->> frontmatter :taxonomies (filter #(= "computer-of-the-future" (first %))) second)])«
-  <p>This post is part ◊part of a multi-part series called <a href="/computer-of-the-future">“the computer of the next 200 years”</a>.</p>
-    ◊(if (-> frontmatter :extra :stub))«
-    <p>This post is as-yet unfinished.</p>
-    »
-  <hr>
   »
 
   <div class="post-content" itemprop="articleBody">

@@ -8,6 +8,10 @@
 
 ; VFS
 
+(defn always-materialize? [path]
+  (or (some #{path} #{"flower.edn" "expressions/constants.clj"})
+      (some #{(-> path fs/components first str)} #{"pages" "templates" "static"})))
+
 ; TODO: configurable build-dir
 (defn defaults-path [relative]
   (fs/path *site* ".build" "defaults" relative))
@@ -16,8 +20,7 @@
   "Different from defaults-path because some files are never in .build.
    Different from path-considering-vfs because it doesn't look at files on disk to make a decision."
    [rel]
-   (if (or (some #{rel} #{"flower.edn" "expressions/constants.clj"})
-           (some #{(-> rel fs/components first str)} #{"pages" "templates" "static"}))
+   (if (always-materialize? rel)
      (fs/path *site* rel)
      (defaults-path rel)))
 

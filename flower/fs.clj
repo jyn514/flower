@@ -2,9 +2,10 @@
   (:require
    [babashka.fs :as fs]
    [clojure.set :refer [union]]
-   [flower.utils :refer [remove-parent]]
-   [flower.defaults :refer [defaults-path path-considering-vfs]]
-   [flower.reflect :as reflect :refer [*dependencies*]]))
+   [flower.defaults :refer [always-materialize? defaults-path
+                            path-considering-vfs]]
+   [flower.reflect :as reflect :refer [*dependencies*]]
+   [flower.utils :refer [remove-parent]]))
 
 (defn- id-map [vals]
   (into {} (map (juxt identity identity) vals)))
@@ -17,7 +18,10 @@
   ([root pattern {:keys [no-vfs] :as opts}]
    (let [real-opts (dissoc opts :no-vfs)
          real-paths (fs/glob root pattern real-opts)
-         vfs-paths (if no-vfs [] (fs/glob (defaults-path root) pattern real-opts))
+         vfs-root (defaults-path root)
+         vfs-paths (if no-vfs []
+                     (remove #(always-materialize? (remove-parent % 2))
+                             (fs/glob vfs-root pattern real-opts)))
          ; we do this weird map thing so that we override defaults with real paths
          relative-paths (merge (defaults-map vfs-paths) (id-map real-paths))
          faked-paths (keys relative-paths)

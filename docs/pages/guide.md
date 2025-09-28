@@ -1,6 +1,8 @@
 ---
 preprocessors: []
 ---
+## intro
+
 the smallest flower site is simply a markdown file with your content:
 ```
 $ cat pages/look-ma-new-SSG.md
@@ -16,18 +18,20 @@ you probably want to customize your site, though. a simple flower site could loo
 $ tree
 .
 ├── expressions
-│   └── kbd.clj
+│   └── constants.clj
+├── flower.edn
 ├── pages
 │   └── look-ma-new-site.md
-├── transformers
-│   └── title.clj
-├── sass
-│   └── minima.scss
+├── README.md
 ├── static
-│   └── favicon.jpg
+│   ├── main.css
+│   └── main.js
 └── templates
-    ├── index.html
-    └── page.html
+    ├── base.html
+    ├── default.html
+    ├── main.html
+    ├── redirect.html
+    └── skeleton.html
 ```
 
 ### kinds of files
