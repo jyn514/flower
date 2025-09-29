@@ -64,15 +64,13 @@ flower is different from a normal clojure project because it has to think much m
 - runtime in a Graal native binary. Runs on the target machine, which may be different than the host machine. Be careful about platform-specific code.
 - bound into an SCI interpreted environment. In this environment, *host* code can use any functions they like (please track your file dependencies!), but *guest* code can only use functions bound into the SCI context.
   - Additionally, creating an SCI context needs to consider order of initialization. For example, the following code is wrong:
-
-```clj
-(declare my-fn)
-(def cx (sci/init {:bindings 'my-fn my-fn}))
-(defn my-fn [] true)
-```
-
-This binds an uninitialized `nil` value into the SCI guest.
-The correct thing is to switch the order of `my-fn` and `def cx`, or if that's not possible, turn `cx` into a `defn` instead of a `def`.
+    ```clj
+    (declare my-fn)
+    (def cx (sci/init {:bindings 'my-fn my-fn}))
+    (defn my-fn [] true)
+    ```
+    This binds an uninitialized `nil` value into the SCI guest.
+    The correct thing is to switch the order of `my-fn` and `def cx`, or if that's not possible, turn `cx` into a `defn` instead of a `def`.
 - live-reloaded from a test function. This is the environment we have the least control over; be careful.
     - If you need to depend on a global `^:dynamic` variable from a `def`, make sure to bind it in `tests.edn:bindings`.
     - If you load any guest code in `defaults/`, make sure it obeys normal clojure rules, not the relaxed rules in the guest environment. For example, it must replace `-` in file names with `_`, and all files must have a correct `ns` directive.

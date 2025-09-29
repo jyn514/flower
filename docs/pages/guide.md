@@ -45,7 +45,7 @@ it also comes with some default custom commands, such as compiling Sass to CSS a
 
 let's look at them one at a time.
 #### pages
-"look-ma-new-site.md" is a "page", like most other SSGs. it can contain metadata as frontmatter:
+`look-ma-new-site.md` is a "page", like most other SSGs. it can contain metadata as frontmatter:
 ```
 ---
 description: how i built a new site using flower

@@ -39,11 +39,11 @@ Most of flower's defaults can be used as-is without changes.
 One default you will want to modify, however, is `expressions/constants.clj`.
 This contains various constant values that are used in various places through the site.
 Here are the constants for the flower docs themselves, which you can use as an example:
-```
-(def site-title ◊site-title)
-(def site-author ◊site-author)
-(def global-desc site-title)
-(def lang ◊lang)
+```clj
+(def site-title ◊(pr-str site-title))
+(def site-author ◊(pr-str site-author))
+(def global-desc ◊(pr-str site-title))
+(def lang ◊(pr-str lang))
 ```
 
 You likely will also want to change the HTML templates for your pages.

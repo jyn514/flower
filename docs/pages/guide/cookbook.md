@@ -1,3 +1,6 @@
+---
+preprocessors: []
+---
 Common things you may want to do with flower:
 
 Change the site title
@@ -8,15 +11,19 @@ Add `(def site-title "my-title")` to `expressions/constants.clj`.
 Use a custom order for your pages
 -----
 
-In index.html (or wherever you put your index page), pass a custom comparator into `categorize`:
+In index.html (or wherever you put your index page), pass a custom sorter into `categorize`:
 ```clj
-<ul class="post-list">◊◊(for [post (:main-posts (categorize pages custom-sort))])«
+<ul class="post-list">◊(for [post (:main-posts (categorize pages custom-sort))])«
  <!-- ... -->
 »</ul>
 ```
 
 Here is a sample custom comparator which uses a hard-coded order:
-
+```clj
+◊(require '[expressions.pages :refer [categorize sort-by-constant-name]])
+◊(def page-order ["quickstart" "syntax" "language"])
+◊(categorize pages #(sort-by-constant-name % page-order))
+```
 
 Override only a single function from a clojure defaults file
 --------

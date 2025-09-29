@@ -19,7 +19,7 @@ Almost all of flower is defined in `expressions/default-build.clj`. You can thin
 
 `jyn.dev` is built using flower, and developed in tandem.
 It has a custom command to rebuild flower on changes that looks like so (simplified):
-```
+```clj
 (require '[expressions.default-build :as builder])
 (def plan
   {:phony [{:name "flower" :depends "target/flower"}]

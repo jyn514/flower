@@ -12,10 +12,10 @@ Flower is a [static site generator](https://en.wikipedia.org/wiki/Static_site_ge
 It comes with good defaults that allow you to get started quickly with minimum boilerplate, but scales to projects of great size and complexity without having to rewrite your code. It is extensible, pluggable, and extremely configurable—because all the code is exposed to you the creator.
 
 Flower’s guiding principles are:
-1. It’s your site, you should control what’s on it.
-2. Power comes from structure, not expressiveness.
+1. [It’s your site, you should control what’s on it](#what-does-flower-do-differently?).
+2. [Power comes from structure, not expressiveness](https://buttondown.com/hillelwayne/archive/the-capability-tractability-tradeoff/).
 3. Prefer composing tools to monoliths.
-4. Make the obvious thing the correct one.
+4. [Make the obvious thing the correct one](./language.md#filesystem-api).
 
 ## What does flower do differently?
 
