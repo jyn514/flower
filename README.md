@@ -13,8 +13,18 @@ flower’s guiding principles are:
 2. power comes from structure, not expressiveness.
 3. prefer composing tools to monoliths.
 4. make the obvious thing the correct one.
+
+## why should I use flower?
+
+Unlike other static site generators, flower is implemented almost completely in "user-space".
+Nearly any part of the site can be overriden.
+You can have custom commands, define custom syntax highlighting, use custom markup languages or template languages, or define your own site structure that I did not anticipate.
+At almost every level, I have tried to avoid restricting what is possible to do with flower: to make simple things easy, and hard things possible.
+
+For more information, see [the flower docs site](./docs/pages/index.md).
+
 ## language overview
-this is just a quick tour of the language. for more info, see [the language intro](docs/language.md).
+this is just a quick tour of the language. for more info, see [the language intro](docs/pages/language.md).
 
 the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
 ```html
@@ -28,7 +38,7 @@ the escape character is `◊`. `◊(func args)` calls a function and emits the r
  »
  ◊(embed "page.html" {'body body})
 ```
-see [syntax](./docs/syntax.md) for how to type the escape characters.
+see [syntax](./docs/pages/syntax.md) for how to type the escape characters.
 ## features
 
 all the basics [^1]:
@@ -71,7 +81,7 @@ folks the reviews for my new ssg are in
 
 ## quick start
 
-See [the quickstart docs](docs/quickstart.md).
+See [the quickstart docs](docs/pages/quickstart.md).
 
 ## contributing
 
@@ -80,7 +90,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## guide
 
 This readme is very brief, because there is a lot to cover.
-For a more in-depth explanation, with many examples, see [the guide](docs/guide.md).
+For a more in-depth explanation, with many examples, see [the guide](docs/pages/guide.md).
 
 ---
 # FAQ
