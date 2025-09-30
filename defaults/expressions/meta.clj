@@ -16,15 +16,17 @@
 
 (defn embed
   "Given a template and its local variables, render that template."
-  [template-name locals]
-  (let [content (template template-name)
-        path (str "templates/" template-name)
-        data (preprocess-file content path locals)]
-    data))
+  ([template-name locals] (embed template-name locals {}))
+  ([template-name locals opts]
+   (let [content (template template-name)
+         path (str "templates/" template-name)
+         data (preprocess-file content path locals opts)]
+     data)))
 
 (defn include
   "Render an external template or page to a string"
-  [filename] (embed filename {}))
+  ([filename] (embed filename {}))
+  ([filename opts] (embed filename {} opts)))
 
 (defn hash
   "Calculate the SHA256 hash of a file."

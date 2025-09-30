@@ -1,32 +1,72 @@
-# flower: an SSG that's a library, not a framework
+# `flower`: a static site generator that grows with you
+
+Stop procrastinating, start writing.
+`flower` gives you good defaults without sacrificing extensibility.
+It scales up all the way from a tiny site with a single markdown file all the way to custom build commands, custom syntax highlighters, pluggable template languages, and complicated site structures.
+
+You can get started writing right away without spending hours getting set up, and without worrying about whether your SSG will still meet your needs in a year.
+
+`flower` is for programmers who are tired of working with SSG's that give you a 'fake' language and sharply restrict what you can build, in ways that you don't realize until you've used the tool for weeks.
+
+`flower`’s guiding principles are:
+1. [It’s your site, you should control what’s on it](https://jyn.dev/operators-not-users-and-programmers/).
+2. [Power comes from structure, not expressiveness](https://buttondown.com/hillelwayne/archive/the-capability-tractability-tradeoff/).
+3. [Make the obvious thing the correct one](./language.md#filesystem-api).
 
 **NOTE: still in pre-alpha, blog post forthcoming**
 
-**NOTE: flower lives on [Codeberg](https://codeberg.org/jyn514/flower) now. Github is a read-only mirror.**
+**NOTE: `flower` lives on [Codeberg](https://codeberg.org/jyn514/flower) now. Github is a read-only mirror.**
+## how does `flower` do that?
 
-`flower` is currently EXTREMELY ROUGH. this is mostly public so i can show it to people and as a tech demo.
-## what is flower?
-flower is a static site generator that is a library, not a framework. it comes with good defaults that allow you to get started quickly with minimum boilerplate, but scales to projects of great size and complexity without having to rewrite your code. it is extensible, pluggable, and extremely configurable—because all the code is exposed to you the creator.
+Unlike other static site generators, `flower` is implemented almost completely in "user-space".
+Almost everything is part of the "default site", not the `flower` binary itself.
+As a result, nearly any part of the site can be overriden, and you get a real programming language without having to install a new language toolchain.
+At almost every level, I have tried to avoid restricting what is possible to do with `flower`: to make simple things easy, and hard things possible.
 
-flower’s guiding principles are:
-1. it’s your site, you should control what’s on it.
-2. power comes from structure, not expressiveness.
-3. prefer composing tools to monoliths.
-4. make the obvious thing the correct one.
+For more information, see [the `flower` docs site](./docs/pages/index.md#learn-more-about-flower).
 
-## why should I use flower?
+## features
 
-Unlike other static site generators, flower is implemented almost completely in "user-space".
-Nearly any part of the site can be overriden.
-You can have custom commands, define custom syntax highlighting, use custom markup languages or template languages, or define your own site structure that I did not anticipate.
-At almost every level, I have tried to avoid restricting what is possible to do with flower: to make simple things easy, and hard things possible.
+all the basics:
 
-For more information, see [the flower docs site](./docs/pages/index.md).
+- static binaries
+- templates
+- live-reload
+- extremely fast builds
+- RSS feed support
+- syntax highlighting [^1]
 
-## language overview
-this is just a quick tour of the language. for more info, see [the language intro](docs/pages/language.md).
+[^1]: syntax highlighting is a [work in progress](https://codeberg.org/jyn514/flower/issues/22) and currently requires `pygmentize` to be installed.
 
-the escape character is `◊`. `◊(func args)` calls a function and emits the return value into the template. `◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. template embedding and includes are done with clojure function calls.
+all the features you'd expect from a programming language:
+
+- println debugging
+- real stack traces ([example](#example-stacktrace))
+- a REPL so you can try things out easily
+- a real programming language (clojure) as a template language. the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
+- use any markup language you like. asciidoc ([TODO][todo-asciidoc]) and markdown are supported by default. other languages are pluggable.
+
+[todo-asciidoc]: https://codeberg.org/jyn514/flower/issues/37
+
+and some weird ones:
+
+- support for arbitrary build commands through [ninja build files](#why-ninja?)
+- import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
+- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings.
+- choose your own preprocessor language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- [WIP](https://codeberg.org/jyn514/flower/issues/55)
+- choose your own libraries. instead of "macros" and "shortcodes", `flower` gives you real functions, which can be in either clojure or a language of your choosing -- [TODO](https://codeberg.org/jyn514/flower/issues/31)
+- render individual files at a time. this allows you to wrap `flower` in an external build system and reuse its caching.
+
+## template language overview
+This is just a quick tour of the language. For more info, see [the language intro](docs/pages/language.md).
+
+The escape character is `◊` (pronounced "diamond") [^2].
+See [syntax](./docs/pages/syntax.md) for how to type it.
+`◊(func args)` calls a function and emits the return value into the template.
+`◊x` emits the  variable `x` into the template. `◊(func args)«body»` allows nesting markup inside a function call. Template embedding and includes are done with clojure function calls.
+
+[^2]: Unicode refers to ◊ as a "Lozenge". IMO this is confusing, most people are not familiar with that definition of a lozenge. Furthermore, unicode 'diamonds' (◇) aren't typable by default on macOS.
+
 ```html
 ◊(def body)«
  <div class="trigger">
@@ -38,37 +78,6 @@ the escape character is `◊`. `◊(func args)` calls a function and emits the r
  »
  ◊(embed "page.html" {'body body})
 ```
-see [syntax](./docs/pages/syntax.md) for how to type the escape characters.
-## features
-
-all the basics [^1]:
-
-- static binaries
-- live-reload
-- extremely fast builds
-- RSS feed support
-
-[^1]: syntax highlighting is a [work in progress](https://codeberg.org/jyn514/flower/issues/22)
-
-things it’s weird other SSGs don’t support:
-
-- println debugging
-- real stack traces ([example](#example-stacktrace))
-- a REPL so you can try things out easily
-- a real programming language (clojure). the same language is used throughout. “macros” are not different from “shortcodes” and “variables”.
-- use any markup language you like. asciidoc ([TODO][todo-asciidoc]) and markdown are supported by default. other languages are pluggable.
-
-[todo-asciidoc]: https://codeberg.org/jyn514/flower/issues/37
-
-and some weird ones:
-
-- support for arbitrary build commands
-- import your existing site; no changes to templates or content needed to serve the same site (some amount of configuration necessary).
-- post-process generated HTML based on CSS selectors. for example, create your own table of contents, or parse the `<title>` tag out of the pages headings. -- VERY WIP
-- choose your own preprocessor language. you are not tied to the built-in template language; you can even use two different languages for the inline preprocessing and your templates. -- [TODO](https://codeberg.org/jyn514/flower/issues/55)
-- choose your own libraries. instead of "macros" and "shortcodes", flower gives you real functions, which can be in either clojure or a language of your choosing -- [TODO](https://codeberg.org/jyn514/flower/issues/31)
-- render individual files at a time. this allows you to wrap flower in an external build system and reuse its caching.
-
 ## testimonials
 
 folks the reviews for my new ssg are in
@@ -105,16 +114,16 @@ because all the others are a pain to use.
 - pollen is mostly unmaintained
 - "just hack something together yourself" distracts you from actually writing your blog posts, and doesn't get you nice things like hot-reload and an RSS feed
 
-flower is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
+`flower` is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
 
-additionally, flower is meant to be a demonstration of what it looks like to build [software that unifies users and programmers][operators].
+additionally, `flower` is meant to be a demonstration of what it looks like to build [software that unifies users and programmers][operators].
 
 [operators]: https://jyn.dev/operators-not-users-and-programmers/
 
 ## why ninja?
 
 several reasons:
-- ninja exposes reflection capabilities via `ninja query`, allowing flower to get a list of output files that is based on build.ninja, without having to calculate dependency graphs itself.
+- ninja exposes reflection capabilities via `ninja query`, allowing `flower` to get a list of output files that is based on build.ninja, without having to calculate dependency graphs itself.
 - ninja is concise, fully general, and not tied to a specific language ecosystem.
 - separating rules (edges) from dependencies (nodes) allows extending it at runtime with custom build rules.
 - the language is sharply and intentionally restricted. put your complicated trickery in your templates and meta-build code, not in the build system.
@@ -142,7 +151,7 @@ as a bonus, JVM langs can interop well, which means it was easy to lean on the J
 ## why a "meta-build" system instead of something simpler?
 because if i'm going to be insane enough to write my own SSG, i want it to be one that i don't rip up and throw away in a year. that means it has to be extensible *and* not break *and* be easy enough to import that i don't spend a bunch of time rewriting things away from jinja again.
 
-## flower has lots of weird ideas! where did they all come from?
+## `flower` has lots of weird ideas! where did they all come from?
 - the template syntax is heavily based on [pollen] and refined through conversations with friends and real bugs i ran into while porting jyn.dev.
 - transformers are based on [soupault] (but i didn't like the enormous amounts of configuration required, so i give you a real language for running transformers).
 - dynamic runtime tracking of file IO was heavily based on the syscall tracking i write about in [complected and orthogonal persistence], which was inspired by many many conversations with [@edef].
@@ -157,16 +166,16 @@ because if i'm going to be insane enough to write my own SSG, i want it to be on
 [@edef]: https://github.com/sponsors/edef1c
 [petal]: https://codeberg.org/jyn514/flower/issues/20
 
-## the way you talk about flower doesn't sound like it's an SSG ....
+## the way you talk about `flower` doesn't sound like it's an SSG ....
 
-i think of flower as **a build system masquerading as a static site generator**.
+i think of `flower` as **a build system masquerading as a static site generator**.
 if you take away the trappings (CSS, RSS, the static file server) you are left with a general purpose applicative build system configured in clojure.
 you could—and in fact, i probably will at some point—separate out the build system into a reusable library useful for other projects.
 
 notably, this build system has some nice properties not found in other systems to my knowledge:
-- like Make, flower is simple to use for simple applications. Unlike Make, flower is a serious build system.
+- like Make, `flower` is simple to use for simple applications. Unlike Make, flower is a serious build system.
 - like CMake and Meson, the build code is clearly separated from the generated build plan. Unlike CMake, it does not have 25 years of back-compat concerns.
-- like Bazel, you get a real language in which to generate the build plan. Unlike Bazel, flower is designed to be wrapped in a larger build system.
+- like Bazel, you get a real language in which to generate the build plan. Unlike Bazel, `flower` is designed to be wrapped in a larger build system.
 - like Tup, you get runtime dependency tracking of file accesses, including for the build code itself. Unlike Tup, dependency tracking is cross-platform.
 - like Cargo, many things are defined "out of the box" and don't require extensive configuration. Unlike Cargo, you have escape hatches for complicated things.
 

@@ -98,6 +98,8 @@
     "java.util.List"
     "java.util.regex.Pattern"
     "java.net.URI"
+    "java.net.URLEncoder"
+    "java.nio.charset.StandardCharsets"
     "clojure.lang.PersistentVector"
     "org.jsoup.Jsoup"
     "org.jsoup.select.Elements"

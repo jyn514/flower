@@ -1,12 +1,13 @@
 (ns transformers.md-html-links 
   "Transform relative .md links in pages into .html links."
   (:require
-    [clojure.string :as str]
-    [expressions.html :refer :all]
-    [expressions.utils :refer [remove-parent]]
-    [flower.locals :refer [pages]])
+   [clojure.string :as str]
+   [expressions.html :refer :all]
+   [expressions.utils :refer [remove-parent]]
+   [flower.locals :refer [pages]])
   (:import
-    java.net.URI))
+   [java.net URI URISyntaxException URLEncoder]
+   java.nio.charset.StandardCharsets))
 
 (defn with-path [uri new-path]
   (URI.
@@ -18,8 +19,11 @@
     (.getQuery uri)
     (.getFragment uri)))
 
+(defn encode [path]
+   (URLEncoder/encode path (StandardCharsets/UTF_8)))
+
 (defn normalize [rel all-srcs]
-  (let [parsed (URI. rel)
+  (let [parsed (try (URI. rel) (catch URISyntaxException _ (URI. (encode rel))))
         normalized (some-> parsed .getPath (str/replace #"^\./" ""))]
     (when (and (not (.getScheme parsed))
                (str/ends-with? normalized ".md")

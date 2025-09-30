@@ -125,7 +125,7 @@
 ; (defn print-trace [ex]
 ;   (repl/print-trace ex false))
 
-(declare preprocess-sunflower preprocess-sunflower)
+(declare preprocess-sunflower)
 ; needs to be a function, otherwise preprocess-file won't be bound
 (defn sci-defaults []
   {
@@ -173,7 +173,10 @@
    :classes {'java.lang.StringBuilder java.lang.StringBuilder
              'java.util.List java.util.List
              'java.util.regex.Pattern java.util.regex.Pattern
+             'java.nio.charset.StandardCharsets java.nio.charset.StandardCharsets
+             'java.net.URLEncoder java.net.URLEncoder
              'java.net.URI java.net.URI
+             'java.net.URISyntaxException java.net.URISyntaxException
              'clojure.lang.PersistentVector clojure.lang.PersistentVector
              'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
              'java.time.OffsetDateTime 'java.time.OffsetDateTime

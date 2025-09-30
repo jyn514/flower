@@ -2,9 +2,7 @@
   (:require [hiccup2.core :as hiccup]
             [nextjournal.markdown :as md]))
 
-(declare renderers)
-
-(defn render-chunk [ast]
+(defn- render-chunk [ast renderers]
   (md/->hiccup renderers ast))
 
 ; <footer class="footnotes">
@@ -12,7 +10,7 @@
 ; <li id="fn-1">
 ; <p> 
 ; <a href="#fr-3-1">↩
-(defn trans-footnote [cx note]
+(defn- trans-footnote [cx note]
   ; NOTE: we ignore :label for now
   (let [arrow [:span " " [:a {:href (str "#fr-" (:ref note))} "↩"]]
                   ; NOTE: doesn't allow multiple refs to the same footnote
@@ -22,20 +20,22 @@
   [:sup.footnote-reference {:id (str "fr-" (:ref node))}
    [:a {:href (str "#fn-" (:ref node))} (:label node)]])
 
-(def renderers 
+(def default-renderers 
   (assoc md/default-hiccup-renderers
          :footnote trans-footnote
          :footnote-ref trans-footnote-ref
          :html-inline (comp hiccup/raw md/node->text)
          :html-block (comp hiccup/raw md/node->text)))
 
-(defn render-md [src]
+(defn render-md
+  ([src] (render-md src default-renderers))
+  ([src renderers]
   (let [parsed (md/parse src)
-        footnotes (map render-chunk (:footnotes parsed))
-        rendered (render-chunk parsed)
+        footnotes (map #(render-chunk % renderers) (:footnotes parsed))
+        rendered (render-chunk parsed renderers)
         footnote-wrapper [[:hr] [:footer.footnotes [:ol.footnotes-list footnotes]]]
         combined (if (seq footnotes) (into rendered footnote-wrapper) rendered)]
-    (str (hiccup/html combined))))
+    (str (hiccup/html combined)))))
 
 (defn transform [{page :content meta :frontmatter :as args}]
   (if (= "md" (:flower/filetype meta))
