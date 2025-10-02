@@ -34,8 +34,8 @@
   </button></aside>
   »
 
-  ◊(if-let [depth (-> frontmatter :extra :toc)])«
-    <flower-toc depth=◊depth />
+  ◊(if-let [depth (-> frontmatter :toc)])«
+    <flower-toc depth=◊depth></flower-toc>
   »
 
   <div class="post-content" itemprop="articleBody">

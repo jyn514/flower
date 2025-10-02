@@ -12,7 +12,7 @@
 
 (defn inspect 
   "Debugging. Prints its argument and returns it."
-  [x] (println x) x)
+  [x] (prn x) x)
 
 (defn split-all [f seq]
   [(filter f seq) (filter #(not (f %)) seq)])

@@ -12,20 +12,22 @@
    (org.jsoup.parser Parser)
    (org.jsoup.select Elements)))
 
-(declare after!)
-
 ; TODO: a bunch of these functions make sense on Elements, not just Element
 ; — maybe allow that?
 
-(defn- is-root [doc]
-  (let [fragment (if-not (string? doc) doc
-                   (Jsoup/parse (str/triml doc) "" (Parser/xmlParser)))
-        root (some-> fragment .ownerDocument .firstChild .nodeName)]
-    (or (instance? XmlDeclaration root) 
-        (boolean (some #{root} ["html" "#doctype"])))))
+(defn- tag-root? [element]
+  (let [tag (.nodeName element)]
+    (or (instance? XmlDeclaration tag) 
+        (some #{tag} ["html" "#doctype"]))))
+
+(defn- document-root? [doc]
+  (if-not (string? doc) (tag-root? doc)
+    (let [fragment (Jsoup/parse (str/triml doc) "" (Parser/xmlParser))
+          root (some-> fragment .ownerDocument .firstChild)]
+      (tag-root? root))))
 
 (defn ->element
-  "Convert an HTML string into a parsed HTML Element"
+  "Convert an HTML string into a parsed HTML Element (or list of Elements)"
   [doc]
   (if-not (string? doc) doc
     ; we want to preserve the html exactly as written.
@@ -44,7 +46,10 @@
     ; TODO: https://codeberg.org/jyn514/flower/issues/23
     (let [stripped (str/trim doc)
           html (Jsoup/parse stripped)]
-      (if (is-root stripped) html  (.body html)))))
+      (if (document-root? stripped) html
+        (let [children (-> html .body .children)]
+          (if (= 1 (count children)) (first children)
+            children))))))
 
 (defn document
   "Given an HTML element, get the root document element.
@@ -56,6 +61,11 @@
   "Given an HTML document and a CSS selector, return a `org.jsoup.nodes.Elements` of matching elements"
   [doc ^String selector]
   (.select (->element doc) selector))
+
+(defn tag
+  "Given an HTML element, return the tag name."
+  [e]
+  (.nodeName e))
 
 (defn text-content
   "Given an HTML Element, return the normalized, combined text
@@ -86,19 +96,19 @@
    replace the element with the new document."
   [node re]
   (let [parsed (->element re)
-        node (if (is-root parsed) (document node) node)]
+        node (if (document-root? parsed) (document node) node)]
     (.replaceWith node parsed)
-    (when (is-root parsed)
+    (when (document-root? parsed)
       ; replaceWith normalizes away <!doctype> >:(
       (.prependChild (.ownerDocument parsed)
                      (org.jsoup.nodes.DocumentType. "html" "" "")))))
 
 
-; after before append prepend attrs set-attr remove-attr remove replace-with
+; TODO: before prepend remove
 
 ; TODO: this only works on a list of elements lol, make it work on an individual Element too
 (defn append! [node html] (Elements/.append node (str html)))
-(defn  after! [node html] (Element/.after node (str html)))
+(defn  after! [node html] (Element/.after   node (str html)))
 
 (defn attrs
   "Given an HTML Element, return its attributes as a clojure map from keyword to string.
