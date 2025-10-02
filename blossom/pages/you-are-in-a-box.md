@@ -6,8 +6,7 @@ taxonomies:
  tags: ["ideas"]
 computer-of-the-future:
   principles: 1
-extra:
-  toc: 3
+toc: 3
 #  audience: "everyone"
 #  unlisted: true
 #  stub: true

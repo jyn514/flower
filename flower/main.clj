@@ -265,8 +265,7 @@
   (alter-var-root (var *cmd*) (constantly (str " " cmd-name)))
   (binding [*site* (or (get-in args [:opts :C]) ".")
             flower.unsafe/*drop-bomb* false ; for `repl`
-            flower.reflect/*watching* (boolean (or (= "watch" *cmd*)
-                                                   (env "FLOWER_WATCH")))]
+            flower.reflect/*watch-port* (env "FLOWER_WATCH")]
     (cmd-fn args)))
 
   ; this is a really really stupid CLI parser that only handles global options and subcommands

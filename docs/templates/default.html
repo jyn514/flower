@@ -14,10 +14,10 @@
       <time datetime="◊(:date frontmatter)" itemprop="datePublished">
         ◊(:date frontmatter)
       </time>
-      ◊(if-let [a (:author frontmatter)])«
+      ◊(when-let [a (:author frontmatter)])«
         • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">◊a</span></span>
       »
-      ◊(if-let [aud (-> frontmatter :extra :audience)])«
+      ◊(when-let [aud (-> frontmatter :extra :audience)])«
         • audience—◊aud
       »
       ◊(for [[term tags] (:taxonomies frontmatter)
@@ -28,13 +28,13 @@
     </p>
   </header>
 
-  ◊(if (or (:draft frontmatter) (-> frontmatter :extra :draft)))«
+  ◊(when (or (:draft frontmatter) (-> frontmatter :extra :draft)))«
   <aside class=secret><button class=close aria-label=Close title="Click here to dismiss">
     <strong>This is a draft post.</strong>
   </button></aside>
   »
 
-  ◊(if-let [depth (-> frontmatter :toc)])«
+  ◊(when-let [depth (-> frontmatter :toc)])«
     <flower-toc depth=◊depth></flower-toc>
   »
 

@@ -33,8 +33,8 @@
   </button></aside>
   »
 
-  ◊(if-let [depth (-> frontmatter :extra :toc)])«
-    <flower-toc depth=◊depth />
+  ◊(when-let [depth (-> frontmatter :toc)])«
+  <flower-toc depth=◊depth></flower-toc>
   »
   ◊(if-let [part (->> frontmatter :taxonomies (filter #(= "computer-of-the-future" (first %))) second)])«
   <p>This post is part ◊part of a multi-part series called <a href="/computer-of-the-future">“the computer of the next 200 years”</a>.</p>

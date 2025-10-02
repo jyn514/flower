@@ -3,17 +3,19 @@
 
 (ns flower.watch
   (:use flower.utils)
-  (:import [java.util Timer TimerTask])
   (:require
    [babashka.fs :as fs]
    [clojure.data.json :as json]
    [clojure.java.io :as io]
    [clojure.stacktrace]
    [clojure.string :as str]
-   [flower.http-server :as http-server]
-   [flower.spectacle :as spectacle]
    [flower.cmd :as cmd]
-   [org.httpkit.server :as wss]))
+   [flower.http-server :as http-server]
+   [flower.reflect :as reflect]
+   [flower.spectacle :as spectacle]
+   [org.httpkit.server :as wss])
+  (:import
+   [java.util Timer TimerTask]))
 
 ; file watcher
 
@@ -110,10 +112,11 @@
 
 (defn live-reload
   [& {:keys [dir port period]}]
+  ; Do this first so we don't spawn a bunch of file watchers as we retry ports.
+  (wss/run-server handler {:port port})
   (watch-files #(on-output-change (assoc % :build-dir (fs/real-path dir)))
                [(fs/file-name dir)]
-               {:period period :recursive true})
-  (wss/run-server handler {:port port}))
+               {:period period :recursive true}))
 
 ; http-server
 ;
@@ -132,7 +135,7 @@
 
 ; ninja file watcher
 
-(defn rerun-ninja [opts {:keys [kind path]}]
+(defn rerun-ninja [opts {:keys [kind path port]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
   (when path (println kind (str path)))
   ; ninja can't handle file deletes. generate a new build plan for it.
@@ -140,7 +143,7 @@
   ; you can get a list with `ninja -t query`
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
   (when (= :delete type) (cmd/run-configure opts))
-  (run-non-fatal {:extra-env {"FLOWER_WATCH" "1"}} "ninja"))
+  (run-non-fatal {:extra-env {"FLOWER_WATCH" port}} "ninja"))
 
 (defn watch-ninja [opts debounce]
   ; TODO: decide whether to interrupt ninja on changes
@@ -164,28 +167,43 @@
     (future (rerun-ninja opts {}))
     watcher))
 
+(defn find-port [f default-port {:as opts :keys [port]}]
+  (if port
+    (do (f opts)  ; if specified explicitly, give a hard error if we can't bind
+        port)
+    ; otherwise, keep trying until we find an available port
+    (try (f (assoc opts :port default-port))
+         default-port
+         (catch java.net.BindException err
+           (warn "failed to bind on port" (str default-port ":") err)
+           (find-port f (inc default-port) opts)))))
+
 ; api
 
 ; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
 (defn watch
-  [& {:keys [port out-dir debounce-period]
-      :or {port 8090
-           out-dir "public"
+  [& {:keys [port live-reload-port out-dir debounce-period]
+      :or {out-dir "public"
            ; ms
            debounce-period 100}
       :as opts}]
-  (println "Run `flower configure`")
-  (cmd/run-configure opts)
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
   ; prints out its own progress info
-  (http-server/serve {:dir out-dir :port port})
-  (println "Starting live reload watcher for" (str out-dir "/"))
-  (live-reload {:dir out-dir :port 35729 :period debounce-period})
-  ; Run this last since ninja emits its own output
-  (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
-           "with debounce period" debounce-period)
-  (watch-ninja opts debounce-period)
+  (find-port http-server/serve 8090 {:dir out-dir :port port})
+  (print "Starting live reload watcher for" (str out-dir "/") "... ")
+  (flush)
+  (let [reload-port (find-port live-reload 35729
+                               {:dir out-dir :port live-reload-port :period debounce-period})]
+    (println "\rStarted live reload watcher for" (str out-dir "/")
+             "on" (str "http://localhost:" reload-port))
+    (println "Run `flower configure`")
+    (binding [reflect/*watch-port* reload-port]
+      (cmd/run-configure opts))
+    ; Run this last since ninja emits its own output
+    (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
+             "with debounce period" debounce-period)
+    (watch-ninja (assoc opts :port reload-port) debounce-period))
   ; Block forever
   @(promise))
 

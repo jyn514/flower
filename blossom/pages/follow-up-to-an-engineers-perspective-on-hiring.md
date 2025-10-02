@@ -2,6 +2,7 @@
 title: "follow up to \"an engineer's perspective on hiring\""
 date: 2025-08-12
 draft: true
+toc: 2
 #description: ""
 taxonomies:
   tags: [ideas, hiring]
@@ -9,7 +10,6 @@ extra:
   draft: true
 #  category: "tools"
 #  audience: "everyone"
-  toc: 2
 #  unlisted: true
 #  stub: true
 ---

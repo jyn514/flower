@@ -11,9 +11,9 @@
 
 (def ^:dynamic *dependencies* "not for public use; see flower.fs and flower.unsafe" #{})
 (def ^:dynamic *ninja* "not for public use; see write-ninja!" "")
-(def ^:dynamic *watching*
-  "whether the site is being built with 'flower watch'"
-  true) ; TODO update in main
+(def ^:dynamic *watch-port*
+  "Set to a TCP port number when `flower watch` is running."
+  nil) ; TODO update in main
 (def ^:dynamic *metadata*
   "A {:settings {\"name\" string-or-bool} :pages {\"path\" frontmatter-map}} map"
   {})

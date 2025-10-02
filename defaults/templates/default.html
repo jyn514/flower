@@ -1,4 +1,5 @@
 ◊(require '[expressions.pages :refer [title]]
+          '[expressions.utils :refer [inspect]]
           '[expressions.meta  :refer [embed]])
 ◊(def post-body)«
 <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
@@ -7,15 +8,16 @@
     ◊(let [attrs {:class "post-title" :itemprop "name headline"}
            more-attrs (if-let [d (:description frontmatter)]
             (assoc attrs :description d) attrs)]
-      (html [:h1 more-attrs (hiccup.util/raw-string (title frontmatter))]))
+      (when-let [t (title frontmatter)]
+        (html [:h1 more-attrs (hiccup.util/raw-string t)])))
     <p class="post-meta">
       <time datetime="◊(:date frontmatter)" itemprop="datePublished">
         ◊(:date frontmatter)
       </time>
-      ◊(if-let [a (:author frontmatter)])«
+      ◊(when-let [a (:author frontmatter)])«
         • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span itemprop="name">◊a</span></span>
       »
-      ◊(if-let [aud (-> frontmatter :extra :audience)])«
+      ◊(when-let [aud (-> frontmatter :extra :audience)])«
         • audience—◊aud
       »
       ◊(for [[term tags] (:taxonomies frontmatter)
@@ -26,14 +28,14 @@
     </p>
   </header>
 
-  ◊(if (or (:draft frontmatter) (-> frontmatter :extra :draft)))«
+  ◊(when (or (:draft frontmatter) (-> frontmatter :extra :draft)))«
   <aside class=secret><button class=close aria-label=Close title="Click here to dismiss">
     <strong>This is a draft post.</strong>
   </button></aside>
   »
 
-  ◊(if-let [depth (-> frontmatter :extra :toc)])«
-    <flower-toc depth=◊depth />
+  ◊(when-let [depth (-> frontmatter :toc)])«
+    <flower-toc depth=◊depth></flower-toc>
   »
 
   <div class="post-content" itemprop="articleBody">
