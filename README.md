@@ -1,12 +1,11 @@
 # `flower`: a static site generator that grows with you
 
-Stop procrastinating, start writing.
-`flower` gives you good defaults without sacrificing extensibility.
+Stop procrastinating, start writing: `flower` gives you good defaults without sacrificing extensibility.
 It scales up all the way from a tiny site with a single markdown file all the way to custom build commands, custom syntax highlighters, pluggable template languages, and complicated site structures.
 
 You can get started writing right away without spending hours getting set up, and without worrying about whether your SSG will still meet your needs in a year.
 
-`flower` is for programmers who are tired of working with SSG's that give you a 'fake' language and sharply restrict what you can build, in ways that you don't realize until you've used the tool for weeks.
+`flower` is for programmers who are tired of working with SSG's where doing 'complicated' things is like trying to parse HTML in Bash, and where you don't discover what they consider 'complicated' until you've used the tool for weeks.
 
 `flower`’s guiding principles are:
 1. [It’s your site, you should control what’s on it](https://jyn.dev/operators-not-users-and-programmers/).
@@ -57,6 +56,19 @@ and some weird ones:
 - choose your own libraries. instead of "macros" and "shortcodes", `flower` gives you real functions, which can be in either clojure or a language of your choosing -- [TODO](https://codeberg.org/jyn514/flower/issues/31)
 - render individual files at a time. this allows you to wrap `flower` in an external build system and reuse its caching.
 
+## testimonials
+
+folks the reviews for my new ssg are in
+
+> I hate that this is exciting to me. This makes me want to write software.  
+—burned out professional programmer
+
+> you have made a tool i might actually use.  
+—girl who rolls her own crypto
+
+> flower looks so tasty. nom.  
+—catgirl
+
 ## template language overview
 This is just a quick tour of the language. For more info, see [the language intro](docs/pages/language.md).
 
@@ -78,16 +90,6 @@ See [syntax](./docs/pages/syntax.md) for how to type it.
  »
  ◊(embed "page.html" {'body body})
 ```
-## testimonials
-
-folks the reviews for my new ssg are in
-
-> I hate that this is exciting to me. This makes me want to write software.  
-—burned out professional programmer
-
-> you have made a tool i might actually use.  
-—girl who rolls her own crypto
-
 ## quick start
 
 See [the quickstart docs](docs/pages/quickstart.md).
