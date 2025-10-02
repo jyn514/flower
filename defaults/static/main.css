@@ -1,5 +1,6 @@
-/* Dedicated to the public domain by Sam Hocevar under CC0 
- * See https://github.com/LeoColomb/perfectmotherfuckingwebsite/blob/main/fuckingstyle.scss */
+/* Dedicated to the public domain by Sam Hocevar under CC0
+ * See https://github.com/LeoColomb/perfectmotherfuckingwebsite/blob/main/fuckingstyle.scss
+ * Modifications are copyright Jynn Nelson under MIT license */
 body {
   max-width: 650px;
   margin: 40px auto;
@@ -7,13 +8,27 @@ body {
   font: 18px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   color: #444;
 }
+pre, code {
+  overflow-x: auto;
+}
 h1, h2, h3 {
   line-height: 1.2;
+}
+a.flower-anchor::before {
+  margin-left: .2em;
+  content: "¶";
+}
+a:not(hover).flower-anchor {
+  opacity: .18;
+  text-decoration: none;
 }
 @media (prefers-color-scheme: dark) {
   body {
     color: #c9d1d9;
     background: #0d1117;
+  }
+  pre, code {
+    background-color: black;
   }
   a:link {
     color: #58a6ff;

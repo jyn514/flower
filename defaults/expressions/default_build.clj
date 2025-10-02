@@ -118,7 +118,7 @@
   {:rule (if (fs/directory? path) "mkdir" "link")
    :inputs (str (get reflect/all-defaults path path))
    :outputs (/ public (remove-parent path))})
-(def static-builds {:builds (map static->build (fs/glob "static" "**"))})
+(def static-builds {:builds (map static->build (fs/glob "static" "**" {:follow-links true}))})
 
 (defn ^:private base [flower-cli]
   ; NOTE: we can't put lists here, ninja interprets them as literal strings
