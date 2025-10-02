@@ -10,6 +10,14 @@ body {
 h1, h2, h3 {
   line-height: 1.2;
 }
+a.flower-anchor::before {
+  margin-left: .2em;
+  content: "¶";
+}
+a:not(hover).flower-anchor {
+  opacity: .18;
+  text-decoration: none;
+}
 @media (prefers-color-scheme: dark) {
   body {
     color: #c9d1d9;

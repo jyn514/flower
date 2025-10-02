@@ -6,7 +6,7 @@ title: null
   '[nextjournal.markdown :as md]
   '[transformers.markdown :refer [render-md default-renderers]]
   '[expressions.meta :refer [include]]
-  '[expressions.utils :refer [inspect remove-parent]]
+  '[expressions.utils :refer [remove-parent]]
   '[expressions.pages :refer [categorize title sort-by-constant-name]])
 
 ◊(def readme (include "../../README.md" {:preprocessors []}))
@@ -15,7 +15,7 @@ title: null
         docs-page (->> normalized fs/components (take 2) (apply fs/path) str (= "docs/pages"))]
     (if docs-page
       (remove-parent normalized 2)
-      (if (= "CONTRIBUTING.md" (inspect (str normalized)))
+      (if (= "CONTRIBUTING.md" (str normalized))
         "contributing.html"
         href))))
 ◊(defn render-link [cx {:as node :keys [attrs]}]
@@ -77,7 +77,7 @@ title: null
 <!-- If you want to have more categories than "posts", you don't need first-class support: -->
 <!-- every page on a flower site has access to a `pages` metadata struct: -->
 <!-- ```html -->
-<!-- <!-- pages/index.html --> -->
+<!-- <!-- pages/index.html -->
 <!-- <ul>◊◊(for [post pages -->
 <!--            :when (:my-tag post)])« -->
 <!--   <li><a href="◊◊(:flower/path post)">(:title post)</a></li> -->
@@ -94,4 +94,3 @@ title: null
 <!-- Every part of the site is designed to live in "user-space". -->
 <!-- Very very few parts are "reserved" for me as the author of flower; -->
 <!-- almost all of them can be implemented by you as the author of your own site. -->
-<!---->

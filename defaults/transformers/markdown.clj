@@ -1,6 +1,8 @@
 (ns transformers.markdown
-  (:require [hiccup2.core :as hiccup]
-            [nextjournal.markdown :as md]))
+  (:require
+   [expressions.utils :refer [inspect]]
+   [hiccup2.core :as hiccup]
+   [nextjournal.markdown :as md]))
 
 (defn- render-chunk [ast renderers]
   (md/->hiccup renderers ast))
@@ -20,8 +22,14 @@
   [:sup.footnote-reference {:id (str "fr-" (:ref node))}
    [:a {:href (str "#fn-" (:ref node))} (:label node)]])
 
+(defn render-heading
+  [ctx {:as node :keys [attrs]}]
+  (conj ((:heading md/default-hiccup-renderers) ctx node)
+        [:a.flower-anchor {:href (str "#" (:id attrs))}]))
+
 (def default-renderers 
   (assoc md/default-hiccup-renderers
+         :heading render-heading
          :footnote trans-footnote
          :footnote-ref trans-footnote-ref
          :html-inline (comp hiccup/raw md/node->text)
