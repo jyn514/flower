@@ -69,6 +69,12 @@ folks the reviews for my new ssg are in
 > flower looks so tasty. nom.  
 —catgirl
 
+> congrats you have made sub.kt but for ssgs instead of fansubbing  
+—magical girl enthusiast
+
+> i have an extremely cursed question about flower.  
+—law student who wishes lawyers used technology
+
 ## template language overview
 This is just a quick tour of the language. For more info, see [the language intro](docs/pages/language.md).
 
