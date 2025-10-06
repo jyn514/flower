@@ -34,12 +34,13 @@
 (def default-depth 2)
 
 (defn transform
-  [{:keys [content]}]
-  (let [doc (->element content)]
-    (doseq [toc (select doc "flower-toc")
-            :let [unparsed (-> toc attrs :depth)
-                  depth (or (parse-long unparsed)
-                            (do (println "warning: unknown depth" (pr-str unparsed) "for <flower-toc>, assuming" default-depth)
-                                default-depth))]]
-      (replace-with! toc (generate-toc doc depth)))
-    (str doc)))
+  [{:keys [content frontmatter]}]
+  (if-not (= "html" (:flower/filetype frontmatter)) content
+    (let [doc (->element content)]
+      (doseq [toc (select doc "flower-toc")
+              :let [unparsed (-> toc attrs :depth)
+                    depth (or (parse-long unparsed)
+                              (do (println "warning: unknown depth" (pr-str unparsed) "for <flower-toc>, assuming" default-depth)
+                                  default-depth))]]
+        (replace-with! toc (generate-toc doc depth)))
+      (str doc))))

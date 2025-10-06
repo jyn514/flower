@@ -21,10 +21,10 @@
   </head>
   <body>
     ◊content
-    ◊(when flower.reflect/*watching*)«
+    ◊(if-let [port flower.reflect/*watch-port*])«
       <script>document.write('<script src="http://'
       + location.host.split(':')[0]
-      + ':35729/livereload.js"></'
+      + ':◊(pr-str port)/livereload.js"></'
       + 'script>')</script>
     »
   </body>

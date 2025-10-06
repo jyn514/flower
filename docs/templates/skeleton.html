@@ -16,16 +16,15 @@
     <link rel="icon" type="image/x-icon" href="/favicon.jpg?v=◊(hash "static/favicon.js")">
     »
     <link rel="stylesheet" href='/main.css?v=◊(hash "static/main.css")'>
-    <link rel="stylesheet" href='/material-pygments.css?v=◊(hash "static/material-pygments.css")'>
     ◊; NOTE: css lives in base.html, since you might not want it on 404 pages
     ◊(if (resolve 'head) (eval 'head))
   </head>
   <body>
     ◊content
-    ◊(when flower.reflect/*watch-port*)«
+    ◊(if-let [port flower.reflect/*watch-port*])«
       <script>document.write('<script src="http://'
       + location.host.split(':')[0]
-      + ':35729/livereload.js"></'
+      + ':◊(pr-str port)/livereload.js"></'
       + 'script>')</script>
     »
   </body>

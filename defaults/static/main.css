@@ -1,6 +1,14 @@
 /* Dedicated to the public domain by Sam Hocevar under CC0
  * See https://github.com/LeoColomb/perfectmotherfuckingwebsite/blob/main/fuckingstyle.scss
  * Modifications are copyright Jynn Nelson under MIT license */
+
+/* TODO: auto-reload these files when they change
+ * That requires making this a flower page, which is currently broken;
+ * see https://codeberg.org/jyn514/flower/issues/73
+ */
+@import 'material-pygments.css' (prefers-color-scheme: dark);
+@import 'pygments-light.css' (prefers-color-scheme: light);
+
 body {
   max-width: 650px;
   margin: auto;
