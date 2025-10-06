@@ -63,5 +63,9 @@
       (fs/write-bytes path bytes {:truncate-existing false}))))
 
 (defn materialize-all [{}]
-  (doseq [[p bytes] all-defaults]
-    (materialize (vfs-path p) bytes)))
+  (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))]
+    (doseq [[p bytes] all-defaults]
+      ; skip pages/ and templates/ for existing sites
+      ; see https://codeberg.org/jyn514/flower/issues/71
+      (when-not (and existing-site (always-materialize? p))
+        (materialize (vfs-path p) bytes)))))
