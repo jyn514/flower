@@ -239,6 +239,7 @@
       (finally
         (.setAttributes term attrs)
         (.close term)))))
+
 ; api
 
 ; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
@@ -250,10 +251,10 @@
       :as opts}]
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
-  (print "Starting live reload watcher for" (str out-dir "/") "... ")
-  (flush)
   (let [; prints out its own progress info
         port (find-port http-server/serve 8090 {:dir out-dir :port port})
+        _ (do (print "Starting live reload watcher for" (str out-dir "/") "... ")
+              (flush))
         reload-port (find-port live-reload 35729
                                {:dir out-dir :port live-reload-port :period debounce-period})
         ninja-opts (assoc opts :port port :live-reload-port reload-port)]
