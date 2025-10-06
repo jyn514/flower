@@ -35,6 +35,12 @@
   [(apply dissoc m ks)
    (select-keys m ks)])
 
+; https://stackoverflow.com/a/41049094
+(defmacro as-map
+  "Given (as-map a b c), returns {:a a :b b :c c}"
+  [& syms]
+  (zipmap (map keyword syms) syms))
+
 ; https://github.com/clojure/clojure-contrib/blob/b8d2743d3a89e13fc9deb2844ca2167b34aaa9b6/src/main/clojure/clojure/contrib/seq.clj#L51
 (defn enumerate
   "Returns a lazy sequence of [index, item] pairs, where items come

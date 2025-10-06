@@ -89,7 +89,7 @@
      :allPublicFields true
      :allPublicMethods true}))
 ; keep this in sync with :classes in flower.eval
-(def all-dynamic
+(def sci-dynamic
   (all-public
     "java.lang.AssertionError"
     "java.lang.Class"
@@ -113,8 +113,12 @@
     "org.jsoup.nodes.Attributes"
     "org.jsoup.nodes.XmlDeclaration"
     "org.jsoup.parser.Parser"))
+
+(def flower-dynamic
+  [{:type "org.jline.terminal.impl.PosixSysTerminal"
+    :methods [{:name "getMethods" :parameterTypes []}]}])
 (def reachable
-  {:reflection all-dynamic
+  {:reflection (concat sci-dynamic flower-dynamic)
    :resources
    [{:glob "META-INF/resources/flower/**"}
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
@@ -173,7 +177,7 @@
    "--silent"
    (when is-linux "--gc=G1")
    (if dev "-Ob" "-Os")
-   "--no-fallback" "--exact-reachability-metadata"
+   "--no-fallback" "--exact-reachability-metadata" "--enable-native-access=ALL-UNNAMED"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])
 
