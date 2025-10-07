@@ -17,7 +17,7 @@ OuterComment = <#';[^\n]*'>
 OuterIdent = ReaderAtom? IdentNoBrackets
 (* NOTE: has to be a separate rule, otherwise it gets serialized as a String and we don't get metadata about spans *)
 ReaderAtom = '@'
-(* like Ident, but doesn't support <>.
+(* like Ident, but doesn't support <>/.
    keep them in sync. *)
 (*
 Unfortunately, Java supports *none* of ID_Start, Other_ID_Start, Pattern_Syntx, or Pattern_White_Space.
@@ -30,7 +30,7 @@ Those are defined as:
 https://www.unicode.org/reports/tr44/#XID_Start
 https://www.unicode.org/reports/tr31/tr31-41.html
 *)
-IdentNoBrackets = #'[-«»⋄◊0-9\p{L}\p{Nl}%$*+!_\'?=/.&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
+IdentNoBrackets = #'[-«»⋄◊0-9\p{L}\p{Nl}%$*+!_\'?=&&[^\t\n\v\f\r \u0085\u200e\u000f\u2028\u2029]]+'
 ReaderSyntax = #"[\;@^`~']+" | ReaderForm
 ReaderForm = '#' ( #'[#:"\'_]' | Ident | & '(' )
 (* keep this in sync with OuterIdent. *)
@@ -43,7 +43,7 @@ Sequence = ( <#'[\s,]+'> | #';[^\n]*\n' | Form )*
 Form = (Atom | List | Vec | MapOrSet)
 Atom = String | Char | Ident | Keyword | ReaderSyntax
 String = '"' ( #'[^"\\]+' | #'\\.' )* '"'
-Char = '\\' #'[a-zA-Z0-9*+!_\'?=/.-\\{}\[\]()]'
+Char = '\\' #'[a-zA-Z0-9*+!_`\'?=/.-\\{}\[\]()]'
 (* Letter = #'[a-zA-Z0-9*+!_\'?=/.-]' *)
 (* Char = '\\' #'[a-zA-Z\s]' *)
 (* NotStringOrChar = #'[^()\[\]#{} "]+' *)

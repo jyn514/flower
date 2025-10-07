@@ -11,9 +11,9 @@ Flower core has the following model:
     - run `flower configure`
 2. On `flower configure`:
     - if `flower.edn` doesn't exist yet, error.
-    - populate a `.build/defaults` directory with all built-in default files. see [the defaults issue](https://codeberg.org/jyn514/flower/issues/34) for details.
+    - populate a `.build/defaults` directory with all built-in default files. see [overlay](./overlay.md) for details.
     - parse global configuration from `flower.edn`
-    - parse per-page configuration from `pages/*.md`
+    - parse per-page configuration from `pages/*`
     - run `build.clj`, passing the configuration in `flower.reflect/*metadata*`.
       `build.clj` is expected to call `flower.reflect/write-ninja!`, and the output sent there is used directly as `build.ninja`; there is no post-processing.
       finally, record the dependencies used by `build.clj` in a `depfile`. `build.clj` is expected to add a dependency edge between the depfile and build.ninja itself.
