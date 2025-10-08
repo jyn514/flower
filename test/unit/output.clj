@@ -1,8 +1,9 @@
 (ns test.unit.output
   (:require
+   [clj-commons.ansi :as ansi]
    [clojure.test :refer [deftest]]
    [flower.main :as flower]
-   [test.snapshot :as snapshot]))
+   [test.snapshot :as snapshot :refer [*update*]]))
 
 (defn fake-main [args]
   (with-out-str
@@ -19,10 +20,11 @@
 
 ; env FLOWER_UPDATE_SNAPSHOTS=1 clojure -M:test --focus test.unit.output
 (deftest cli-error
-  ; TODO: this doesn't rebind `*cmd*` properly on file reloads
-  (snapshot/expect (fake-main ["x"]) "unknown-cmd")
-  (snapshot/expect (dispatch ["-h"]) "help-opt")
-  (snapshot/expect (dispatch ["help"]) "help-cmd")
-  (snapshot/expect (dispatch ["help" "x"]) "help-unknown")
-  (snapshot/expect (dispatch ["help" "build"]) "help-build")
-  (snapshot/expect (dispatch ["help" "transform"]) "help-transform"))
+  (binding [;*update* true
+            ansi/*color-enabled* true]
+    (snapshot/expect (fake-main ["x"]) "unknown-cmd")
+    (snapshot/expect (dispatch ["-h"]) "help-opt")
+    (snapshot/expect (dispatch ["help"]) "help-cmd")
+    (snapshot/expect (dispatch ["help" "x"]) "help-unknown")
+    (snapshot/expect (dispatch ["help" "build"]) "help-build")
+    (snapshot/expect (dispatch ["help" "transform"]) "help-transform")))

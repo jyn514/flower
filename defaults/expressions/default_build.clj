@@ -120,6 +120,13 @@
    :outputs (/ public (remove-parent path))})
 (def static-builds {:builds (map static->build (fs/glob "static" "**" {:follow-links true}))})
 
+(defn- settings []
+  (str/join " "
+    (map escape-shell
+      (flatten
+        (for [[k v] (:settings flower.reflect/*metadata*)]
+          ["--set" (str k "=" v)])))))
+
 (defn ^:private base [flower-cli]
   ; NOTE: we can't put lists here, ninja interprets them as literal strings
   ; https://codeberg.org/jyn514/flower/issues/16
@@ -129,7 +136,7 @@
    :rules
    [{:name "ninja-meta"
      :restat true
-     :command (fmt "${flower-cli} configure")
+     :command (fmt "${flower-cli} configure $settings")
      :description "rebuild build.ninja itself"}
     {:name "mkdir"
      :command (str "mkdir -p " builddir)
@@ -151,7 +158,8 @@
      :inputs (concat ["flower.edn" "build.clj" joined-frontmatter] ff
                      ; NOTE: normally this would need to include pages/, but we already depend on all-frontmatter and vim likes to create temporary files
                      ; TODO: remove this once `fs/glob` tracks reads
-                     (mapcat all-dirs ["sass"]))}
+                     (mapcat all-dirs ["sass"]))
+     :settings (settings)}
     {:rule "mkdir"
      :outputs builddir}]})
 

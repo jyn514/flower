@@ -4,6 +4,7 @@
    [babashka.process :as ps]
    [babashka.process.pprint]
    [clojure.data.json :as json]
+   [clojure.edn :as edn]
    [clojure.set :as set :refer [difference union]]
    [clojure.string :as str]
    [clojure.tools.build.api :as b]
@@ -36,7 +37,11 @@
 (def is-linux (= (System/getProperty "os.name") "Linux"))
 
 (def class-dir "target/classes")
-(def basis (b/create-basis {:project "deps.edn"}))
+(def cli-args
+  (-> (System/getProperty "clojure.basis")
+      slurp edn/read-string :basis-config
+      (select-keys [:extra])))
+(def basis (b/create-basis (merge cli-args {:project "deps.edn"})))
 (def jar-file "target/flower.jar")
 (def exe (str "target/flower" (when is-win ".exe")))
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
@@ -48,7 +53,13 @@
 (def defaults-dir (flower-resource "defaults"))
 (def git-hash (flower-resource "git-hash"))
 
-(def GIT-HASH (->> "git describe --always" (ps/shell {:out :string}) :out str/trimr))
+(def git (or (System/getenv "GITLIBS_COMMAND") "git"))
+(def clojure (or (System/getenv "CLOJURE") "clojure"))
+(eprintln clojure)
+
+(def GIT-HASH (->> "describe --always" (str git " ")
+                   (ps/shell {:out :string})
+                   :out str/trimr))
 
 (defn clean [_]
   (b/delete {:path class-dir})
@@ -56,14 +67,14 @@
   (b/delete {:path jar-file}))
 
 (defn parse-git [cmd]
-  (-> (ps/shell {:out :string} cmd)
+  (-> (ps/shell {:out :string} (str git " " cmd))
       :out (str/split #"\n") set))
 
 (def manifest-path "MANIFEST.txt")
 (def tracked-files
-  (parse-git "git ls-tree -r --name-only HEAD defaults"))
+  (parse-git "ls-tree -r --name-only HEAD defaults"))
 (def ignored-files
-  (parse-git "git ls-files --others --ignored --exclude-standard defaults"))
+  (parse-git "ls-files --others --ignored --exclude-standard defaults"))
 (def all-files (difference (set (remove fs/directory?
                                         (map str (fs/glob "defaults" "**"))))
                            ignored-files))
@@ -175,10 +186,11 @@
 (defn args [dev]
   ["native-image" "-jar" jar-file exe
    "--silent"
-   (when is-linux "--gc=G1")
+   #_(when is-linux "--gc=G1")
    (if dev "-Ob" "-Os")
    "--no-fallback" "--exact-reachability-metadata" "--enable-native-access=ALL-UNNAMED"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
+   "-H:+UnlockExperimentalVMOptions" "-H:-ReduceImplicitExceptionStackTraceInformation"
    (str "--initialize-at-build-time=" (str/join "," java-interop))])
 
 (defn graal [dev] (str/join " " (args dev)))
@@ -208,7 +220,7 @@
   {:phony [{:name "flower-bin" :depends flower-cli}]
    :rules
    [{:name "ninja-meta"
-     :command (fmt "clojure -T:build gen-plan :build-cmd ${build-cmd}")
+     :command (fmt "${clojure} -T:build gen-plan :build-cmd ${build-cmd}")
      :generator true
      :description "rebuild meta-build.ninja"}
     {:name "flower-defaults"
@@ -216,7 +228,7 @@
      :command (fmt "cd defaults && ../${flower-cli} configure")
      :description "rebuild default build.ninja"}
     {:name "flower-bin"
-     :command (fmt "clojure -T:build ${build-cmd} :include-untracked true")
+     :command (fmt "${clojure} -T:build ${build-cmd} :include-untracked true")
      :description (fmt "rebuild flower itself (${build-cmd})")}]
    :builds
    [{:rule "ninja-meta"

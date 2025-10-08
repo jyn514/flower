@@ -49,9 +49,10 @@
       (eprintln (str "flower " (version)))
       (eprintln "'flower help' for help")
       (eprintln "'flower watch' to build your site"))
-    (error (str "unrecognized command: '"
-                (str/join " " args)
-                "' ('flower help' for help)")))
+    (binding [*cmd* ""]
+      (error (str "unrecognized command: '"
+                  (str/join " " args)
+                  "' ('flower help' for help)"))))
   (throw (ex-info "" {::silent true})))
 
 (defn stop-at-duplicates

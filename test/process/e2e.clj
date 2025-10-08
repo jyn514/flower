@@ -1,42 +1,21 @@
-(ns process.e2e
+(ns test.process.e2e
   (:require
    [babashka.fs :as fs]
-   [babashka.process :as ps]
    [clojure.string :as str]
    [clojure.test :refer [use-fixtures]]
    [clojure.test.check.clojure-test :refer [defspec]]
    [clojure.test.check.generators :as gen]
    [clojure.test.check.properties :as prop]
    [expectations.clojure.test :refer [expect]]
-   [flower.utils :refer [*site* remove-parent]])
+   [flower.utils :refer [remove-parent]]
+   [test.helpers :refer [flower! flower-cli once-fixture]])
   (:import
    [java.io StringWriter]))
 
 ;; --- helpers ---------------------------------------------------------------
 
-(def flower-cli (fs/real-path "target/flower"))
-
 (defn unique-by [k coll]
   (vals (into {} (map (juxt k identity) coll))))
-
-(defn system!
-  [desc opts & args]
-  (try (apply ps/shell opts args)
-       (catch clojure.lang.ExceptionInfo e
-         (throw (ex-info desc (ex-data e))))))
-
-(defn flower! [dir opts & args]
-  (binding [*site* dir]
-    (apply flower.utils/system! opts args)))
-
-(defn require-exe! [cmd]
-  (system! (str "Required executable not found: '" cmd "'")
-           {:out (StringWriter.)} cmd "--version"))
-
-(defn build-flower! []
-  (system! "Failed to build flower executable" "ninja flower-bin")
-  (when-not (fs/exists? flower-cli)
-    (throw (ex-info "Missing CLI script target/flower after build" {}))))
 
 (defn- slug
   [s]
@@ -46,13 +25,6 @@
   (let [dst (fs/path root rel)]
     (fs/create-dirs (fs/parent dst))
     (spit (str dst) content)))
-
-;; Build once before all specs; ensure required tools exist
-(defn- once-fixture [f]
-  (require-exe! "clojure")
-  (require-exe! "ninja")
-  (build-flower!)
-  (f))
 
 (use-fixtures :once once-fixture)
 
