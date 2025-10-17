@@ -38,6 +38,16 @@ Choose the right one for whatever you're doing. I normally use the Graal binary 
 
 `clojure -M:test`. This has a fair amount of startup time; add `--watch` to live-reload changes from the filesystem. Use `:unit` to only run unit tests (integration tests are *reasonably* fast, but not quite fast enough to run on every save).
 
+### running ci
+
+First, [install woodpecker-cli](https://github.com/woodpecker-ci/woodpecker/releases/tag/latest#:~:text=Assets).
+(There is also a [nix package](woodpecker-cli).)
+Then, run `./scripts/run-ci.sh`.
+
+By default this uses the code in your local checkout.
+Pass `--remote` to use the latest commit pushed to your branch.
+See also the "Debug" pane on pushed branches; [example](https://ci.codeberg.org/repos/15384/pipeline/10/debug).
+
 ## modifying flower
 
 ### what to work on
