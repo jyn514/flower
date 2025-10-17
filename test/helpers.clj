@@ -6,7 +6,7 @@
   (:import
    [java.io StringWriter]))
 
-(def flower-cli (fs/real-path "target/flower"))
+(def flower-cli (fs/absolutize "target/flower"))
 
 (defn system!
   [desc opts & args]
@@ -28,6 +28,9 @@
     (system! "Failed to build flower executable" "ninja flower-bin"))
   (when-not (fs/exists? flower-cli)
     (throw (ex-info "Missing CLI script target/flower after build" {}))))
+
+(defn exit-success [proc]
+  (-> proc :exit (= 0)))
 
 ;; Build once before all specs; ensure required tools exist
 (defn once-fixture [f]

@@ -8,7 +8,7 @@
    [clojure.test.check.properties :as prop]
    [expectations.clojure.test :refer [expect]]
    [flower.utils :refer [remove-parent]]
-   [test.helpers :refer [flower! flower-cli once-fixture]])
+   [test.helpers :refer [exit-success flower! flower-cli once-fixture]])
   (:import
    [java.io StringWriter]))
 
@@ -100,9 +100,6 @@
 
           content (str front body)]
       (write-file! site rel content))))
-
-(defn exit-success [proc]
-  (-> proc :exit (= 0)))
 
 (defspec smoke-test-no-escapes 30
   (prop/for-all [site gen-site]

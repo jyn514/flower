@@ -55,7 +55,6 @@
 
 (def git (or (System/getenv "GITLIBS_COMMAND") "git"))
 (def clojure (or (System/getenv "CLOJURE") "clojure"))
-(eprintln clojure)
 
 (def GIT-HASH (->> "describe --always" (str git " ")
                    (ps/shell {:out :string})
