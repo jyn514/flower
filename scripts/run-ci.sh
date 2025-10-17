@@ -14,4 +14,7 @@ else
 fi
 
 ci/generate_ci.clj
-woodpecker-cli exec "$args" --pipeline-event push --repo jyn514/flower --repo-clone-url https://codeberg.org/jyn514/flower --repo-default-branch=dev "--commit-branch=$(git branch --show-current)" --commit-sha="$(git rev-parse HEAD)" .woodpecker/test.yaml
+woodpecker-cli exec "$args" --pipeline-event push --repo jyn514/flower \
+	--repo-clone-url https://codeberg.org/jyn514/flower --repo-default-branch=dev \
+	"--commit-branch=$(git branch --show-current)" --commit-sha="$(git rev-parse HEAD)" \
+	.woodpecker/test.yaml
