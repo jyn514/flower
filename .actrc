@@ -1,2 +1,1 @@
--Pubuntu-latest=node:16-buster
--Pwindows-latest=node:16-buster
+-P ubuntu-latest=node:24-bookworm
