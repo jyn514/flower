@@ -1,4 +1,4 @@
-#!/usr/bin/env -S clj -M
+#!/usr/bin/env clojure
 
 (require '[clojure.java.shell :refer [sh]])
 (require '[clojure.java.io :as io])
