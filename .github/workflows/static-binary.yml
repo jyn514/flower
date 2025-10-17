@@ -1,6 +1,10 @@
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, docs ]
+
+concurrency:
+  group: "artifacts"
+  cancel-in-progress: true
 
 jobs:
   build-native:
@@ -16,13 +20,20 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+    - name: Install ninja / sass / pygments
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        DEBIAN_FRONTEND=noninteractive sudo apt install -yqq ninja-build git gcc python3-pygments
+        npm install -g sass
+
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup GraalVM
       uses: graalvm/setup-graalvm@v1
       with:
-        java-version: '24'
+        java-version: '25'
         distribution: 'graalvm'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,15 +55,19 @@ jobs:
         cli: latest
 
     - name: Download dependencies
-      run: clojure -P
+      run: clojure -J-Dclojure.main.report=stderr -P
 
     - name: Build native image
-      run: clojure -T:build native
+      run: clojure -J-Dclojure.main.report=stderr -T:build native
 
     - name: Test native binary
       run: |
         ls target/${{matrix.exe}}
-        ./target/${{matrix.exe}}* version || echo "Version check failed, but binary was created"
+        ./target/${{matrix.exe}} version || echo "Version check failed, but binary was created"
+
+    - name: Build flower docs site
+      if: runner.os == 'Linux'
+      run: cd docs && ../target/${{matrix.exe}} build
 
     - name: Upload platform-specific binary
       uses: actions/upload-artifact@v4
@@ -60,3 +75,24 @@ jobs:
         name: native-binary-${{ runner.os }}
         path: |
           target/${{matrix.exe}}
+
+    - name: Setup Pages
+      if: runner.os == 'Linux'
+      uses: actions/configure-pages@v5
+
+    - name: Upload flower docs site
+      if: runner.os == 'Linux'
+      uses: actions/upload-pages-artifact@v4
+      with:
+        path: ./docs/public
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+    runs-on: ubuntu-latest
+    needs: build-native
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
