@@ -188,6 +188,8 @@
    "--silent"
    #_(when is-linux "--gc=G1")
    (if dev "-Ob" "-Os")
+   (when (System/getenv "CI") "--parallelism=4")
+   (when (System/getenv "CI") "-J-Xmx4g")
    "--no-fallback" "--exact-reachability-metadata" "--enable-native-access=ALL-UNNAMED"
    "--features=clj_easy.graal_build_time.InitClojureClasses"
    "-H:+UnlockExperimentalVMOptions" "-H:-ReduceImplicitExceptionStackTraceInformation"
