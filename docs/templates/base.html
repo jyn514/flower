@@ -6,7 +6,7 @@
 
 ◊(def head)«
   ◊(if (fs/exists? "static/main.js"))«
-    <script src='/main.js?v=◊(hash "static/main.js")"' defer></script>
+    <script src='/main.js?v=◊(hash "static/main.js")' defer></script>
   »
 »
 ◊(def+ {:keys [sections]} (categorize pages))
