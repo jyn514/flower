@@ -183,7 +183,7 @@
 (declare commands)
 (defn help [_opts]
   (let [table (for [[k {:keys [desc]}] commands]
-                [(pr-str k) desc])]
+                [(or (char-name-string k) (print-str k)) desc])]
     (println (cli/format-table {:rows table}))))
 
 (defn no-opts [f & args]
