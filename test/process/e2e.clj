@@ -8,7 +8,8 @@
    [clojure.test.check.properties :as prop]
    [expectations.clojure.test :refer [expect]]
    [flower.utils :refer [remove-parent]]
-   [test.helpers :refer [exit-success flower! flower-cli once-fixture]])
+   [test.helpers :refer [build-assert-no-rebuild exit-success flower!
+                         flower-cli once-fixture]])
   (:import
    [java.io StringWriter]))
 
@@ -108,7 +109,7 @@
           opts {:out (StringWriter.)
                 :continue true}]
       (materialize-site! dir site)
-      (when (expect exit-success (flower! dir opts flower-cli "build"))
+      (when (expect exit-success (build-assert-no-rebuild dir {} opts))
         (let [outs (map #(expected-output dir %) site)]
           (doseq [f outs]
             (when (expect fs/exists? f)

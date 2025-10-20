@@ -48,9 +48,12 @@
   ([path] (exists? path {}))
   ([path {:keys [no-vfs] :as opts}]
    (let [real-opts (dissoc opts :no-vfs)
-         rel (if no-vfs path (path-considering-vfs path))]
-     (set! *dependencies* (conj *dependencies* rel))
-     (fs/exists? rel real-opts))))
+         rel (if no-vfs path (path-considering-vfs path))
+         exists (fs/exists? rel real-opts)
+         ; NOTE: when paths don't exist, we assume the defaults don't change and only depend on the materialized path
+         dep (if exists rel (fs/parent path))]
+     (set! *dependencies* (conj *dependencies* dep))
+     exists)))
 
 ; bound as clojure.core/slurp, not flower.fs/slurp-
 (defn slurp-

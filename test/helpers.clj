@@ -2,6 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as ps]
+   [expectations.clojure.test :refer [expect]]
    [flower.utils :refer [*site*]])
   (:import
    [java.io StringWriter]))
@@ -17,6 +18,19 @@
 (defn flower! [dir opts & args]
   (binding [*site* dir]
     (apply flower.utils/system! opts args)))
+
+(defn build-assert-no-rebuild
+  ([dir] (build-assert-no-rebuild dir {} {}))
+  ([dir settings] (build-assert-no-rebuild dir settings {}))
+  ([dir settings opts]
+   (let [set (flatten
+               (for [[k v] settings]
+                 ["--set" (format "%s=%s" (name k) v)]))
+         out (apply flower! dir opts flower-cli "build" set)
+         ninja (flower! dir {:out :string} "ninja -n -d explain")]
+     (expect 0 (:exit ninja))
+     (expect "ninja: no work to do.\n" (:out ninja))
+     out)))
 
 (defn require-exe! [cmd]
   (system! (str "Required executable not found: '" cmd "'")
