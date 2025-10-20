@@ -124,9 +124,10 @@ because all the others are a pain to use.
 
 `flower` is for people who just want to build a site with a minimum of fuss, but still have a gentle "on-ramp" to doing more complicated things in the future.
 
-additionally, `flower` is meant to be a demonstration of what it looks like to build [software that unifies users and programmers][operators].
+`flower` is offered here as an example of what software can accomplish when it [unifies users and programmers][operators].
 
 [operators]: https://jyn.dev/operators-not-users-and-programmers/
+[indexicality]: https://carcinisation.com/2020/01/27/ignorance-a-skilled-practice/
 
 ## why ninja?
 

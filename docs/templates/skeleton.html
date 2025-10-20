@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 ◊; NOTE: doctype must always be the first line of the document, it cannot be preceded by whitespace
 ◊(require '[expressions.constants :refer [lang site-author site-title global-desc]]
+          '[expressions.pages :refer [title]]
+          '[expressions.utils :refer [inspect]]
           '[flower.fs :as fs])
 <html lang=◊lang>
   <head>
@@ -9,7 +11,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name=description content="◊(or (:description page) global-desc)" />
     <meta name="author" content="◊site-author" />
-    <title>◊site-title</title>
+    <title>◊(if-let [t (title frontmatter)] (str t "—" site-title) site-title)</title>
     ◊(if (fs/exists? "pages/atom.xml"))«
       <link rel="alternate" type="application/atom+xml" title="◊site-title" href="/atom.xml">
     »

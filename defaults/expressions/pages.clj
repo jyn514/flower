@@ -15,7 +15,7 @@
 (defn title
   [post]
   (get post :title
-       (-> post :flower/source-file remove-parent unslugify)))
+       (->> post :flower/source-file fs/file-name unslugify)))
       ; this is cursed and easily leads to dependency cycles
       ;(-> post :content meta/render (html/select "title") html/text)))
 
