@@ -10,6 +10,10 @@
    :kaocha/source-paths ["flower" "defaults"]
    :ns-patterns ["test.unit"]}
 
+  {:id :hybrid, :test-paths ["test"]
+   :kaocha/source-paths ["flower"]
+   :ns-patterns ["test.hybrid"]}
+
   {:id :process, :test-paths ["test"]
    :kaocha/source-paths ["flower"]
    :ns-patterns ["test.process"]}]}

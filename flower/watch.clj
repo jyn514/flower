@@ -6,6 +6,7 @@
   (:require
    [babashka.cli :as cli]
    [babashka.fs :as fs]
+   [babashka.http-server :as http-server]
    [clj-commons.ansi :as ansi]
    [clojure.data.json :as json]
    [clojure.java.browse :refer [browse-url]]
@@ -13,7 +14,6 @@
    [clojure.stacktrace]
    [clojure.string :as str]
    [flower.cmd :as cmd]
-   [flower.http-server :as http-server]
    [flower.reflect :as reflect]
    [flower.spectacle :as spectacle]
    [org.httpkit.server :as wss])
@@ -154,6 +154,8 @@
                              {:period debounce :recursive false})]
     watcher))
 
+; http server
+
 (defn find-port [f default-port {:as opts :keys [port]}]
   (if port
     (do (f opts)  ; if specified explicitly, give a hard error if we can't bind
@@ -164,6 +166,17 @@
          (catch java.net.BindException err
            (warn "failed to bind on port" (str default-port ":") err)
            (find-port f (inc default-port) opts)))))
+
+(defn not-found [dir]
+  (let [path (fs/path dir "404.html")]
+    (fn [_req]
+      (if (fs/exists? path)
+        {:status 404
+         :body (fs/file path)
+         :headers {"Content-Type" "text/html"}}
+        {:status 404
+         :body "404 not found"
+         :headers {"Content-Type" "text/plain"}}))))
 
 ; interactive event handler
 
@@ -242,6 +255,10 @@
 
 ; api
 
+(defn static-server [default-port opts]
+  (find-port http-server/serve default-port
+             (assoc opts :not-found (not-found (:dir opts)))))
+
 ; TODO: this is the wrong interface, out-dir and build-dir should use flower.edn instead
 (defn watch
   [& {:keys [port live-reload-port out-dir debounce-period]
@@ -252,7 +269,7 @@
   ; ninja might not have run yet; create an out dir anyway so we can watch it.
   (fs/create-dirs out-dir)
   (let [; prints out its own progress info
-        port (find-port http-server/serve 8090 {:dir out-dir :port port})
+        port (static-server 8090 {:dir out-dir :port port})
         _ (do (print "Starting live reload watcher for" (str out-dir "/") "... ")
               (flush))
         reload-port (find-port live-reload 35729
