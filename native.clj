@@ -104,6 +104,7 @@
     "java.lang.AssertionError"
     "java.lang.Class"
     "java.lang.String"
+    "java.lang.Character"
     "java.lang.Integer"
     "java.util.List"
     "java.util.regex.Pattern"

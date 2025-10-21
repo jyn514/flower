@@ -180,10 +180,18 @@
 
 ; interactive event handler
 
+(defn control-char? [^Character c]
+  (Character/isISOControl c))
+(defn pr-chr [c]
+  (or (char-name-string c)
+      (if (control-char? c)
+        (str "0x" (Integer/toString (int c) 16))
+        (print-str c))))
+
 (declare commands)
 (defn help [_opts]
   (let [table (for [[k {:keys [desc]}] commands]
-                [(or (char-name-string k) (print-str k)) desc])]
+                [(pr-chr k) desc])]
     (println (cli/format-table {:rows table}))))
 
 (defn no-opts [f & args]
@@ -235,19 +243,26 @@
     (.enterRawMode term)
     (as-map term attrs)))
 
+; HACK: "backspace" on most keyboards emits "delete" in raw mode :((((
+(def overrides
+  {\u007f \backspace})
+(defn- parse-chr [i]
+  (let [c (char i)]
+    (get overrides c c)))
+
 (defn watch-input [opts]
   (let [{:keys [^Terminal term attrs]} (make-reader)
         reader (.reader term)]
     (try
       (println "Waiting for input ('o' to open a browser, '?' to see all shortcuts)")
       (loop []
-        (let [c (char (.read reader))]
+        (let [c (parse-chr (.read reader))]
           (if-let [{:keys [fn name]} (commands c)]
             (do
               (println (ansi/compose [:yellow name]))
               (fn opts)
               (flush))
-            (println "Unrecognized command:" (pr-str c)))
+            (println "Unrecognized command:" (pr-chr c)))
           (recur)))
       (finally
         (.setAttributes term attrs)
