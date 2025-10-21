@@ -154,7 +154,8 @@
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :ns-compile '[flower.main]
-                  :bindings {#'clojure.core/*assert* (not= false dev)}
+                  :bindings {#'clojure.core/*assert* (not= false dev)
+                             #'clojure.core/*compiler-options* {:direct-linking true}}
                   ; JLine likes to bundle .dll files even on Linux. Tell it not to do that.
                   :java-opts ["-Djline.terminal.jna=false"]
                   :class-dir class-dir})
