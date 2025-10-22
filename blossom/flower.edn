@@ -9,4 +9,9 @@
   "drafts"
   {:default false
    ; :options #{true false}
-   :help "whether to build draft posts in addition to published posts"}}}
+   :help "whether to build draft posts in addition to published posts"}}
+
+ :redirects
+ {"/keyboard" "https://configure.zsa.io/moonlander/layouts/KW9E9/latest/0"
+  "/calendar" "https://calendar.google.com/calendar/u/0?cid=anluNTE0QGdtYWlsLmNvbQ"
+  #_"/talks/bootstrapping.html" #_"https://www.youtube.com/watch?v=oUIjG-y4zaA"}}

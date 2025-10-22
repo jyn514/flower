@@ -106,8 +106,9 @@
           ; TODO: wow this sucks :(
           ninja-writer (new StringWriter)
           page-meta (load-all-meta "pages")
-          all-meta {:pages page-meta
-                    :settings settings}]
+          all-meta (merge global-meta
+                          {:pages page-meta
+                           :settings settings})]
       (binding [reflect/*ninja* ninja-writer
                 reflect/*metadata* all-meta]
         (let [cx (eval/create-sci-cx in)
@@ -162,8 +163,10 @@
 (defn run-transformer
   "Given a `{:content x :frontmatter y :transformer z}` map,
   run the clojure in file `:transformer` on `{:content :frontmatter}`."
-  [{:keys [raw-output] :as opts} all-frontmatter page transformer last]
-  (let [page (merge (select-keys page [:content :frontmatter]) {:variables (dissoc opts :raw-output)})
+  [{:keys [raw-input raw-output] :as opts} all-frontmatter page transformer last]
+  (let [page (if raw-input page
+               (merge (select-keys page [:content :frontmatter])
+                      {:variables (dissoc opts :raw-output)}))
         bindings {'page page
                   'pages all-frontmatter}
         cx-opts {:bindings bindings
@@ -201,9 +204,7 @@
     (fatal "TODO: transformers other than clojure (API and docs)"))
   (let [frontmatter (when-not standalone (read-json-file all-frontmatter))
         last (dec (count transformers))
-        bindings (dissoc opts :transform-map :transformers :all-frontmatter
-                              :standalone :raw-input)
-        run (fn [page [i t]] (run-transformer bindings frontmatter page t (= last i)))
+        run (fn [page [i t]] (run-transformer opts frontmatter page t (= last i)))
         before (if raw-input (slurp *in*) (read-stdin-json))
         after (reduce run before (enumerate transformers))]
     (if raw-output

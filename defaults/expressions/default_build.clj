@@ -127,6 +127,18 @@
         (for [[k v] (:settings flower.reflect/*metadata*)]
           ["--set" (str k "=" v)])))))
 
+(def ^:private redirects
+  {:builds
+   (for [[src dst] (inspect (:redirects flower.reflect/*metadata*))
+         :let [srcp (strip-prefix src "/")]]
+     {:rule "redirect"
+      :outputs (/ public srcp)
+      :depfile (/ builddir (add-ext srcp "d"))
+      :target (escape-shell dst)})
+   :rules
+   [{:name "redirect"
+     :command (fmt "echo $target | ${flower-cli} transform --standalone --raw-input --raw-output --depfile $depfile --out-file $out transformers/standalone/generate_redirect.clj >  $out")}]})
+
 (def ^:private base
   ; NOTE: we can't put lists here, ninja interprets them as literal strings
   ; https://codeberg.org/jyn514/flower/issues/16
@@ -184,4 +196,4 @@
   "Generate the default build plan for a flower site.
    Modify this as you like, then pass it to `expressions.ninja/generate!`."
    [] (merge-deep page-builds transform static-builds sass-builds
-                  all-frontmatter base))
+                  redirects all-frontmatter base))
