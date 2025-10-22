@@ -70,7 +70,7 @@
 (defn frontmatter-path [page]
   (/ builddir (add-ext (remove-parent page) "json")))
 
-(defn all-frontmatter [flower-cli]
+(def all-frontmatter
   {:rules [{:name "join-frontmatter"
             :command (fmt "${flower-cli} join-frontmatter $out $in")
             :restat true
@@ -127,7 +127,7 @@
         (for [[k v] (:settings flower.reflect/*metadata*)]
           ["--set" (str k "=" v)])))))
 
-(defn ^:private base [flower-cli]
+(def ^:private base
   ; NOTE: we can't put lists here, ninja interprets them as literal strings
   ; https://codeberg.org/jyn514/flower/issues/16
   {:variables {:builddir builddir}
@@ -184,4 +184,4 @@
   "Generate the default build plan for a flower site.
    Modify this as you like, then pass it to `expressions.ninja/generate!`."
    [] (merge-deep page-builds transform static-builds sass-builds
-                  (all-frontmatter flower-cli) (base flower-cli)))
+                  all-frontmatter base))
