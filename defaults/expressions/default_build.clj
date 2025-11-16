@@ -129,7 +129,7 @@
 
 (def ^:private redirects
   {:builds
-   (for [[src dst] (inspect (:redirects flower.reflect/*metadata*))
+   (for [[src dst] (:redirects flower.reflect/*metadata*)
          :let [srcp (strip-prefix src "/")]]
      {:rule "redirect"
       :outputs (/ public srcp)

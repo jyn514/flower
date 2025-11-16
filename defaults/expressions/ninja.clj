@@ -9,7 +9,7 @@
 
 (defn- variable [key val] (format "  %s = %s\n" key val))
 
-(defn- escape-ninja
+(defn escape-ninja
   "Escape a string for use as a ninja file path.
    See https://ninja-build.org/manual.html#ref_lexer"
   [s]

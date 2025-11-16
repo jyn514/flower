@@ -127,7 +127,9 @@
 
 (def flower-dynamic
   [{:type "org.jline.terminal.impl.PosixSysTerminal"
-    :methods [{:name "getMethods" :parameterTypes []}]}])
+    :methods [{:name "getMethods" :parameterTypes []}]}
+   {:type "java.io.StringWriter"
+    :allPublicConstructors true}])
 (def reachable
   {:reflection (concat sci-dynamic flower-dynamic)
    :resources

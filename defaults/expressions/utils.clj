@@ -1,8 +1,9 @@
 (ns expressions.utils 
   (:require
-   [flower.fs :as fs]
    [clojure.set :refer [union]]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [clojure.walk :as walk]
+   [flower.fs :as fs]))
 
 (defn discard
   "Run a function for its side-effects and discard the return value.
@@ -82,3 +83,15 @@
 (defn strip-suffix [^String s ^String suffix]
   (if-not (.endsWith s suffix) s
     (.substring s 0 (- (count s) (count suffix)))))
+
+; https://ask.clojure.org/index.php/14203/how-to-persist-clojure-data-structures-to-disk?show=14205#a14205
+(defn write-edn [obj]
+  (binding [*print-length* nil
+            *print-level* nil
+            *print-dup* false
+            *print-meta* false
+            *print-readably* true
+            ;; namespaced maps not part of edn spec
+            *print-namespace-maps* false]
+    (let [mapped (walk/postwalk #(if (fs/path? %) (str %) %) obj)]
+      (pr mapped))))

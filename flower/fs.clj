@@ -55,6 +55,10 @@
      (set! *dependencies* (conj *dependencies* dep))
      exists)))
 
+(defn path?
+  [obj]
+  (instance? java.nio.file.Path obj))
+
 ; bound as clojure.core/slurp, not flower.fs/slurp-
 (defn slurp-
   "Note: unlike built-in clojure.core/slurp, only supports Paths, not URIs.

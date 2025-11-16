@@ -29,7 +29,7 @@ template = "base.html"
         <h2>
           ◊(let [attrs {:class "post-link" :href (:flower/path post)}
                  more-attrs (if-let [d (:description post)]
-                              (assoc attrs :description d) attrs)]
+                              (assoc attrs :title d) attrs)]
               (html [:a more-attrs (hiccup.util/raw-string (title post))]))
         </h2>
       </li>

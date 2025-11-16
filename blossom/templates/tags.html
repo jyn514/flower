@@ -1,0 +1,29 @@
+◊(require '[expressions.meta :refer [embed]]
+          '[expressions.pages :refer [categorize date title]])
+◊(print frontmatter)
+◊(def content)«
+<h1 class="page-heading">◊tag</h1>
+
+<ul class="post-list">
+  ◊(for [post frontmatter
+         :when (not (or (-> post :extra :unlisted) (-> post :extra :stub)))])«
+    <li>
+      <span class="post-meta">
+        ◊(date post)
+        ◊(when-let [audience (-> post :extra :audience)])«
+          • audience—◊audience
+        »
+      </span>
+
+      <h2>
+        ◊(let [attrs {:class "post-link" :href (:flower/path post)}
+                more-attrs (if-let [d (:description post)]
+                            (assoc attrs :title d) attrs)]
+            (html [:a more-attrs (hiccup.util/raw-string (title post))]))
+      </h2>
+    </li>
+  »
+</ul>
+»
+
+◊(embed "base.html" {'content content})
