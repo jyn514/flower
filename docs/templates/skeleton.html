@@ -26,8 +26,8 @@
     ◊content
     ◊(if-let [port flower.reflect/*watch-port*])«
       <script>document.write('<script src="http://'
-      + location.host.split(':')[0]
-      + ':◊(pr-str port)/livereload.js"></'
+      + (location.host || 'localhost').split(':')[0]
+      + ':◊(print-str port)/livereload.js?snipver=1"></'
       + 'script>')</script>
     »
   </body>
