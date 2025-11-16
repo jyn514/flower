@@ -35,19 +35,23 @@
 
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
 
-(defn load-sci-file [file] 
+(defn load-sci-file [file ns-] 
   (set! reflect/*dependencies* (conj reflect/*dependencies* file))
-  {:file file :source (slurp file)})
+  (try
+    {:file file :source (slurp file)}
+    (catch java.io.IOException e
+      (throw (ex-info (fmt "failed to load ${ns-}") {:namespace ns-} e)))))
 
 (defn load-fn
   "load user code on-demand"
   [{ns- :namespace}]
     (when (or (str/starts-with? (name ns-) "expressions.")
               (str/starts-with? (name ns-) "transformers."))
-      (let [load #(-> % str load-sci-file)
-            path (-> ns- (str/replace "." "/")  (str ".clj"))]
-        (->> [path (str/replace path "-" "_")] (map path-considering-vfs)
-             (filter babashka.fs/exists?) first load))))
+      (let [load #(-> % str (load-sci-file ns-))
+            path (-> ns- (str/replace "." "/")  (str ".clj"))
+            resolved (->> [path (str/replace path "-" "_")] (map path-considering-vfs)
+                          (filter babashka.fs/exists?) first)]
+       (load (or resolved path)))))
 
 ; see sci/binding for how to allow overriding this
 (def userns (sci/create-ns 'user))
@@ -145,9 +149,6 @@
                 'instaparse.core (copy-ns 'instaparse.core)
                 'clj-commons.digest (copy-ns 'clj-commons.digest)
                 'java-time.api (copy-ns 'java-time.api)
-                ; repl/doc tries to call private functions, so we need to copy those too
-                ; TODO: SCI does this for us, apparently?
-                ;'clojure.repl (copy-ns 'clojure.repl {:include-private true})
                 ; internals
                 'flower.eval {'pretty-print pretty-print}
                 ; flower API
