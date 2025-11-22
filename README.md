@@ -10,7 +10,7 @@ You can get started writing right away without spending hours getting set up, an
 `flower`’s guiding principles are:
 1. [It’s your site, you should control what’s on it](https://jyn.dev/operators-not-users-and-programmers/).
 2. [Power comes from structure, not expressiveness](https://buttondown.com/hillelwayne/archive/the-capability-tractability-tradeoff/).
-3. [Make the obvious thing the correct one](./language.md#filesystem-api).
+3. [Make the obvious thing the correct one](https://flower.jyn.dev/language.html#filesystem-api).
 
 **NOTE: still in pre-alpha, blog post forthcoming**
 
@@ -190,20 +190,12 @@ notably, this build system has some nice properties not found in other systems t
 
 ## example stacktrace
 
-```
-flower: error: failed to eval templates/default.html
-Caused by: failed to eval templates/footer.html
- [expressions.meta/embed expressions/meta.clj 21:14]
- [expressions.meta/embed expressions/meta.clj 16:1]
- [expressions.meta/include expressions/meta.clj 26:14]
- [expressions.meta/include expressions/meta.clj 24:1]
- [user/str templates/default.html 17:1]
- [clojure.core/str <host code>]
+<object data="/backtrace.png">
 
-Caused by: Could not find namespace: flower.expressions.constants.
- [clojure.core/use <host code>]
- [user/<top-level> templates/footer.html 1:1]
-```
+![A colorful, multi-cause stack trace. Each error identifies the file where it happened and a clojure stack trace within that file. At the end, it says that more detail is available if you set an environment variable.](https://flower.jyn.dev/backtrace.png)
+
+</object>
+
 
 # sandboxing and security
 it's an SSG. it's running arbitrary code because you (or i) wrote all the code. don't treat it as a security boundary and you'll be fine.
