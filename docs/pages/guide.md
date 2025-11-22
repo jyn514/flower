@@ -125,7 +125,7 @@ flower also embeds the [`hiccup`] library, with [`html`] in the default namespac
 if you want to reuse this code between pages, place it in `expressions/kbd.clj`.
 the directory and file extension are important, but the file name isn't; all .clj files in `expressions/` will be loaded.
 
-for more information about the flower language, see [the language intro](docs/language.md).
+for more information about the flower language, see [the language intro](language.md).
 
 ##### index pages
 often, you will want to make an index of pages in your site.
