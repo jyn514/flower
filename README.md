@@ -22,7 +22,7 @@ Almost everything is part of the "default site", not the `flower` binary itself.
 As a result, nearly any part of the site can be overriden, and you get a real programming language without having to install a new language toolchain.
 At almost every level, I have tried to avoid restricting what is possible to do with `flower`: to make simple things easy, and hard things possible.
 
-For more information, see [the `flower` docs site](./docs/pages/index.md#learn-more-about-flower).
+For more information, see [the `flower` docs site](https://flower.jyn.dev#learn-more-about-flower).
 
 ## features
 
