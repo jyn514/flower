@@ -26,7 +26,7 @@ title: null
 ## Learn more about flower
 
 ◊(def page-order
-    ["quickstart" "syntax" "language" "overlay" "guide/cookbook" "guide" "architecture" "custom-build" "contributing"])
+    ["quickstart" "syntax" "language" "templates" "overlay" "guide/cookbook" "guide" "architecture" "custom-build" "contributing"])
 
 <nav class="home">
   <ul class="post-list">◊(for [post (:main-posts (categorize pages #(sort-by-constant-name % page-order)))])«
