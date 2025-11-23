@@ -132,7 +132,10 @@
   {:exec-args default-opts
    :spec {:site {:coerce :string
                  :alias :C
-                 :desc "The directory to treat as your site"}}})
+                 :desc "The directory to treat as your site"}
+          :root
+          {:coerce :string
+           :desc "Site URL root."}}})
 
 (def dispatch-dsl
    ;; meta commands
@@ -264,8 +267,9 @@
 
 (defn init-fn [cmd-fn cmd-name args]
   (alter-var-root (var *cmd*) (constantly (str " " cmd-name)))
-  (binding [*site* (or (get-in args [:opts :C]) ".")
+  (binding [*site* (or (get-in args [:opts :site]) ".")
             flower.unsafe/*drop-bomb* false ; for `repl`
+            flower.reflect/*root* (or (get-in args [:opts :root]) (env "FLOWER_ROOT") "/")
             flower.reflect/*watch-port* (env "FLOWER_WATCH")]
     (cmd-fn args)))
 

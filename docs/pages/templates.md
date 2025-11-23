@@ -1,6 +1,9 @@
 ---
 preprocessors: []
 ---
+
+◊(flower.reflect/*root*)
+
 ## page templates
 
 Templates in `flower` work similarly to other SSGs.

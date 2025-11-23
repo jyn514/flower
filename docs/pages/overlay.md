@@ -5,6 +5,9 @@ title: overlay filesystem
 ◊(def dirm (str \` dirp \`))
 ◊(def f "`flower`")
 
+◊(pr-str flower.reflect/*root*)
+
+
 ## VFS
 
 ◊f supports a "poor man's [overlay filesystem]", which it calls a "[virtual filesystem]" or "VFS".

@@ -130,7 +130,8 @@
   ; you can get a list with `ninja -t query`
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
   (when (= :delete kind) (cmd/run-configure opts))
-  (run-non-fatal {:extra-env {"FLOWER_WATCH" live-reload-port}} "ninja"))
+  (run-non-fatal {:extra-env {"FLOWER_WATCH" live-reload-port
+                              "FLOWER_ROOT" flower.reflect/*root*}} "ninja"))
 
 (defn ninja-inputs [opts]
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`

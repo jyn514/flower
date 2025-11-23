@@ -13,7 +13,10 @@
 (def ^:dynamic *ninja* "not for public use; see write-ninja!" "")
 (def ^:dynamic *watch-port*
   "Set to a TCP port number when `flower watch` is running."
-  nil) ; TODO update in main
+  nil)
+(def ^:dynamic *root*
+  "Site URL root"
+  "/")
 (def ^:dynamic *metadata*
   "A {:settings {\"name\" string-or-bool} :pages {\"path\" frontmatter-map}} map"
   {})
