@@ -52,8 +52,8 @@
   ([cb paths] (watch-files cb paths {}))
   ([cb paths {:keys [period] :as opts}]
    (let [debouncer (if (nil? period) cb (debounce cb period))
-         handle (apply spectacle/create (dissoc opts :period) paths)]
-     (spectacle/listen-async debouncer handle))))
+         handle (apply spectacle/create! (dissoc opts :period) paths)]
+     (spectacle/listen-async! debouncer handle))))
 
 ; live-reload proto
 
@@ -74,10 +74,8 @@
 (def channels (atom #{}))
 
 (defn- on-open [ch]
-  #_(println "new websocket connected" (str ch))
   (swap! channels conj ch))
 (defn- on-close [ch status]
-  #_(println "websocket disconnected" (str ch) status)
   (swap! channels disj ch))
 (defn- on-receive [ch data]
   (let [cmd (get (json/read-str data) "command")]
@@ -134,25 +132,32 @@
   (when (= :delete kind) (cmd/run-configure opts))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" live-reload-port}} "ninja"))
 
-(defn watch-ninja [opts debounce]
-  ; TODO: decide whether to interrupt ninja on changes
-  ; definitely shouldn't for anything in `build`
+(defn ninja-inputs [opts]
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
-  ; TODO: this doesn't notice files that were added after the watch started
-  ;       we can mostly work around this if we watch whole directories, i think?
   ; TODO: this doesn't notice files that are only listed in depfiles
   (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
         temp-file? #(str/starts-with? % (str (:build-dir opts) "/"))
         ; TODO: reconsider if we actually want to filter out build.ninja
         ; also this will be wrong when *site* is set
         important? #(not (or (temp-file? %) (= "build.ninja" %)))
-        ; templates are a workaround for not noticing depfiles
-        important-inputs (concat [{:path "templates" :recursive true}]
-                                 (filter important? all-inputs))
-        watcher (watch-files #(rerun-ninja opts %) important-inputs
+        ; builtins are a workaround for not noticing depfiles
+        builtins (for [dir ["templates" "pages" "static" "expressions" "transformers"]]
+                   {:path dir :recursive true})
+        important-inputs (concat builtins
+                                 (filter important? all-inputs))]
+    important-inputs))
+
+(defn watch-ninja! [opts debounce]
+  ; TODO: decide whether to interrupt ninja on changes
+  ; definitely shouldn't for anything in `build`
+  ; TODO: this doesn't notice files that were added after the watch started
+  ;       we can mostly work around this if we watch whole directories, i think?
+  (let [inputs (ninja-inputs opts)
+        watcher (watch-files #(rerun-ninja opts %) inputs
                              {:period debounce :recursive false})]
-    watcher))
+    (watch-files (fn [_] (spectacle/add! watcher (inspect (ninja-inputs opts))))
+                 ["build.ninja"])))
 
 ; http server
 
@@ -298,7 +303,7 @@
     ; Run this last since ninja emits its own output
     (println "Starting ninja watcher for `cd" *site* "&& ninja -t inputs`"
              "with debounce period" debounce-period)
-    (watch-ninja ninja-opts debounce-period)
+    (watch-ninja! ninja-opts debounce-period)
     ; Run once at startup. Block until it finishes.
     (rerun-ninja ninja-opts {})
     ; Watch for interactive input.

@@ -1,5 +1,6 @@
 (ns flower.spectacle
   (:require
+   [flower.stacktrace :refer [print-trace]]
    [babashka.fs :as fs])
   (:import
    [java.nio.file
@@ -14,6 +15,7 @@
     WatchService]))
 
 (def ^:private events
+  ; can't do a (case) here for mysterious reasons
   {StandardWatchEventKinds/ENTRY_CREATE :create
    StandardWatchEventKinds/ENTRY_DELETE :delete
    StandardWatchEventKinds/ENTRY_MODIFY :modify
@@ -28,12 +30,13 @@
                           {::kind kw}))))
 
 (defn- ev->kw [^WatchEvent$Kind ev]
-  ; can't do a (case) here for mysterious reasons
   (or (get events ev)
       (throw (ex-info (format "unknown event type %s" ev)
                       {::event ev}))))
 
 (defn- register!
+  "Registers a path with a watcher.
+  If the path is already being watched, the list of registered events is updated to `events`."
   [{:keys [^WatchService watcher registry]} ^Path path root events]
   (.register path watcher events)
   (swap! registry assoc path root))
@@ -54,8 +57,9 @@
           root (if (fs/directory? user-path) user-path (fs/parent user-path))]
       (when (nil? root)
         (throw (ex-info "didn't get a path to watch!" {::path p})))
-      (when-not (fs/directory? root)
-        (throw (ex-info "TODO: file watching not supported for now, pass the parent directory with :recursive false" {::path p})))
+      ; This can only happen if the directory was deleted, in which case `register!` will throw anyway.
+      #_(when-not (fs/directory? root)
+        (throw (ex-info (format "path %s deleted while being registered!" p)  {::path p})))
       (if-not recursive
         (register! handle root root events)
         (Files/walkFileTree root
@@ -66,8 +70,14 @@
               (register! handle dir root events)
               FileVisitResult/CONTINUE)))))))
 
+(defn- expand-paths
+  [opts paths]
+  (for [p paths
+        :let [path-opts (if (map? p) p (assoc opts :path p))]]
+    (update path-opts :path (comp fs/normalize fs/absolutize))))
+
 ; TODO: handle should implement Closeable
-(defn create
+(defn create!
   "Returns a handle to a directory watcher that listens to filesystem events at any of the
   `paths`. This watcher is 'lazy' and does not take effect until you call `listen`.
 
@@ -77,16 +87,23 @@
   ([opts & paths]
    (let [[opts paths] (if (map? opts) [opts paths] [{} (conj paths opts)])
          watcher (.newWatchService (FileSystems/getDefault))
-         paths (for [p paths
-                     :let [path-opts (if (map? p) p (assoc opts :path p))]]
-                 (update path-opts :path (comp fs/normalize fs/absolutize)))
-         handle {:watcher watcher :paths paths :registry (atom {})}]
+         paths (expand-paths opts paths)
+         handle {:watcher watcher :paths paths :opts opts :registry (atom {})}]
      (watch! handle)
-     ; TODO: maybe do this lazily so we still have all the info?
-     (update handle :paths #(map :path %)))))
+     handle)))
+
+(defn add!
+  "Given a handle returned from `create!` and a list of paths,
+  add each path to the directory watcher, then return the updated handle."
+  [handle provided-paths]
+  (let [new-paths (expand-paths (:opts handle) provided-paths)
+        handle (update handle :paths concat new-paths)]
+    (flush)
+    (watch! handle)
+    handle))
 
 (defn- filter-files
-  [{:keys [paths]} path]
+  [paths path]
   (or (some #{path} paths)
       (some #(fs/starts-with? path %) paths)))
 
@@ -97,11 +114,12 @@
   (let [key (.take watcher)
         dir (.watchable key)
         root (get registry dir)
+        paths (map :path (:paths handle))
         events (for [^WatchEvent ev (.pollEvents key)
                      :let [path (.context ev)
                            kind (.kind ev)
                            abs (fs/path dir path)]
-                     :when (filter-files handle abs)]
+                     :when (filter-files paths abs)]
                  ; NOTE: this includes :overflow events
                  ; NOTE: :root is nil if this was a file watch
                  {:kind (ev->kw kind) :path abs :root root})
@@ -116,7 +134,7 @@
     events))
 
 ; TODO: backpressure
-(defn listen
+(defn listen!
   "Blocks forever, running `cb` on each incoming event."
   [cb handle]
     (loop [events (wait-next handle)]
@@ -126,11 +144,15 @@
 
 (defn- default-err-handler
   [err]
-  (binding [*out* *err*]
-    (println "spectacle:" err))
+  (locking *err*
+    (binding [*out* *err*]
+      (print "spectacle: ")
+      (if (instance? java.lang.Exception err)
+        (print-trace err false)
+        (println err))))
   true)
 
-(defn listen-async
+(defn listen-async!
   "Spawns a new thread that runs `cb` on each incoming event.
    You may register a `error-cb` that runs on exceptions thrown in the thread.
    Return `false` from `error-cb` to indicate the loop should abort.
@@ -139,7 +161,7 @@
    Returns a Thread. By default, the thread is treated as a 'daemon' thread that
    blocks the JVM from exiting. You may wish to mark it as a 'user' thread
    instead."
-   ([cb handle] (listen-async cb handle {}))
+   ([cb handle] (listen-async! cb handle {}))
    ([cb handle
      {:keys [error-cb daemonize]
       :or {error-cb default-err-handler
@@ -148,7 +170,7 @@
             (reify Runnable
               (run [_this]
                 (loop []
-                  (let [err (try (listen cb handle)
+                  (let [err (try (listen! cb handle)
                                 (catch java.lang.Throwable e
                                   (error-cb e)))]
                     (when err (recur))))))

@@ -97,20 +97,21 @@
       (recur cause false))))
 
 (defn print-trace [ex transform-repl]
-  (print (str "flower" *cmd* ": " (ansi/compose [:red "error: "])))
-  ; TODO: env variables suck lmao, do something else
-  (if-not (env "FLOWER_HOST_TRACE")
-    (do (print-cause-trace ex)
-        (when @first-error
-          (println (ansi/compose [grey
-            "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"]))))
-    ; TODO: pretty-printer that hides `invoke` if it's not relevant
-    ; maybe do this for apply and LazySeq too?
-    (pretty-exc/print-exception ex))
+  (locking *out*
+    (print (str "flower" *cmd* ": " (ansi/compose [:red "error: "])))
+    ; TODO: env variables suck lmao, do something else
+    (if-not (env "FLOWER_HOST_TRACE")
+      (do (print-cause-trace ex)
+          (when @first-error
+            (println (ansi/compose [grey
+                                    "Some details omitted; set the environment variable FLOWER_HOST_TRACE=1 for a full trackback"]))))
+      ; TODO: pretty-printer that hides `invoke` if it's not relevant
+      ; maybe do this for apply and LazySeq too?
+      (pretty-exc/print-exception ex {:traditional true}))
     ; (st/print-cause-trace ex))
   (when (and @first-eval-error (not transform-repl) (not (env "FLOWER_DEBUG_EVAL")) (any-eval-err ex))
     (println (ansi/compose [grey
-      "Set FLOWER_DEBUG_EVAL=1 to show the desugared clojure code (e.g. for running in `flower repl`)"]))
+                            "Set FLOWER_DEBUG_EVAL=1 to show the desugared clojure code (e.g. for running in `flower repl`)"]))
     (swap! first-eval-error (constantly false)))
   (swap! first-error (constantly false))
-  (flush))
+  (flush)))
