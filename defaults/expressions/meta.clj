@@ -4,6 +4,12 @@
    [transformers.preprocess :refer [preprocess-file]]
    [flower.fs :as fs]))
 
+(defn locals
+  "Return a list of all local variables passed to this clojure context.
+  A 'clojure context' is reset on each call to `flower.reflect/preprocess-sunflower`."
+  []
+  (ns-publics 'flower.locals))
+
 (defn render
   ([source] (render source {}))
   ([source locals]

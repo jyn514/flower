@@ -8,6 +8,13 @@ Change the site title
 
 Add `(def site-title "my-title")` to `expressions/constants.clj`.
 
+Pass an optional argument to a template
+----
+
+In the template, use `(expressions.meta/locals)` to get a key-value map of all variables passed as arguments.
+For example, `◊(if-let [head ('head (locals))] head)` will put `head` into the template only if it exists.
+In this particular case, you could write this more concisely as `◊('head (locals))`.
+
 Use a custom order for your pages
 ------------------
 

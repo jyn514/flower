@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 ◊; NOTE: doctype must always be the first line of the document, it cannot be preceded by whitespace
 ◊(require '[expressions.constants :refer [lang site-author site-title global-desc]]
+          '[expressions.meta :refer [locals]]
           '[expressions.pages :refer [title]]
           '[expressions.utils :refer [inspect]]
           '[flower.fs :as fs])
@@ -20,7 +21,7 @@
     »
     <link rel="stylesheet" href='/main.css?v=◊(hash "static/main.css")'>
     ◊; NOTE: css lives in base.html, since you might not want it on 404 pages
-    ◊(if (resolve 'head) (eval 'head))
+    ◊('head (locals))
   </head>
   <body>
     ◊content
