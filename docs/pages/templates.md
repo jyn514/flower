@@ -3,7 +3,7 @@ preprocessors: []
 ---
 ## page templates
 
-Templates in `flower` work similar to other SSGs.
+Templates in `flower` work similarly to other SSGs.
 A template is a file in the `templates/` directory.
 Any page in your site can be embedded into a template.
 

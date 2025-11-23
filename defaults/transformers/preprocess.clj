@@ -8,16 +8,12 @@
 
 (defn preprocess-file
   [content filename locals {:keys [preprocessors]}]
-  (if-not preprocessors
-    (reflect/preprocess-sunflower content filename locals)
-    (if-not (seq preprocessors)
-      content
-      (reduce run-preprocessor {:content content :filename filename :locals locals} preprocessors))))
-
-#_(defn preprocess-file
-    [source filename locals]
-    (let [preprocessors "TODO???"]
-      (run-preprocessor {:content source :filename filename :locals locals}) pname))
+  (let [locals (if (string? locals) {'content locals} locals)]
+    (if-not preprocessors
+      (reflect/preprocess-sunflower content filename locals)
+      (if-not (seq preprocessors)
+        content
+        (reduce run-preprocessor {:content content :filename filename :locals locals} preprocessors)))))
 
 (defn transform [{:keys [content frontmatter]}]
   (let [{filename :flower/source-file} frontmatter]
