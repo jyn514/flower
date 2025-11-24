@@ -169,7 +169,7 @@
      :depfile (/ builddir "build.clj.d")
      :inputs (concat ["flower.edn" "build.clj" joined-frontmatter] ff
                      ; TODO: remove this once `fs/glob` tracks reads
-                     (mapcat all-dirs ["sass" "pages"]))
+                     (mapcat all-dirs ["sass" "pages" "transformers" "static"]))
      :settings (settings)}
     {:rule "mkdir"
      :outputs builddir}]})
