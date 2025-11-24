@@ -5,10 +5,11 @@
    [flower.fs :as fs]))
 
 (defn locals
-  "Return a list of all local variables passed to this clojure context.
+  "Return a map of all local variables passed to this clojure context.
+  The values of the map are the value of the variable, not a clojure Var.
   A 'clojure context' is reset on each call to `flower.reflect/preprocess-sunflower`."
   []
-  (ns-publics 'flower.locals))
+  (update-vals (ns-publics 'flower.locals) #(if (var? %) (deref %) %)))
 
 (defn render
   ([source] (render source {}))
