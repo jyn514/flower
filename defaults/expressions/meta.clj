@@ -24,7 +24,10 @@
   "Given a template and its local variables, render that template."
   ([template-name locals] (embed template-name locals {}))
   ([template-name locals opts]
-   (let [content (template template-name)
+   (let [[locals opts] (if (string? opts)
+                         [(assoc locals 'content opts) {}]
+                         [locals opts])
+         content (template template-name)
          path (str "templates/" template-name)
          data (preprocess-file content path locals opts)]
      data)))
