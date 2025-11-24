@@ -157,7 +157,7 @@
   (let [inputs (ninja-inputs opts)
         watcher (watch-files #(rerun-ninja opts %) inputs
                              {:period debounce :recursive false})]
-    (watch-files (fn [_] (spectacle/add! watcher (inspect (ninja-inputs opts))))
+    (watch-files (fn [_] (spectacle/add! watcher (ninja-inputs opts)))
                  ["build.ninja"])))
 
 ; http server

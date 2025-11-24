@@ -168,9 +168,8 @@
      ; TODO: maybe we need to nest pages in builddir so they don't conflict?
      :depfile (/ builddir "build.clj.d")
      :inputs (concat ["flower.edn" "build.clj" joined-frontmatter] ff
-                     ; NOTE: normally this would need to include pages/, but we already depend on all-frontmatter and vim likes to create temporary files
                      ; TODO: remove this once `fs/glob` tracks reads
-                     (mapcat all-dirs ["sass"]))
+                     (mapcat all-dirs ["sass" "pages"]))
      :settings (settings)}
     {:rule "mkdir"
      :outputs builddir}]})

@@ -26,6 +26,8 @@
          relative-paths (merge (defaults-map vfs-paths) (id-map real-paths))
          faked-paths (keys relative-paths)
          dirs (filter fs/directory? (vals relative-paths))]
+     ; TODO: this is missing all the directories in the glob :/
+     ; TODO: see https://codeberg.org/jyn514/flower/issues/116
      (set! *dependencies* (union *dependencies* (set dirs)))
      faked-paths)))
 
