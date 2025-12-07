@@ -94,6 +94,8 @@
   (when-not (fs/exists? "flower.edn")
     (fatal "this doesn't look like a flower site. Consider running `flower new` first."))
   (flower.defaults/init opts)
+  ; run cleandead and discard the output
+  (run-non-fatal {:out :string} "ninja -t cleandead")
   (binding [reflect/*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))
