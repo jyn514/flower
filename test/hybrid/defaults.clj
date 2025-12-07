@@ -2,7 +2,7 @@
   (:require
    [babashka.fs :as fs :refer [delete-tree]]
    [expectations.clojure.test :refer [defexpect expect]]
-   [flower.defaults :refer [defaults-path materialize-all]]
+   [flower.defaults :refer [defaults-path init]]
    [flower.utils :refer [*site* git-hash try-slurp]]))
 
 (defn / [& args] (str (apply fs/path *site* args)))
@@ -25,7 +25,7 @@
   `(defexpect ~name
     (binding [*site* (tmpdir)]
       (println (str *site*))
-      (materialize-all {})
+      (init {})
       ~@body)))
 
 (defsite always-materialized
@@ -44,13 +44,13 @@
   (fs/delete (defaults-path "build.clj"))
   (expect (not (virtual? "build.clj")))
   ; run flower new. nothing should happen, since the version hasn't changed.
-  (materialize-all)
+  (init)
   (expect (not (virtual? "build.clj")))
   ; change the version and run flower new again. we should see build.clj reinitialize.
   (spit (version) "xxxxxx")
-  (materialize-all)
+  (init)
   (expect (virtual? "build.clj"))
   ; now delete the build dir altogether and make sure it's regenerated
   (delete-tree (/ ".build"))
-  (materialize-all)
+  (init)
   (expect (virtual? "build.clj")))

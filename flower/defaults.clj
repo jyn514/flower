@@ -60,7 +60,7 @@
   ; not as nice as a warning but this should basically never happen
   (fs/write-bytes path bytes {:truncate-existing false}))
 
-(defn materialize-all [& _]
+(defn init [& _]
   (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))
         version-path (fs/path *site* ".build" "version")
         recorded-version (try-slurp version-path)

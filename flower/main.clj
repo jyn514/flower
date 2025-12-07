@@ -149,7 +149,7 @@
 
    ;; user-facing commands
    "new"
-   {:fn flower.defaults/materialize-all
+   {:fn flower.defaults/init
     :aliases #{"n"}
     :desc "Create a new flower site."
     :args->opts [:site-dir]
