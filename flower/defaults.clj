@@ -55,9 +55,8 @@
 (defn materialize
   [path bytes]
   (some-> (fs/parent path) fs/create-dirs)
-  ; CREATE_NEW avoids TOCTOU by exiting with an error
-  ; not as nice as a warning but this should basically never happen
-  (fs/write-bytes path bytes {StandardOpenOption/CREATE_NEW true}))
+  ; We allow overwriting existing defaults, e.g. when flower is upgraded
+  (fs/write-bytes path bytes))
 
 (defn init [& _]
   (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))
