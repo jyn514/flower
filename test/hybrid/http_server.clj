@@ -9,7 +9,7 @@
   (f @(http/get url)))
 
 (defexpect not-found
-  (let [dir (fs/create-temp-dir {:prefix "flower-hybrid-test-"})
+  (let [dir (fs/create-temp-dir {:prefix "flower-hybrid-test-http-"})
         port (+ 10000 (rand-int 10000))
         resolved-port (static-server port {:dir dir})
         custom-404 "<html><body>not found</body></html>"

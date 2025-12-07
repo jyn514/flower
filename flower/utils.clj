@@ -3,6 +3,7 @@
    [babashka.fs :as fs]
    [babashka.process :as ps]
    [clj-commons.ansi :as ansi]
+   [clojure.java.io :as io]
    [clojure.set :as set :refer [union]]
    [clojure.string :as str]
    [instaparse.core :as insta]))
@@ -204,7 +205,10 @@
 (defn ex-causes [ex]
   (iteration ex-cause :initk ex))
 
-; system and platform interaction
+(defn try-slurp [path]
+  (try (if (instance? java.nio.file.Path path) (slurp (str path)) (slurp path))
+       (catch java.io.FileNotFoundException _ nil)))
+
 ;;; system and platform interaction
 
 (def env System/getenv)
