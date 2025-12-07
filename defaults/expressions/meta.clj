@@ -17,10 +17,11 @@
   ([source locals]
     (preprocess-file source "<inline>" locals)))
 
-(defn template [relative-path]
-  (when-not relative-path
+(defn template [path]
+  (when-not path
     (throw (AssertionError. "did not get a template name")))
-  (slurp (str "templates/" relative-path)))
+  (slurp (if (fs/absolute? path) path
+                (str "templates/" path))))
 
 (defn embed
   "Given a template and its local variables, render that template."
@@ -30,7 +31,8 @@
                          [(assoc locals 'content opts) {}]
                          [locals opts])
          content (template template-name)
-         path (str "templates/" template-name)
+         path (if (fs/absolute? template-name) template-name
+                (str "templates/" template-name))
          data (preprocess-file content path locals opts)]
      data)))
 
