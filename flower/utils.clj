@@ -7,6 +7,8 @@
    [clojure.string :as str]
    [instaparse.core :as insta]))
 
+;;; general helpers
+
 (def ^:dynamic *site* ".")
 (def ^:dynamic *cmd* " <CLI parsing>")
 (def ^:private bs "\\")
@@ -64,6 +66,8 @@
   (if (= 1 (count x)) desc
     (str desc "s")))
 
+;;; logging and error reporting
+
 (defn eprint [& msg]
   (binding [*out* *err*]
     (apply print msg)))
@@ -90,6 +94,8 @@
         formatted (apply str (interpose " " msg))]
     (throw (ex-info formatted info))))
 
+;;; command spawning
+
 (defn system! [opts & rest]
   (let [[opts rest] (if (map? opts)
                       [opts rest]
@@ -110,6 +116,8 @@
                (error (fmt "failed to run ${cmd}: exit code") (:exit (ex-data e))))
            (throw e)))))
 
+;;; path handlers
+
 (defn strip-prefix
   [s pre]
   (let [quoted (java.util.regex.Pattern/quote pre)
@@ -129,6 +137,8 @@
 (defn remove-ext
   [path]
   (first (fs/split-ext path)))
+
+;;; parsing
 
 ; you can see all fields with `(into {} err)`
 ; TODO: see if we can use :total to get a partial parse
@@ -152,7 +162,7 @@
       (str/split out #"\n")
       [])))
 
-; ninja
+;;; ninja
 
 (defn escape-ninja
   "Escape a string for use as a ninja file path.
@@ -187,13 +197,15 @@
   (let [out (escape-depfile out)
         deps (->> deps (map escape-depfile) (str/join " "))]
         (fmt "${out}: ${deps}")))
-; error handling
+
+;;; error handling
 
 ; TODO: i think this won't return the initial `ex` :(
 (defn ex-causes [ex]
   (iteration ex-cause :initk ex))
 
 ; system and platform interaction
+;;; system and platform interaction
 
 (def env System/getenv)
 
@@ -221,3 +233,6 @@
 
 (defn graal? []
   (some? (System/getProperty "org.graalvm.home")))
+
+(defn git-hash ^String [] (-> "META-INF/resources/flower/git-hash" io/resource slurp))
+(defn version [] (format "0.0.1 (%s)" (git-hash)))

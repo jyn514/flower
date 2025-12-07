@@ -21,9 +21,6 @@
    [flower.watch]
    [hiccup.util]))
 
-(defn git-hash [] (-> "META-INF/resources/flower/git-hash" io/resource slurp))
-(defn version [] (format "0.0.1 (%s)" (git-hash)))
-
 ; CLI and IO
 
 (defn run-tracked
