@@ -55,7 +55,7 @@
   (let [relative-path (remove-parent path)
         out (/ public (replace-ext relative-path "css"))
         source-map (add-ext out "map")
-        depfile (/ builddir (add-ext relative-path "d"))]
+        depfile (/ builddir (add-ext path "d"))]
     {:rule "sass"
     ; needed because we pass this as a literal path to `sass`
     :inputs (if (fs/exists? path {:no-vfs true}) path
@@ -68,7 +68,7 @@
 (def ^:private sass-outputs (map :outputs (:builds sass-builds)))
 
 (defn frontmatter-path [page]
-  (/ builddir (add-ext (remove-parent page) "json")))
+  (/ builddir (add-ext page "json")))
 
 (def all-frontmatter
   {:rules [{:name "join-frontmatter"
