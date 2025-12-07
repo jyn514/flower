@@ -10,19 +10,26 @@
 
 (defn tmpdir [] (str (fs/create-temp-dir {:prefix "flower-clean-build-"})))
 
-(defexpect clean-build []
+(defn build-new []
   (let [dir (tmpdir)]
     (expect exit-success (flower! dir flower-cli "new"))
-    (expect exit-success (build-assert-no-rebuild dir))))
+    (expect exit-success (build-assert-no-rebuild dir))
+    dir))
+
+(defexpect clean-build [] (do (build-new) []))
 
 (defexpect clean-dead []
-  (let [dir (tmpdir)
+  (let [dir (build-new)
         in (fs/path dir "pages" "index.html")
         out (fs/path dir "public" "index.html")]
-    (println dir)
-    (expect exit-success (flower! dir flower-cli "new"))
-    (expect exit-success (build-assert-no-rebuild dir))
     (expect (fs/exists? out))
     (fs/delete in)
     (expect exit-success (build-assert-no-rebuild dir))
     (expect (not (fs/exists? out)))))
+
+(defexpect new-post []
+  (let [dir (build-new)]
+    ; Make sure that ninja notices and rebuilds when a new file is added.
+    (spit (str (fs/path dir "pages" "my-new-post.md")) "this is some *markdown*!")
+    (expect exit-success (build-assert-no-rebuild dir))
+    (expect (fs/exists? (fs/path dir "public" "my-new-post.html")))))
