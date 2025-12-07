@@ -66,7 +66,7 @@
      :depends_on [:prepare]
      :environment env
      :commands 
-     (concat setup-m2 [(clj ["-M:test" "--focus" ":unit"])])}
+     (concat setup-m2 [(clj ["-M:test" "--skip" ":process"])])}
 
     {:name :integration
      :image graal-image

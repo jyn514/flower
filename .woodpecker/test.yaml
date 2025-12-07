@@ -10,7 +10,7 @@ steps:
   image: clojure:tools-deps-trixie-slim
   depends_on: [prepare]
   environment: {CLJ_CONFIG: cache/clj-config, GITLIBS: cache/gitlibs}
-  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-M:test'' ''--focus'' '':unit''']
+  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-M:test'' ''--skip'' '':process''']
 - name: integration
   image: ghcr.io/graalvm/native-image-community:25
   depends_on: [prepare]

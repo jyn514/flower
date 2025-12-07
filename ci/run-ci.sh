@@ -9,7 +9,8 @@ else
 	git ls-files --exclude-standard --others --cached -z \
 		| rsync -av --from0 --files-from=- ./ $d/
 	git -C $d init
-	git -C $d commit --allow-empty -m empty
+	git -C $d add .
+	git -C $d commit -m "$(git describe --always --dirty)" --allow-empty
 	args="--repo-path=$d"
 fi
 
