@@ -8,7 +8,21 @@
 
 (use-fixtures :once once-fixture)
 
+(defn tmpdir [] (str (fs/create-temp-dir {:prefix "flower-clean-build-"})))
+
 (defexpect clean-build []
-  (let [dir (str (fs/create-temp-dir {:prefix "flower-clean-build-"}))]
+  (let [dir (tmpdir)]
     (expect exit-success (flower! dir flower-cli "new"))
     (expect exit-success (build-assert-no-rebuild dir))))
+
+(defexpect clean-dead []
+  (let [dir (tmpdir)
+        in (fs/path dir "pages" "index.html")
+        out (fs/path dir "public" "index.html")]
+    (println dir)
+    (expect exit-success (flower! dir flower-cli "new"))
+    (expect exit-success (build-assert-no-rebuild dir))
+    (expect (fs/exists? out))
+    (fs/delete in)
+    (expect exit-success (build-assert-no-rebuild dir))
+    (expect (not (fs/exists? out)))))

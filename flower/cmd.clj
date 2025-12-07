@@ -94,8 +94,6 @@
   (when-not (fs/exists? "flower.edn")
     (fatal "this doesn't look like a flower site. Consider running `flower new` first."))
   (flower.defaults/init opts)
-  ; run cleandead and discard the output
-  (run-non-fatal {:out :string} "ninja -t cleandead")
   (binding [reflect/*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))
@@ -122,7 +120,9 @@
           (fs/create-dirs build-dir)
           (let [contents (gen-depfile out reflect/*dependencies*)]
             (fs/write-bytes depfile (String/.getBytes contents))))
-        (-> ninja-writer str (write-if-modified out))))))
+        (-> ninja-writer str (write-if-modified out)))))
+  ; Run cleandead and discard the output.
+  (system! {:out :string} "ninja -t cleandead"))
 
 (defn run-configure [opts]
   ; TODO: doesn't handle the case where the exception trickles up to main.
