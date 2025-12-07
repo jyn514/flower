@@ -17,7 +17,8 @@
        TODO: lmao this isn't even the right filename
        TODO: ok how about this: `hash-inputs` function that runs `ninja -t inputs` and hashes the root sources without letting you look at the outputs
   -->
-  <link rel="stylesheet" href='/minima.css?v=◊(hash "public/minima.css")'>
+  ◊(def sass (map #(str "sass/" %) ["minima.scss" "minima/_base.scss" "minima/_layout.scss" "minima/_syntax-highlighting.scss"]))
+  <link rel="stylesheet" href='/minima.css?v=◊(apply hash sass)'>
 »
 
 ◊(def body)«

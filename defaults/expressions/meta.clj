@@ -1,8 +1,9 @@
 (ns expressions.meta
   (:require
    [clj-commons.digest :as digest]
-   [transformers.preprocess :refer [preprocess-file]]
-   [flower.fs :as fs]))
+   [expressions.utils :refer [concat-bytes]]
+   [flower.fs :as fs]
+   [transformers.preprocess :refer [preprocess-file]]))
 
 (defn locals
   "Return a map of all local variables passed to this clojure context.
@@ -39,6 +40,7 @@
   ([filename opts] (embed filename {} opts)))
 
 (defn hash
-  "Calculate the SHA256 hash of a file."
-  [filename]
-  (-> filename fs/read-all-bytes digest/sha-256))
+  "Calculate the SHA256 hash of one or more files.
+   If multiple files are present, they will be concatenated in order before being hashed."
+  [& paths]
+  (->> paths (map fs/read-all-bytes) (apply concat-bytes) digest/sha-256))

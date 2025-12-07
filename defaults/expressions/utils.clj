@@ -5,24 +5,7 @@
    [clojure.walk :as walk]
    [flower.fs :as fs]))
 
-(defn discard
-  "Run a function for its side-effects and discard the return value.
-   Useful if you don't want to emit the return value into a template."
-  [f & args]
-  (do (apply f args) nil))
-
-(defn inspect 
-  "Debugging. Prints its argument and returns it."
-  [x] (prn x) x)
-
-(defn split-all [f seq]
-  [(filter f seq) (filter #(not (f %)) seq)])
-
-; https://stackoverflow.com/a/41049094
-(defmacro as-map
-  "Given (as-map a b c), returns {:a a :b b :c c}"
-  [& syms]
-  (zipmap (map keyword syms) syms))
+;;; debugging and misc
 
 ; https://clojuredocs.org/clojure.core/destructure#example-5a946a0ae4b0316c0f44f8f2
 
@@ -45,6 +28,31 @@
         fargs (map #(read-string (second %)) (re-seq -re string))]
     `(format ~fstr ~@fargs)))
 
+(defn discard
+  "Run a function for its side-effects and discard the return value.
+   Useful if you don't want to emit the return value into a template."
+  [f & args]
+  (do (apply f args) nil))
+
+(defn inspect 
+  "Debugging. Prints its argument and returns it."
+  [x] (prn x) x)
+
+;;; data structures
+
+(defn split-all [f seq]
+  [(filter f seq) (filter #(not (f %)) seq)])
+
+; https://stackoverflow.com/a/16399497/7669110
+(defn concat-bytes [& byte-arrays]
+  (byte-array (mapcat seq byte-arrays)))
+
+; https://stackoverflow.com/a/41049094
+(defmacro as-map
+  "Given (as-map a b c), returns {:a a :b b :c c}"
+  [& syms]
+  (zipmap (map keyword syms) syms))
+
 (defn insert-after-where
   "Inserts `item` into `coll` after the first element that satisfies `pred`."
   [pred item coll]
@@ -59,10 +67,7 @@
     (every? sequential? xs) (apply concat xs)
     :else (last xs)))
 
-(defn escape-shell
-  "the world's WORST shell escaper"
-  [s]
-  (str "'" (str/escape s {\' "'\\''"}) "'"))
+;;; path handling
 
 (defn remove-parent
   "Given an file path, remove the first N directories.
@@ -83,6 +88,13 @@
 (defn strip-suffix [^String s ^String suffix]
   (if-not (.endsWith s suffix) s
     (.substring s 0 (- (count s) (count suffix)))))
+
+;;; serialization
+
+(defn escape-shell
+  "the world's WORST shell escaper"
+  [s]
+  (str "'" (str/escape s {\' "'\\''"}) "'"))
 
 ; https://ask.clojure.org/index.php/14203/how-to-persist-clojure-data-structures-to-disk?show=14205#a14205
 (defn write-edn [obj]
