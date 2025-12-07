@@ -159,6 +159,7 @@
 ;;; ninja
 
 (defn ninja-path [] (fs/path *site* ".build" "ninja"))
+(defn ninja [args] (concat [(ninja-path)] (ps/tokenize args)))
 
 (defn parse-ninja [args]
   (let [out (:out (system! {:out :string} args))]
@@ -201,7 +202,7 @@
         deps (->> deps (map escape-depfile) (str/join " "))]
         (fmt "${out}: ${deps}")))
 
-;;; error handling
+;;; error handling and IO
 
 ; TODO: i think this won't return the initial `ex` :(
 (defn ex-causes [ex]
@@ -210,6 +211,19 @@
 (defn try-slurp [path]
   (try (if (instance? java.nio.file.Path path) (slurp (str path)) (slurp path))
        (catch java.io.FileNotFoundException _ nil)))
+
+; slurp mangles binary :/
+; https://stackoverflow.com/a/29640320/7669110
+(defn slurp-bytes
+  [path]
+  (with-open [in (java.io.DataInputStream. (clojure.java.io/input-stream path))
+              out (java.io.ByteArrayOutputStream.)]
+    (io/copy in out)
+    (.toByteArray out)))
+
+(defn load-resource-bytes ^bytes [rel-path]
+  (-> "META-INF/resources/flower/" (str rel-path) io/resource slurp-bytes))
+(defn load-resource [rel-path] (String. (load-resource-bytes rel-path)))
 
 ;;; system and platform interaction
 
@@ -240,5 +254,5 @@
 (defn graal? []
   (some? (System/getProperty "org.graalvm.home")))
 
-(defn git-hash ^String [] (-> "META-INF/resources/flower/git-hash" io/resource slurp))
+(defn git-hash ^String [] (load-resource "git-hash"))
 (defn version [] (format "0.0.1 (%s)" (git-hash)))

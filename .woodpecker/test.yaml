@@ -15,4 +15,4 @@ steps:
   image: ghcr.io/graalvm/native-image-community:25
   depends_on: [prepare]
   environment: {CLJ_CONFIG: cache/clj-config, GITLIBS: cache/gitlibs}
-  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, export LC_ALL=C.utf-8, microdnf install -y dnf dnf-plugins-core >/dev/null, dnf config-manager --enable ol10_codeready_builder, dnf install nodejs npm git python3-pygments --quiet, npm install -g --no-fund sass, git config --global --add safe.directory $(realpath .), ci/run-integration-tests.sh 'cache/bin/clojure' '-J-Dclojure.main.report=stderr']
+  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, export LC_ALL=C.utf-8, microdnf install -y dnf dnf-plugins-core >/dev/null, dnf config-manager --enable ol10_codeready_builder, dnf install cmake gcc-c++ nodejs npm git python3-pygments --quiet, npm install -g --no-fund sass, git config --global --add safe.directory $(realpath .), ci/run-integration-tests.sh 'cache/bin/clojure' '-J-Dclojure.main.report=stderr']

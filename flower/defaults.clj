@@ -1,5 +1,6 @@
 (ns flower.defaults
   (:use [flower.utils])
+  (:import [java.nio.file StandardOpenOption])
   (:require
    [babashka.fs :as fs]
    [clojure.java.io :as io]
@@ -35,13 +36,10 @@
 
 ; materialization
 
-(def flower-defaults "META-INF/resources/flower/defaults/")
-(def ninja-bin "META-INF/resources/flower/ninja")
-
 (def all-defaults
-  (let [manifest (-> (str flower-defaults "MANIFEST.txt") io/resource slurp)
+  (let [manifest (load-resource "defaults/MANIFEST.txt")
         files (str/split manifest #"\n")
-        contents (map #(->> % (str flower-defaults) io/resource slurp .getBytes) files)]
+        contents (map #(->> % (str "defaults/") load-resource-bytes) files)]
     (zipmap files contents)))
 
 ; used in flower.reflect
@@ -57,9 +55,9 @@
 (defn materialize
   [path bytes]
   (some-> (fs/parent path) fs/create-dirs)
-  ; :truncate false avoids TOCTOU by exiting with an error
+  ; CREATE_NEW avoids TOCTOU by exiting with an error
   ; not as nice as a warning but this should basically never happen
-  (fs/write-bytes path bytes {:truncate-existing false}))
+  (fs/write-bytes path bytes {StandardOpenOption/CREATE_NEW true}))
 
 (defn init [& _]
   (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))
@@ -72,6 +70,6 @@
         ; see https://codeberg.org/jyn514/flower/issues/71
         (when-not (and existing-site (always-materialize? p))
           (materialize (vfs-path p) bytes)))
-      (materialize (ninja-path) (-> ninja-bin io/resource slurp .getBytes))
+      (materialize (ninja-path) (load-resource-bytes "ninja"))
       (fs/set-posix-file-permissions (ninja-path) "rwxrwx---")
       (materialize version-path (.getBytes hash)))))

@@ -90,11 +90,11 @@
      :on-close on-close}))
 
 ; live-reload HTTP server
-(def livereload-js "META-INF/resources/flower/watch/livereload-4.0.2/livereload.js")
+(def livereload-js "watch/livereload-4.0.2/livereload.js")
 
 (defn- handler [req]
   (case (:uri req)
-    "/livereload.js" {:body (slurp (io/resource livereload-js))
+    "/livereload.js" {:body (load-resource livereload-js)
                       :headers {"Content-Type" "application/javascript"}}
     "/livereload" (if (:websocket? req) (start-wss req)
                     {:status 400 :body "Expected a websocket connection\r\n"
@@ -122,8 +122,6 @@
                {:period period :recursive true}))
 
 ; ninja file watcher
-
-(defn ninja [args] (concat [(ninja-path)] (ps/tokenize args)))
 
 (defn rerun-ninja [{:as opts :keys [live-reload-port]} {:keys [kind path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running

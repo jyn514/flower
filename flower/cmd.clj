@@ -11,7 +11,8 @@
    [flower.defaults :refer [path-considering-vfs]]
    [flower.eval :as eval]
    [flower.frontmatter]
-   [flower.reflect :as reflect])
+   [flower.reflect :as reflect]
+   [flower.utils :as utils])
   (:import
    (java.io PushbackReader StringWriter)))
 
@@ -122,7 +123,7 @@
             (fs/write-bytes depfile (String/.getBytes contents))))
         (-> ninja-writer str (write-if-modified out)))))
   ; Run cleandead and discard the output.
-  (system! {:out :string} "ninja -t cleandead"))
+  (apply system! {:out :string} (utils/ninja "-t cleandead")))
 
 (defn run-configure [opts]
   ; TODO: doesn't handle the case where the exception trickles up to main.
@@ -132,7 +133,7 @@
 
 (defn build [opts]
   (run-configure opts)
-  (system! "ninja"))
+  (system! (ninja-path)))
 
 ; frontmatter utils
 

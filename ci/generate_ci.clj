@@ -78,7 +78,7 @@
        ["export LC_ALL=C.utf-8"
         "microdnf install -y dnf dnf-plugins-core >/dev/null"
         "dnf config-manager --enable ol10_codeready_builder"
-        "dnf install nodejs npm git python3-pygments --quiet"
+        "dnf install cmake gcc-c++ nodejs npm git python3-pygments --quiet"
         "npm install -g --no-fund sass"
         "git config --global --add safe.directory $(realpath .)"
         (str "ci/run-integration-tests.sh "
