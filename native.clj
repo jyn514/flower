@@ -12,6 +12,8 @@
    ; TODO: separate out base-utils from utils so we don't have to duplicate all these functions
    [expressions.ninja :as ninja]))
 
+;;; helpers
+
 (defmacro fmt
   "Format string mini-language.
    Allows using `${var}` in a format string to refer to a variable in scope."
@@ -36,6 +38,8 @@
 (def is-win (str/starts-with? (System/getProperty "os.name") "Windows"))
 (def is-linux (= (System/getProperty "os.name") "Linux"))
 
+;;; constants
+
 (def class-dir "target/classes")
 (def cli-args
   (-> (System/getProperty "clojure.basis")
@@ -52,6 +56,7 @@
 (def parser (flower-resource "eval/parser.ebnf"))
 (def defaults-dir (flower-resource "defaults"))
 (def git-hash (flower-resource "git-hash"))
+(def ninja-resource (flower-resource "ninja"))
 
 (def git (or (System/getenv "GITLIBS_COMMAND") "git"))
 (def clojure (or (System/getenv "CLOJURE") "clojure"))
@@ -59,6 +64,8 @@
 (def GIT-HASH (->> "describe --always" (str git " ")
                    (ps/shell {:out :string})
                    :out str/trimr))
+
+;;; defaults handling and basic rules
 
 (defn clean [_]
   (b/delete {:path class-dir})
@@ -91,6 +98,91 @@
             (map #(strip-prefix % "defaults/")
                  default-files)))
 (def defaults-target (str class-dir "/" defaults-dir))
+
+(defn manifest [{:keys [include-untracked]}]
+  (spit (str "defaults/" manifest-path) (manifest-contents (default-files include-untracked)))
+  (b/copy-file {:src (str "defaults/" manifest-path)
+                :target (format "%s/%s/%s" class-dir defaults-dir manifest-path)}))
+
+;;; ninja vendoring
+
+; NOTE to distro maintainers: If you rip out this code, FLOWER WILL BREAK.
+; See https://codeberg.org/jyn514/flower/issues/122.
+; If you want to de-vendor ninja, please patch a version that has a `ninja -t inputs --depfiles` flag.
+
+(def ninja-dir "target/ninja")
+(def ninja-out (str ninja-dir "/build/ninja"))
+(def ninja-repo "https://github.com/ninja-build/ninja.git")
+(def ninja-version "bee2e3943ca5d853a6ea7a2091e88b5149ced9cf")
+(defn- git [& args] (ps/shell (concat ["git" "-C" ninja-dir] args)))
+(defn- run [& args] (apply ps/shell {:dir ninja-dir} args))
+
+(defn- clone-ninja []
+  (fs/create-dirs ninja-dir)
+  (git "init")
+  (git "fetch" "--depth=1" ninja-repo ninja-version)
+  (git "checkout" "FETCH_HEAD"))
+
+(defn- build-and-test-ninja []
+  ; We need to build with CMake in order to be able to run tests.
+  (run "cmake -B build --log-level=WARNING -DCMAKE_RULE_MESSAGES=OFF")
+  (run "cmake --build build")
+  (run "build/ninja_test --gtest_brief=1"))
+
+(defn ninja [& {}]
+  (when-not (fs/exists? ninja-out)
+    (println "Building ninja from source")
+    (when-not (fs/exists? (str ninja-dir "/configure.py"))
+      (clone-ninja))
+    (build-and-test-ninja)))
+
+;;; uberjar
+
+(declare reachable)
+(defn uberjar [{:keys [dev include-untracked] :as opts}]
+  (let [assert (if dev "with" "without")]
+    (eprintln "Build uberjar" jar-file assert "type assertions"))
+  (clean nil)
+  (b/copy-dir {:src-dirs ["src"]
+               :target-dir class-dir})
+
+  (let [defaults (default-files include-untracked)]
+    (manifest opts)
+    (doseq [f defaults]
+      (b/copy-file {:src f
+                    :target (str defaults-target "/" (strip-prefix f "defaults/"))})))
+  (b/compile-clj {:basis basis
+                  :src-dirs ["src"]
+                  :ns-compile '[flower.main]
+                  :bindings {#'clojure.core/*assert* (not= false dev)
+                             #'clojure.core/*compiler-options* {:direct-linking true}}
+                  ; JLine likes to bundle .dll files even on Linux. Tell it not to do that.
+                  :java-opts ["-Djline.terminal.jna=false"]
+                  :class-dir class-dir})
+  (let [target (str class-dir "/META-INF/native-image/flower/main/reachability-metadata.json")
+        serialized (json/write-str reachable)]
+    (b/write-file {:path target :string serialized}))
+
+  (ninja)
+  (b/copy-file {:src live-reload
+                :target (str class-dir "/" live-reload)})
+  (b/copy-file {:src parser
+                :target (str class-dir "/" parser)})
+  (spit (str class-dir "/" git-hash) GIT-HASH)
+  ; TODO: on macOS this doesn't update the modified time, which causes ninja to unconditionally rebuild
+  (b/copy-file {:src "scripts/run-jar.sh"
+                :target "target/flower"})
+  (b/copy-file {:src ninja-out
+                :target (str class-dir "/" ninja-resource)})
+  (b/uber {:class-dir class-dir
+           :uber-file jar-file
+           :basis basis
+           :main 'flower.main}))
+(def jar uberjar)
+
+;;; Graal native
+
+; https://github.com/babashka/babashka/blob/e2316f1bbef9daa9e5ec801a9bcbc0ece703d076/resources/META-INF/native-image/babashka/babashka/native-image.properties#L15
 
 (defn all-public [& names]
   (for [t names]
@@ -130,55 +222,13 @@
     :methods [{:name "getMethods" :parameterTypes []}]}
    {:type "java.io.StringWriter"
     :allPublicConstructors true}])
+
 (def reachable
   {:reflection (concat sci-dynamic flower-dynamic)
    :resources
    [{:glob "META-INF/resources/flower/**"}
     {:glob "org/slf4j/impl/StaticLoggerBinder.class"}
     {:glob "simplelogger.properties"}]})
-
-(defn manifest [{:keys [include-untracked]}]
-  (spit (str "defaults/" manifest-path) (manifest-contents (default-files include-untracked)))
-  (b/copy-file {:src (str "defaults/" manifest-path)
-                :target (format "%s/%s/%s" class-dir defaults-dir manifest-path)}))
-
-(defn uberjar [{:keys [dev include-untracked] :as opts}]
-  (let [assert (if dev "with" "without")]
-    (eprintln "Build uberjar" jar-file assert "type assertions"))
-  (clean nil)
-  (b/copy-dir {:src-dirs ["src"]
-               :target-dir class-dir})
-  (let [defaults (default-files include-untracked)]
-    (manifest opts)
-    (doseq [f defaults]
-      (b/copy-file {:src f
-                    :target (str defaults-target "/" (strip-prefix f "defaults/"))})))
-  (b/compile-clj {:basis basis
-                  :src-dirs ["src"]
-                  :ns-compile '[flower.main]
-                  :bindings {#'clojure.core/*assert* (not= false dev)
-                             #'clojure.core/*compiler-options* {:direct-linking true}}
-                  ; JLine likes to bundle .dll files even on Linux. Tell it not to do that.
-                  :java-opts ["-Djline.terminal.jna=false"]
-                  :class-dir class-dir})
-  (let [target (str class-dir "/META-INF/native-image/flower/main/reachability-metadata.json")
-        serialized (json/write-str reachable)]
-    (b/write-file {:path target :string serialized}))
-  (b/copy-file {:src live-reload
-                :target (str class-dir "/" live-reload)})
-  (b/copy-file {:src parser
-                :target (str class-dir "/" parser)})
-  (spit (str class-dir "/" git-hash) GIT-HASH)
-  ; TODO: on macOS this doesn't update the modified time, which causes ninja to unconditionally rebuild
-  (b/copy-file {:src "scripts/run-jar.sh"
-                :target "target/flower"})
-  (b/uber {:class-dir class-dir
-           :uber-file jar-file
-           :basis basis
-           :main 'flower.main}))
-(def jar uberjar)
-
-; https://github.com/babashka/babashka/blob/e2316f1bbef9daa9e5ec801a9bcbc0ece703d076/resources/META-INF/native-image/babashka/babashka/native-image.properties#L15
 
 (def java-interop
   ["org.yaml.snakeyaml"
@@ -213,7 +263,7 @@
 (defn native [opts] (-native-helper (assoc opts :dev false)))
 (defn native-dev [opts] (-native-helper (assoc opts :dev true)))
 
-; meta-build plan
+;;; meta-build plan
 
 (def flower-cli "target/flower")
 (def all-defaults

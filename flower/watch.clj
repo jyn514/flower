@@ -4,6 +4,7 @@
 (ns flower.watch
   (:use flower.utils)
   (:require
+   [babashka.process :as ps]
    [babashka.cli :as cli]
    [babashka.fs :as fs]
    [babashka.http-server :as http-server]
@@ -122,6 +123,8 @@
 
 ; ninja file watcher
 
+(defn ninja [args] (concat [(ninja-path)] (ps/tokenize args)))
+
 (defn rerun-ninja [{:as opts :keys [live-reload-port]} {:keys [kind path]}]
   ; TODO: figure out if we need to avoid rerunning if ninja is already running
   (when path (println kind (str path)))
@@ -131,13 +134,13 @@
   ; TODO: document that if you delete a file and aren't running `flower watch`, you need to do a full rebuild
   (when (= :delete kind) (cmd/run-configure opts))
   (run-non-fatal {:extra-env {"FLOWER_WATCH" live-reload-port
-                              "FLOWER_ROOT" flower.reflect/*root*}} "ninja"))
+                              "FLOWER_ROOT" flower.reflect/*root*}} (ninja-path)))
 
 (defn ninja-inputs [opts]
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
   ; TODO: this doesn't notice files that are only listed in depfiles
-  (let [all-inputs (parse-ninja "ninja -t inputs --no-shell-escape")
+  (let [all-inputs (parse-ninja (ninja "-t inputs --no-shell-escape"))
         temp-file? #(str/starts-with? % (str (:build-dir opts) "/"))
         ; TODO: reconsider if we actually want to filter out build.ninja
         ; also this will be wrong when *site* is set
@@ -207,28 +210,28 @@
   {\? {:fn help
        :name "Help"
        :desc "Print this help"}
-   \t {:fn (no-opts run-non-fatal "ninja -t targets")
+   \t {:fn (no-opts run-non-fatal (ninja "-t targets"))
        :name "Targets"
        :desc "Print all build [t]argets (sometimes called 'outputs' or 'artifacts')"}
-   \i {:fn (no-opts run-non-fatal "ninja -t inputs")
+   \i {:fn (no-opts run-non-fatal (ninja "-t inputs"))
        :name "Inputs"
        :desc "Print all build [i]nputs"}
    \o {:fn #(browse-url (str "http://localhost:" (:port %)))
        :name "Open"
        :desc "[O]pen your flower site in the browser"}
-   \w {:fn (no-opts run-non-fatal "ninja -n -d explain")
+   \w {:fn (no-opts run-non-fatal (ninja "-n -d explain"))
        :name "Why"
        :desc "Print all targets that ninja will rebuild next time it is invoked, and [w]hy they will be built."}
    ; TODO: run this automatically
-   \m {:fn (no-opts run-non-fatal "ninja -t missingdeps")
+   \m {:fn (no-opts run-non-fatal (ninja "-t missingdeps"))
        :name "Missing"
        :desc "Show [m]issing dependency edges in the build graph"}
    ; TODO: run this automatically
-   \c {:fn (no-opts run-non-fatal "ninja -t cleandead")
+   \c {:fn (no-opts run-non-fatal (ninja "-t cleandead"))
        :name "Clean"
        :desc "Delete ('[c]lean') outdated artifacts in the public/ directory"}
    \backspace {:fn #(do
-                      (run-non-fatal "ninja -t clean")
+                      (run-non-fatal (ninja "-t clean"))
                       (rerun-ninja % {}))
                :name "Delete"
                :desc (str "Delete all generated build artifacts and rerun ninja. "

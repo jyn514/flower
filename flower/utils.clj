@@ -156,14 +156,16 @@
       (fatal {:flower/parse true} (render-parse-error err description))
       ev)))
 
+;;; ninja
+
+(defn ninja-path [] (fs/path *site* ".build" "ninja"))
+
 (defn parse-ninja [args]
   (let [out (:out (system! {:out :string} args))]
     ; handle empty string
     (if (seq out)
       (str/split out #"\n")
       [])))
-
-;;; ninja
 
 (defn escape-ninja
   "Escape a string for use as a ninja file path.

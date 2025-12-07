@@ -36,6 +36,7 @@
 ; materialization
 
 (def flower-defaults "META-INF/resources/flower/defaults/")
+(def ninja-bin "META-INF/resources/flower/ninja")
 
 (def all-defaults
   (let [manifest (-> (str flower-defaults "MANIFEST.txt") io/resource slurp)
@@ -71,4 +72,6 @@
         ; see https://codeberg.org/jyn514/flower/issues/71
         (when-not (and existing-site (always-materialize? p))
           (materialize (vfs-path p) bytes)))
+      (materialize (ninja-path) (-> ninja-bin io/resource slurp .getBytes))
+      (fs/set-posix-file-permissions (ninja-path) "rwxrwx---")
       (materialize version-path (.getBytes hash)))))
