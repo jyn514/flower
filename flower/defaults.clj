@@ -55,17 +55,20 @@
 
 (defn materialize
   [path bytes]
-  (if (fs/exists? path)
-    (warn (fmt "'${path}' already exists, skipping"))
-    (do (some-> (fs/parent path) fs/create-dirs)
-      ; :truncate false avoids TOCTOU by exiting with an error
-      ; not as nice as a warning but this should basically never happen
-      (fs/write-bytes path bytes {:truncate-existing false}))))
+  (some-> (fs/parent path) fs/create-dirs)
+  ; :truncate false avoids TOCTOU by exiting with an error
+  ; not as nice as a warning but this should basically never happen
+  (fs/write-bytes path bytes {:truncate-existing false}))
 
-(defn materialize-all [{}]
-  (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))]
-    (doseq [[p bytes] all-defaults]
-      ; skip pages/ and templates/ for existing sites
-      ; see https://codeberg.org/jyn514/flower/issues/71
-      (when-not (and existing-site (always-materialize? p))
-        (materialize (vfs-path p) bytes)))))
+(defn materialize-all [& _]
+  (let [existing-site (fs/exists? (fs/path *site* "flower.edn"))
+        version-path (fs/path *site* ".build" "version")
+        recorded-version (try-slurp version-path)
+        hash (git-hash)]
+    (when-not (= hash recorded-version)
+      (doseq [[p bytes] all-defaults]
+        ; skip pages/ and templates/ for existing sites
+        ; see https://codeberg.org/jyn514/flower/issues/71
+        (when-not (and existing-site (always-materialize? p))
+          (materialize (vfs-path p) bytes)))
+      (materialize version-path (.getBytes hash)))))

@@ -2,7 +2,8 @@
   (:require
    [babashka.fs :as fs]
    [clojure.repl :refer [demunge]]
-   [clojure.test :as t]))
+   [clojure.test :as t]
+   [flower.reflect :refer [*dependencies*]]))
 
 (def ^:dynamic *assert-fn* nil)
 (def ^:dynamic *update* (System/getenv "FLOWER_UPDATE_SNAPSHOTS"))
@@ -11,6 +12,7 @@
 (defn on-reload [cx]
   (binding [*out* *err*] (println "running reload hooks"))
   (reset! assertion-counts {})
+  ; (alter-var-root #'*dependencies* (constantly #{}))
   cx)
 
 ; https://groups.google.com/g/clojure/c/Zpc2yaZDxqA/m/GbmgHK5RAwAJ

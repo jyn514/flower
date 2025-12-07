@@ -93,9 +93,7 @@
     :or {build-dir ".build"}}]
   (when-not (fs/exists? "flower.edn")
     (fatal "this doesn't look like a flower site. Consider running `flower new` first."))
-  (let [defaults (fs/path build-dir "defaults")]
-    (when-not (fs/exists? defaults)
-      (flower.defaults/materialize-all opts)))
+  (flower.defaults/materialize-all opts)
   (binding [reflect/*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))

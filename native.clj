@@ -176,6 +176,7 @@
            :uber-file jar-file
            :basis basis
            :main 'flower.main}))
+(def jar uberjar)
 
 ; https://github.com/babashka/babashka/blob/e2316f1bbef9daa9e5ec801a9bcbc0ece703d076/resources/META-INF/native-image/babashka/babashka/native-image.properties#L15
 
