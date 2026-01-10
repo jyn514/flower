@@ -7,5 +7,5 @@ export CLOJURE=${clj[*]}
 
 set -x
 
-"${clj[@]}" -T:build native
+"${clj[@]}" -T:build native :ci true
 "${clj[@]}" -M:test --focus :process
