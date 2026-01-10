@@ -22,26 +22,7 @@ require() {
 
 require woodpecker-cli "install it from brew or https://github.com/woodpecker-ci/woodpecker/releases/latest"
 
-if ! exists docker && exists podman && ! [ -n "${DOCKER_HOST:-}" ]; then
-	case "$OSTYPE" in
-		linux*) f=$(podman info --format '{{.Host.RemoteSocket.Path}}')
-			if ! [ -e "$f" ]; then
-				fatal "$f does not exist. try running 'systemctl --user start podman.socket', or install docker."
-			fi
-			export DOCKER_HOST=unix://$f
-			;;
-		darwin*) f=$(podman machine inspect --format 'unix://{{.ConnectionInfo.PodmanSocket.Path}}')
-			if ! [ -e "$f" ]; then
-				fatal "$f does not exist. try running 'podman machine start', or install docker."
-			fi
-			export DOCKER_HOST=unix://$f
-			;;
-		msys*|cygwin*) export DOCKER_HOST=npipe://$(podman machine inspect --format '{{.ConnectionInfo.PodmanPipe.Path}}' | tr '\' /);;
-	esac
-else
-	require docker
-fi
-
+require docker
 require clojure
 require git
 
