@@ -123,9 +123,9 @@
 (defn- clone-ninja []
   (fs/create-dirs ninja-dir)
   (require-cmd "git" "clone ninja")
-  (git "init")
+  (git "-c" "init.defaultBranch=main" "init")
   (git "fetch" "--depth=1" ninja-repo ninja-version)
-  (git "checkout" "FETCH_HEAD"))
+  (git "-c" "advice.detachedHead=false" "checkout" "FETCH_HEAD"))
 
 (defn- build-and-test-ninja [& {:keys [ci]}]
   ; We need to build with CMake in order to be able to run tests.
