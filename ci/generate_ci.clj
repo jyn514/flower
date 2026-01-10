@@ -53,12 +53,12 @@
      :environment env
      :commands
      (concat setup-m2
-      [(clj ["-P" "-M:test"])
-       ; uses :deps, not :extra-deps, so needs to be separate
+      [(str "ci/install-clj.sh " pipeline-cache)
+       (clj ["-P" "-M:test"])       ; uses :deps, not :extra-deps, so needs to be separate
+
        (clj ["-P" "-M:build"])
        "git config --global --add safe.directory $(realpath .)"
-       (clj ["-T:build" "manifest" ":include-untracked" "true"])
-       (str "ci/install-clj.sh " pipeline-cache)])}
+       (clj ["-T:build" "manifest" ":include-untracked" "true"])])}
 
     {:name :unit
      :image clj-image

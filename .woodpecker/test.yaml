@@ -5,7 +5,7 @@ steps:
 - name: prepare
   image: clojure:temurin-25-tools-deps-alpine
   environment: {CLJ_CONFIG: cache/clj-config, GITLIBS: cache/gitlibs}
-  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:test''', '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:build''', git config --global --add safe.directory $(realpath .), '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-T:build'' ''manifest'' '':include-untracked'' ''true''', ci/install-clj.sh cache]
+  commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, ci/install-clj.sh cache, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:test''', '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:build''', git config --global --add safe.directory $(realpath .), '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-T:build'' ''manifest'' '':include-untracked'' ''true''']
 - name: unit
   image: clojure:temurin-25-tools-deps-alpine
   depends_on: [prepare]
