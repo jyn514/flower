@@ -34,9 +34,8 @@
     ; for now, hack it with symlinks (see below).
     (join-shell (concat [clojure #_"-Sdeps" #_deps "-J-Dclojure.main.report=stderr"] args)))))
 
-(def clj-version "trixie")
 ; https://hub.docker.com/_/clojure
-(def clj-image (str "clojure:tools-deps-" clj-version "-slim"))
+(def clj-image "clojure:temurin-25-tools-deps-alpine")
 (def graal-version 25)
 ; https://github.com/graalvm/container/pkgs/container/jdk-community
 (def graal-image (str "ghcr.io/graalvm/native-image-community:" graal-version))

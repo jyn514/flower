@@ -3,11 +3,11 @@ when:
   event: [push, pull_request]
 steps:
 - name: prepare
-  image: clojure:tools-deps-trixie-slim
+  image: clojure:temurin-25-tools-deps-alpine
   environment: {CLJ_CONFIG: cache/clj-config, GITLIBS: cache/gitlibs}
   commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:test''', '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-P'' ''-M:build''', git config --global --add safe.directory $(realpath .), '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-T:build'' ''manifest'' '':include-untracked'' ''true''', ci/install-clj.sh cache]
 - name: unit
-  image: clojure:tools-deps-trixie-slim
+  image: clojure:temurin-25-tools-deps-alpine
   depends_on: [prepare]
   environment: {CLJ_CONFIG: cache/clj-config, GITLIBS: cache/gitlibs}
   commands: [rm -rf ~/.m2, mkdir -p cache/m2, ln -Tsf $(realpath cache/m2) ~/.m2, '''clojure'' ''-J-Dclojure.main.report=stderr'' ''-M:test'' ''--skip'' '':process''']
