@@ -116,15 +116,20 @@
 (def ninja-version "bee2e3943ca5d853a6ea7a2091e88b5149ced9cf")
 (defn- git [& args] (ps/shell (concat ["git" "-C" ninja-dir] args)))
 (defn- run [& args] (apply ps/shell {:dir ninja-dir} args))
+(defn- require [cmd why]
+  (when-not (fs/which cmd)
+    (throw (Exception. (str "need " cmd " installed to " why)))))
 
 (defn- clone-ninja []
   (fs/create-dirs ninja-dir)
+  (require "git" "clone ninja")
   (git "init")
   (git "fetch" "--depth=1" ninja-repo ninja-version)
   (git "checkout" "FETCH_HEAD"))
 
 (defn- build-and-test-ninja []
   ; We need to build with CMake in order to be able to run tests.
+  (require "cmake" "build ninja from source")
   (run "cmake -B build --log-level=WARNING -DCMAKE_RULE_MESSAGES=OFF")
   (run "cmake --build build")
   (run "build/ninja_test --gtest_brief=1"))
@@ -253,6 +258,7 @@
 
 (defn -native-helper [{:keys [dev] :as opts}]
   (uberjar opts)
+  (require "native-image" "build Graal Native executable; run `scripts/install-graal.clj` and then `direnv allow`")
   (eprintln "Build Graal Native executable")
   (println (graal dev))
   (ps/shell (graal dev))
