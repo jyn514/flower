@@ -1,0 +1,8 @@
+Usage: flower render <page>
+
+ Render a page containing a program written in the Sunflower template language into a string. 
+
+      --page     The path to the page.
+  -D, --define   Define a variable to be set in this run only.
+      --depfile  Path in which to store a dependency file, used by ninja to track rebuilds.
+      --out-file Path in which to store the output of the transformers. Note that `transform` does not actually write to this file, it just uses it for :depfile.

@@ -2,7 +2,7 @@
 {:plugins [:hooks]
  :kaocha.hooks/pre-load [test.snapshot/on-reload]
  :bindings {; test.snapshot/*update* true
-            flower.reflect/*dependencies* #{}  ; for live reload
+            flower.unsafe/*dependencies* #{}  ; for live reload
             kaocha.stacktrace/*stacktrace-stop-list* ["kaocha.runner" "kaocha.type" "kaocha.watch"]
             kaocha.stacktrace/*stacktrace-filters* ["clojure.java.io" "clojure.lang" "sci.impl" "clojure.core.protocols"]}
  :tests

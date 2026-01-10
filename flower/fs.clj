@@ -4,7 +4,7 @@
    [clojure.set :refer [union]]
    [flower.defaults :refer [always-materialize? defaults-path
                             path-considering-vfs]]
-   [flower.reflect :as reflect :refer [*dependencies*]]
+   [flower.unsafe :refer [*dependencies*]]
    [flower.utils :refer [remove-parent]]))
 
 (defn- id-map [vals]

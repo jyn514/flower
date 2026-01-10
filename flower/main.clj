@@ -23,20 +23,6 @@
 
 ; CLI and IO
 
-(defn run-tracked
-  "Given a function `f` that takes `args`, run it in a flower environment that
-  does dependency tracking and allows access to `flower.unsafe`."
-  [f & args]
-  (let [opts (first args)
-        [after deps] (unsafe/with-drop-bomb
-                       #(cmd/with-tracked-deps
-                         (fn [] (apply f args))))]
-    (if (:depfile opts)
-      (cmd/split-dependencies deps opts)
-      (when (seq deps)
-        (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
-    after))
-
 (defn unknown-cmd [{:keys [args]}]
   (if (empty? args)
     (do
@@ -45,7 +31,7 @@
       (eprintln "'flower watch' to build your site"))
     (binding [*cmd* ""]
       (error (str "unrecognized command: '"
-                  (str/join " " args)
+                  (first args)
                   "' ('flower help' for help)"))))
   (throw (ex-info "" {::silent true})))
 
@@ -194,9 +180,12 @@
             flower.reflect/*watch-port* (env "FLOWER_WATCH")]
     (cmd-fn args)))
 
+(defn main-no-error-handling [args]
+  (dispatch-cmd (as-map args dispatch-table init-fn unknown-cmd global-spec)))
+
 (defn main [& args]
   (try
-    (dispatch-cmd (as-map args dispatch-table init-fn unknown-cmd))
+    (main-no-error-handling args)
     0
     (catch java.lang.Exception e
       (when-not (::silent (ex-data e))

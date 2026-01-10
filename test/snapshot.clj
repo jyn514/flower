@@ -3,7 +3,7 @@
    [babashka.fs :as fs]
    [clojure.repl :refer [demunge]]
    [clojure.test :as t]
-   [flower.reflect :refer [*dependencies*]]))
+   #_[flower.reflect :refer [*dependencies*]]))
 
 (def ^:dynamic *assert-fn* nil)
 (def ^:dynamic *update* (System/getenv "FLOWER_UPDATE_SNAPSHOTS"))

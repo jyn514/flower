@@ -13,7 +13,7 @@
    [flower.hiccup]
    [flower.reflect :as reflect]
    [flower.stacktrace :refer [print-trace]]
-   [flower.unsafe]
+   [flower.unsafe :as unsafe]
    [hiccup.util]
    [hiccup2.core]
    [instaparse.core :as insta]
@@ -36,7 +36,7 @@
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
 
 (defn load-sci-file [file ns-] 
-  (set! reflect/*dependencies* (conj reflect/*dependencies* file))
+  (set! unsafe/*dependencies* file)
   (try
     {:file file :source (slurp file)}
     (catch java.io.IOException e

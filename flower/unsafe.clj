@@ -1,10 +1,10 @@
 (ns flower.unsafe
   (:require
    [babashka.process :as ps]
-   [flower.utils :refer [fatal]]
-   [flower.reflect :as reflect]))
+   [flower.utils :refer [fatal gen-depfile]]))
 
 (def ^:dynamic *drop-bomb* false)
+(def ^:dynamic *dependencies* #{})
 
 (defn with-drop-bomb [f]
   (binding [*drop-bomb* false]
@@ -25,5 +25,18 @@
    If you do not access any files, but still use a function in flower.unsafe,
    call this without arguments."
   [& paths]
-  (set! reflect/*dependencies* (concat reflect/*dependencies* paths))
+  (set! *dependencies* (concat *dependencies* paths))
   (set! *drop-bomb* false))
+
+(defn with-tracked-deps [f]
+  (binding [*dependencies* #{}]
+    (let [out-map (f)]
+      ; TODO: should be keyed by output file so we can minimize rebuilds
+      [out-map *dependencies*])))
+
+(defn split-dependencies
+  [dependencies {:keys [depfile out-file]}]
+  (when (some nil? [depfile out-file dependencies])
+    (throw (ex-info (str "got <nil> when trying to write a depfile for " out-file) {})))
+  (let [formatted (gen-depfile out-file dependencies)]
+    (spit depfile formatted)))

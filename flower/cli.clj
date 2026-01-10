@@ -4,7 +4,10 @@
    [babashka.cli :as cli]
    ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
    [babashka.process.pprint]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [flower.unsafe :as unsafe])
+  (:import
+   [clojure.lang ExceptionInfo]))
 
 ;; helpers for use with :fn
 
@@ -16,6 +19,20 @@
         [k v] (split-once s #"=")
         v (if (some? v) v true)]
     (assoc coll k v)))
+
+(defn run-tracked
+  "Given a function `f` that takes `args`, run it in a flower environment that
+  does dependency tracking and allows access to `flower.unsafe`."
+  [f & args]
+  (let [opts (first args)
+        [after deps] (unsafe/with-drop-bomb
+                       #(unsafe/with-tracked-deps
+                         (fn [] (apply f args))))]
+    (if (:depfile opts)
+      (unsafe/split-dependencies deps opts)
+      (when (seq deps)
+        (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
+    after))
 
 ; disallow infinite sequences, they horribly break debugging.
 ; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
@@ -79,29 +96,35 @@
 ;; API
 
 (defn help
-  [{:keys [global-spec dispatch-table args]}]
-  (if (empty? args)
-    ; global help, no arguments
-    (let [rows (concat (cli/opts->table (:spec global-spec)) ; TODO: print defaults
-                       (for [[cmd meta] dispatch-table
-                             :when (string? cmd)]
-                         [cmd (:desc meta)]))]
-      (printf "flower %s\n" (version))
-      (println "Commands:")
-      (println (cli/format-table {:rows rows})))
-    ; help for subcommand
-    (let [cmd (first args)
-          cmd-meta (get dispatch-table cmd)]
-      (if (nil? cmd-meta) (help {})  ; unknown command
-        (do (println "Usage: flower" cmd (format-args (:args->opts cmd-meta)))
-            (println "\n" (:desc cmd-meta) "\n")
-            (-> cmd-meta (select-keys [:spec]) cli/format-opts println))))))
+  [{:keys [global-spec dispatch-table resolved-cmd args parse-failure]}]
+  (let [cmd (or resolved-cmd (first args))
+        resolved-cmd (get (dispatch-aliases dispatch-table) cmd cmd)
+        cmd-meta (get dispatch-table resolved-cmd)]
+    (if-not cmd-meta
+      ; global help, no arguments.
+      ; note that this also runs if we didn't recognize the command.
+      (let [rows (concat (cli/opts->table (:spec global-spec)) ; TODO: print defaults
+                         (for [[cmd meta] dispatch-table
+                               :when (string? cmd)]
+                           [cmd (:desc meta)]))]
+        (printf "flower %s\n" (version))
+        (println "Commands:")
+        (println (cli/format-table {:rows rows})))
+      ; help for subcommand
+      (do
+        (when-let [msg (ex-message parse-failure)]
+          (when-not (-> parse-failure ex-data :opts :help)
+            (println "Error:" msg)))
+        (println "Usage: flower" resolved-cmd (format-args (:args->opts cmd-meta)))
+        (println "\n" (:desc cmd-meta) "\n")
+        (-> cmd-meta (select-keys [:spec]) cli/format-opts println))))
+  (throw (ex-info "" {:flower.main/silent true})))
 
 (defn dispatch-cmd
   "cli/dispatch with blackjack and hookers.
   Parse the CLI args and dispatch to the appropriate clojure funciton.
   Also registers global options."
-  [{:keys [args dispatch-table init-fn unknown-cmd]}]
+  [{:keys [args dispatch-table init-fn unknown-cmd global-spec] :as spec}]
   ; TODO: this is wrong if a later argument contains -C
   ; I think we can avoid this by merging *all* subcommand's options into a big map so bb knows about them
   (let [[global-opts cmd rest] (worlds-worst-cli-parser args)
@@ -109,10 +132,16 @@
         cmd-meta (get dispatch-table resolved-cmd)]
     (when-not cmd-meta
       (unknown-cmd {:args args}))
-    (let [opts (cli/parse-args rest (dissoc cmd-meta :aliases))
+    (let [opts (try (cli/parse-args rest (dissoc cmd-meta :aliases))
+                    (catch ExceptionInfo e
+                      (help (assoc spec :resolved-cmd resolved-cmd
+                                        :parse-failure e))))
           merged-opts (update opts :opts merge global-opts)]
-      (alter-var-root (var *cmd*) (constantly (str " " resolved-cmd)))
-      (init-fn (:fn cmd-meta) resolved-cmd merged-opts))))
+      (if (get-in merged-opts [:opts :help])
+        (help spec)
+        (do
+          (alter-var-root (var *cmd*) (constantly (str " " resolved-cmd)))
+          (init-fn (:fn cmd-meta) resolved-cmd merged-opts))))))
 
 (defn make-dispatch-table [dispatch-dsl]
   (->> dispatch-dsl (map ->bb) flatten

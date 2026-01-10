@@ -12,6 +12,7 @@
    [flower.eval :as eval]
    [flower.frontmatter]
    [flower.reflect :as reflect]
+   [flower.unsafe :refer [*dependencies*]]
    [flower.utils :as utils])
   (:import
    (java.io PushbackReader StringWriter)))
@@ -63,13 +64,6 @@
 
 ; dependency tracking
 
-(defn split-dependencies
-  [dependencies {:keys [depfile out-file]}]
-  (when (some nil? [depfile out-file dependencies])
-    (throw (ex-info (str "got <nil> when trying to write a depfile for " out-file) {})))
-  (let [formatted (gen-depfile out-file dependencies)]
-    (spit depfile formatted)))
-
 (defn load-settings [registry cli list-settings]
   (when list-settings
     (msg "options available:")
@@ -95,7 +89,7 @@
   (when-not (fs/exists? "flower.edn")
     (fatal "this doesn't look like a flower site. Consider running `flower new` first."))
   (flower.defaults/init opts)
-  (binding [reflect/*dependencies* #{}]
+  (binding [*dependencies* #{}]
     (let [global-meta (with-open [fd (io/reader (str *site* "/flower.edn"))]
                         (edn/read (PushbackReader. fd)))
           settings (load-settings (:settings global-meta) settings list-settings)
@@ -119,7 +113,7 @@
               depfile (fs/path *site* build-dir "build.clj.d")]
           (eval/eval-form lisp {:cx cx, :src embedded})
           (fs/create-dirs build-dir)
-          (let [contents (gen-depfile out reflect/*dependencies*)]
+          (let [contents (gen-depfile out *dependencies*)]
             (fs/write-bytes depfile (String/.getBytes contents))))
         (-> ninja-writer str (write-if-modified out)))))
   ; Run cleandead and discard the output.
@@ -153,12 +147,6 @@
 ; preprocessing
 
 ; index preprocessing
-
-(defn with-tracked-deps [f]
-  (binding [reflect/*dependencies* #{}]
-    (let [out-map (f)]
-      ; TODO: should be keyed by output file so we can minimize rebuilds
-      [out-map reflect/*dependencies*])))
 
 ; transforming
 (defn run-transformer
