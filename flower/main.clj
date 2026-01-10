@@ -1,12 +1,12 @@
 (set! *warn-on-reflection* true)
 (ns flower.main
   (:gen-class)
-  (:use flower.utils)
+  (:use flower.utils flower.cli)
   (:require
-   [babashka.cli :as cli] ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
+   [babashka.cli :as cli]
+   ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
    [babashka.process.pprint]
    [clojure.data.json :as json]
-   [clojure.java.io :as io]
    [clojure.string :as str]
    [flower.cmd :as cmd]
    [flower.defaults]
@@ -37,9 +37,6 @@
         (fatal {:flower/deps deps} "at least one file was accessed, but no depfile path was passed!")))
     after))
 
-(defn no-opts [f & args]
-  (fn [& _] (apply f args)))
-
 (defn unknown-cmd [{:keys [args]}]
   (if (empty? args)
     (do
@@ -52,58 +49,7 @@
                   "' ('flower help' for help)"))))
   (throw (ex-info "" {::silent true})))
 
-(defn stop-at-duplicates
-  "Given a list and a cutoff for a number of duplicate occurences,
-  return [<list stopping at duplicates>, duplicate].
-  The duplicate can be `nil`."
-  [xs cutoff]
-  (loop [seen []
-         remaining xs]
-    (if (empty? remaining) [seen nil]  ; base case
-      (let [[head tail] [(first remaining) (rest remaining)]
-            trail (take-last (dec cutoff) seen)]
-        (if (and (= (dec cutoff) (count trail)) (apply = head trail))
-          [(drop-last cutoff seen) head] ; without last
-          (recur (conj seen head) tail))))))
-
-(defn format-args [args->opts]
-  (let [[unique dup] (stop-at-duplicates args->opts 3)
-        args (for [k unique]
-               (str "<" (name k) ">"))
-        varargs (if dup (str "[<" (name dup) ">...]") "")]
-    (str (str/join " " args) varargs)))
-
-(declare global-spec)
-(declare dispatch-table)
-(defn help
-  [{:keys [args]}]
-  (if (empty? args)
-    ; global help, no arguments
-    (let [rows (concat (cli/opts->table (:spec global-spec)) ; TODO: print defaults
-                       (for [[cmd meta] dispatch-table
-                             :when (string? cmd)]
-                         [cmd (:desc meta)]))]
-      (printf "flower %s\n" (version))
-      (println "Commands:")
-      (println (cli/format-table {:rows rows})))
-    ; help for subcommand
-    (let [cmd (first args)
-          cmd-meta (get dispatch-table cmd)]
-      (if (nil? cmd-meta) (help {})  ; unknown command
-        (do (println "Usage: flower" cmd (format-args (:args->opts cmd-meta)))
-            (println "\n" (:desc cmd-meta) "\n")
-            (-> cmd-meta (select-keys [:spec]) cli/format-opts println))))))
-
-; disallow infinite sequences, they horribly break debugging.
-; 100000 pages is enough for anyone, at that point we hit argv limits anyway.
-(def argv-max (if *assert* 1000 100000))
 (defn cli-read-json [_opts str] (json/read-str str))
-
-(defn parse-kv [coll s]
-  (let [coll (or coll {})
-        [k v] (split-once s #"=")
-        v (if (some? v) v true)]
-    (assoc coll k v)))
 
 (def default-opts
   {:build-dir ".build"
@@ -134,11 +80,12 @@
           {:coerce :string
            :desc "Site URL root."}}})
 
+(declare dispatch-table)
 (def dispatch-dsl
    ;; meta commands
   {[] {:fn unknown-cmd :needs-metadata true}
    "help"
-   {:fn help
+   {:fn #(help (assoc % :global-spec global-spec :dispatch-table dispatch-table))
     :needs-metadata true
     :aliases #{"--help" "-h" "/?"}
     :desc "Print this help"}
@@ -238,70 +185,18 @@
            :transformers {:coerce []
                           :desc "List of transformers to run on the input."}}}})
 
-(defn ->bb
-  "Convert our `dispatch-table` DSL to babashka/dispatch syntax.
+(def dispatch-table (make-dispatch-table dispatch-dsl))
 
-  `init` is a function that will run before the dispatched command
-  to set up global options. It takes two arguments:
-  the function to run inside globals and the parsed options.
-  It should pass the options as an argument to the function."
-  [[key {my-fn :fn :keys [needs-metadata] :as opts}]]
-  (let [wrapped-fn (if needs-metadata my-fn #(my-fn (:opts %)))
-        bb-map (assoc opts
-                      :cmd key
-                      :fn wrapped-fn)]
-  bb-map))
-
-
-(def dispatch-table
-  (->> dispatch-dsl (map ->bb) flatten
-       (map (juxt :cmd identity)) (into {})))
-
-(def dispatch-aliases
-  (into {} (apply concat (for [[cmd {aliases :aliases}] dispatch-table
-                               :when aliases]
-                           (for [a aliases] [a cmd])))))
-
-(defn init-fn [cmd-fn cmd-name args]
-  (alter-var-root (var *cmd*) (constantly (str " " cmd-name)))
+(defn init-fn [cmd-fn _cmd-name args]
   (binding [*site* (or (get-in args [:opts :site]) ".")
             flower.unsafe/*drop-bomb* false ; for `repl`
             flower.reflect/*root* (or (get-in args [:opts :root]) (env "FLOWER_ROOT") "/")
             flower.reflect/*watch-port* (env "FLOWER_WATCH")]
     (cmd-fn args)))
 
-  ; this is a really really stupid CLI parser that only handles global options and subcommands
-  ; opts = {}
-  ; args = iter(args)
-  ; for arg in args:
-  ;   if any(arg == opt for opt in (:spec global-opts)):
-  ;     opts[arg] = next(args)
-  ;   else:
-  ;     cmd = arg
-  ;     break
-(defn worlds-worst-cli-parser [args]
-  ; TODO: this isn't even a parser lol
-  [{} (first args) (rest args)])
-
-(defn dispatch-cmd
-  "cli/dispatch with blackjack and hookers.
-  Parse the CLI args and dispatch to the appropriate clojure funciton.
-  Also registers global options."
-  [args]
-  ; TODO: this is wrong if a later argument contains -C
-  ; I think we can avoid this by merging *all* subcommand's options into a big map so bb knows about them
-  (let [[global-opts cmd rest] (worlds-worst-cli-parser args)
-        resolved-cmd (get dispatch-aliases cmd cmd)
-        cmd-meta (get dispatch-table resolved-cmd)]
-    (when-not cmd-meta
-      (unknown-cmd {:args args}))
-    (let [opts (cli/parse-args rest (dissoc cmd-meta :aliases))
-          merged-opts (update opts :opts merge global-opts)]
-      (init-fn (:fn cmd-meta) resolved-cmd merged-opts))))
-
 (defn main [& args]
   (try
-    (dispatch-cmd args)
+    (dispatch-cmd (as-map args dispatch-table init-fn unknown-cmd))
     0
     (catch java.lang.Exception e
       (when-not (::silent (ex-data e))
