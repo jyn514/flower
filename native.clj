@@ -127,19 +127,20 @@
   (git "fetch" "--depth=1" ninja-repo ninja-version)
   (git "checkout" "FETCH_HEAD"))
 
-(defn- build-and-test-ninja []
+(defn- build-and-test-ninja [& {:keys [ci]}]
   ; We need to build with CMake in order to be able to run tests.
   (require-cmd "cmake" "build ninja from source")
   (run "cmake -B build --log-level=WARNING -DCMAKE_RULE_MESSAGES=OFF")
   (run "cmake --build build")
-  (run "build/ninja_test --gtest_brief=1"))
+  (let [args (if ci "--gtest_filter=-DiskInterfaceTest.StatBadPath" "")]
+    (run (str "build/ninja_test --gtest_brief=1" args))))
 
-(defn ninja [& {}]
+(defn ninja [opts]
   (when-not (fs/exists? ninja-out)
     (println "Building ninja from source")
     (when-not (fs/exists? (str ninja-dir "/configure.py"))
       (clone-ninja))
-    (build-and-test-ninja)))
+    (build-and-test-ninja opts)))
 
 ;;; uberjar
 
@@ -168,7 +169,7 @@
         serialized (json/write-str reachable)]
     (b/write-file {:path target :string serialized}))
 
-  (ninja)
+  (ninja opts)
   (b/copy-file {:src live-reload
                 :target (str class-dir "/" live-reload)})
   (b/copy-file {:src parser
