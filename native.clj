@@ -132,7 +132,7 @@
   (require-cmd "cmake" "build ninja from source")
   (run "cmake -B build --log-level=WARNING -DCMAKE_RULE_MESSAGES=OFF")
   (run "cmake --build build")
-  (let [args (if ci "--gtest_filter=-DiskInterfaceTest.StatBadPath" "")]
+  (let [args (if ci " --gtest_filter=-DiskInterfaceTest.StatBadPath" "")]
     (run (str "build/ninja_test --gtest_brief=1" args))))
 
 (defn ninja [opts]
