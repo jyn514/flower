@@ -1,4 +1,5 @@
 (ns test.hybrid.defaults
+  (:refer-clojure :exclude [/])
   (:require
    [babashka.fs :as fs :refer [delete-tree]]
    [expectations.clojure.test :refer [defexpect expect]]
