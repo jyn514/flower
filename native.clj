@@ -47,7 +47,7 @@
       (select-keys [:extra])))
 (def basis (b/create-basis (merge cli-args {:project "deps.edn"})))
 (def jar-file "target/flower.jar")
-(def exe (str "target/flower" (when is-win ".exe")))
+(defn exe [name] (str "target/" name (when is-win ".exe")))
 ; https://github.com/livereload/livereload-js/blob/v4.0.2/dist/livereload.min.js
 ; keep this in sync with watch.clj
 (defn flower-resource [path] (str "META-INF/resources/flower/" path))
@@ -69,7 +69,8 @@
 
 (defn clean [_]
   (b/delete {:path class-dir})
-  (b/delete {:path exe})
+  (b/delete {:path (exe "flower")})
+  (b/delete {:path (exe "sunflower")})
   (b/delete {:path jar-file}))
 
 (defn parse-git [cmd]
@@ -159,7 +160,7 @@
                     :target (str defaults-target "/" (strip-prefix f "defaults/"))})))
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
-                  :ns-compile '[flower.main]
+                  :ns-compile '[flower.main flower.bin.sunflower]
                   :bindings {#'clojure.core/*assert* (not= false dev)
                              #'clojure.core/*compiler-options* {:direct-linking true}}
                   ; JLine likes to bundle .dll files even on Linux. Tell it not to do that.
@@ -243,32 +244,38 @@
    "org.nibor.autolink"
    "com.fasterxml.jackson"])
 
-(defn args [dev]
-  ["native-image" "-jar" jar-file exe
-   "--silent"
-   #_(when is-linux "--gc=G1")
-   (if dev "-Ob" "-Os")
-   (when (System/getenv "CI") "--parallelism=4")
-   (when (System/getenv "CI") "-J-Xmx4g")
-   "--no-fallback" "--exact-reachability-metadata" "--enable-native-access=ALL-UNNAMED"
-   "--features=clj_easy.graal_build_time.InitClojureClasses"
-   "-H:+UnlockExperimentalVMOptions" "-H:-ReduceImplicitExceptionStackTraceInformation"
-   (str "--initialize-at-build-time=" (str/join "," java-interop))])
+(defn args [{:keys [dev sunflower]}]
+  (let [main (if sunflower
+               ["-cp" jar-file "-m" "flower.bin.sunflower" (exe "sunflower")]
+               ["-jar" jar-file (exe "flower")])]
+  (concat
+    ["native-image"] main
+    ["--silent"
+     #_(when is-linux "--gc=G1")
+     (if dev "-Ob" "-Os")
+     (when (System/getenv "CI") "--parallelism=4")
+     (when (System/getenv "CI") "-J-Xmx4g")
+     "--no-fallback" "--exact-reachability-metadata" "--enable-native-access=ALL-UNNAMED"
+     "--features=clj_easy.graal_build_time.InitClojureClasses"
+     "-H:+UnlockExperimentalVMOptions" "-H:-ReduceImplicitExceptionStackTraceInformation"
+     (str "--initialize-at-build-time=" (str/join "," java-interop))])))
 
-(defn graal [dev] (str/join " " (args dev)))
+(defn graal [opts] (str/join " " (args opts)))
 
-(defn -native-helper [{:keys [dev] :as opts}]
+(defn -native-helper [{:keys [dev sunflower] :as opts}]
   (uberjar opts)
   (require-cmd "native-image" "build Graal Native executable; run `scripts/install-graal.clj` and then `direnv allow`")
   (eprintln "Build Graal Native executable")
-  (println (graal dev))
-  (ps/shell (graal dev))
-  (let [size (-> exe fs/size (/ (* 1024 1024)) double)
+  (println (graal opts))
+  (ps/shell (graal opts))
+  (let [exe (exe (if sunflower "sunflower" "flower"))
+        size (-> exe fs/size (/ (* 1024 1024)) double)
         desc (if dev "dev" "release")]
     (eprintln "Built" exe (format "(%s %.2f MB)" desc size))))
 
 (defn native [opts] (-native-helper (assoc opts :dev false)))
 (defn native-dev [opts] (-native-helper (assoc opts :dev true)))
+(defn sunflower-native [opts] (-native-helper (assoc opts :sunflower true)))
 
 ;;; meta-build plan
 
