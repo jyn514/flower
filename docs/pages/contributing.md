@@ -42,7 +42,7 @@ Choose the right one for whatever you're doing. I normally use the Graal binary 
 
 First, [install woodpecker-cli](https://github.com/woodpecker-ci/woodpecker/releases/latest#:~:text=Assets).
 (There is also a [nix package](https://search.nixos.org/packages?channel=unstable&show=woodpecker-cli).)
-Then, run `./scripts/run-ci.sh`.
+Then, run `./ci/run-ci.sh`.
 
 By default this uses the code in your local checkout.
 Pass `--remote` to use the latest commit pushed to your branch.

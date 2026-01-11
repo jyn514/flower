@@ -52,8 +52,7 @@
 (defn preprocess-file
   [{:keys [content frontmatter] :as opts}]
   (let [preprocessors (:preprocessors frontmatter)
-        opts (assoc (update-in opts [:locals] assoc 'content content)
-                    :filename (:flower/source-file frontmatter))]
+        opts (assoc opts :filename (:flower/source-file frontmatter))]
     (if-not preprocessors
       (preprocess-sunflower opts)
       (if-not (seq preprocessors)
