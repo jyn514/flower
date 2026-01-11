@@ -40,7 +40,8 @@
 (defn has-contents [page str]
   (str/includes? (String. (fs/read-all-bytes page)) str))
 
-; unfortunately this doesn't thing we actually care about, which is that `flower watch` notices it needs to rebuild :/
+; unfortunately this doesn't test the thing we actually care about,
+; which is that `flower watch` notices it needs to rebuild :/
 (defexpect depfile-modified []
   (let [site (build-new)
         other-dir (tmpdir)

@@ -3,11 +3,17 @@
    [babashka.fs :as fs]
    [babashka.process :as ps]
    [expectations.clojure.test :refer [expect]]
+   [flower.eval :as eval]
    [flower.utils :as utils :refer [*site*]])
   (:import
    [java.io StringWriter]))
 
 (def flower-cli (fs/absolutize "target/flower"))
+
+(defn render [s filename]
+  (eval/preprocess-sunflower
+    {:content s
+     :filename filename}))
 
 (defn system!
   [desc opts & args]
