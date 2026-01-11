@@ -1,9 +1,9 @@
 (ns expressions.meta
   (:require
    [clj-commons.digest :as digest]
-   [expressions.utils :refer [concat-bytes]]
+   [expressions.utils :refer [as-map concat-bytes]]
    [flower.fs :as fs]
-   [transformers.preprocess :refer [preprocess-file]]))
+   [flower.reflect :as reflect :refer [preprocess-sunflower]]))
 
 (defn locals
   "Return a map of all local variables passed to this clojure context.
@@ -12,12 +12,24 @@
   []
   (update-vals (ns-publics 'flower.locals) #(if (var? %) (deref %) %)))
 
+(def all-preprocessors
+  {"sunflower" preprocess-sunflower})
+
+(defn preprocess-file [opts]
+  (reflect/preprocess-file (assoc opts :all-preprocessors all-preprocessors)))
+
 (defn render
+  "Render an in-memory string as a sunflower template."
   ([source] (render source {}))
   ([source locals]
-    (preprocess-file source "<inline>" locals)))
+    (preprocess-file {:content source
+                      :frontmatter {:flower/source-file "<inline>"}
+                      :locals locals})))
 
-(defn template [path]
+(defn template
+  "Load the contents of a template file from disk.
+  `path` is assumed to be relative to the templates/ directory."
+  [path]
   (when-not path
     (throw (AssertionError. "did not get a template name")))
   (slurp (if (fs/absolute? path) path
@@ -33,7 +45,8 @@
          content (template template-name)
          path (if (fs/absolute? template-name) template-name
                 (str "templates/" template-name))
-         data (preprocess-file content path locals opts)]
+         frontmatter (assoc opts :flower/source-file path)
+         data (preprocess-file (as-map content locals frontmatter))]
      data)))
 
 (defn include

@@ -70,3 +70,16 @@
                       :flower/path dst
                       :flower/filetype ext)]
     {:content body :frontmatter merged}))
+
+(defn serialize-key
+  "preserve namespaces in output"
+  [k]
+  (cond (keyword? k) (subs (str k) 1)
+        (symbol? k) (name k)
+        :else (str k)))
+
+(defn print-frontmatter [frontmatter]
+  (println "+++")
+  (doall (for [[k v] frontmatter]
+           (println (format "%s: %s" (serialize-key k) v))))
+  (println "+++"))

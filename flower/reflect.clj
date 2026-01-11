@@ -41,5 +41,20 @@
         ; TODO: this is a horrible hack to make jyn.dev work nicely, but it's fine
         (strip-suffix ".jar"))))
 
-; TODO: this sucks! i don't like having things only available in the guest :(
+; This gets initialized later in flower.eval.
 (declare preprocess-sunflower)
+
+(defn- run-preprocessor [pname {:keys [all-preprocessors] :as opts}]
+  (let [func (get all-preprocessors pname)]
+    (if func (func opts)
+             (throw (ex-info "unknown preprocessor" {:preprocessor pname})))))
+
+(defn preprocess-file
+  [{:keys [content frontmatter] :as opts}]
+  (let [preprocessors (:preprocessors frontmatter)
+        opts (update-in opts [:locals] assoc 'content content)]
+    (if-not preprocessors
+      (preprocess-sunflower opts)
+      (if-not (seq preprocessors)
+        content
+        (reduce run-preprocessor opts preprocessors)))))

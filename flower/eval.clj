@@ -36,7 +36,7 @@
 (def ^{:dynamic true :private true} *cx* "only for use by render-page" nil)
 
 (defn load-sci-file [file ns-] 
-  (set! unsafe/*dependencies* file)
+  (set! unsafe/*dependencies* (conj unsafe/*dependencies* file))
   (try
     {:file file :source (slurp file)}
     (catch java.io.IOException e
@@ -128,78 +128,6 @@
 
 ; (defn print-trace [ex]
 ;   (repl/print-trace ex false))
-
-(declare preprocess-sunflower)
-; needs to be a function, otherwise preprocess-file won't be bound
-(defn sci-defaults []
-  {
-   :load-fn load-fn
-   ; NOTE: dynamic vars are *not* bound, which means that
-   ; e.g. `*html-mode*` will not see any changes in the guest.
-   ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
-   ; maybe we can figure out a way to find dynamic vars with `dir`?
-   ; but that still doesn't help find all functions that use them…
-   :namespaces {; re-exported libs
-                'clojure.core clojure-core
-                'clojure.data.json (copy-ns 'clojure.data.json) 
-                'nextjournal.markdown (copy-ns 'nextjournal.markdown)
-                'hiccup2.core hiccup-core 
-                'hiccup.util (copy-ns 'hiccup.util)
-                'hiccup.compiler hiccup-compiler
-                'instaparse.core (copy-ns 'instaparse.core)
-                'clj-commons.digest (copy-ns 'clj-commons.digest)
-                'java-time.api (copy-ns 'java-time.api)
-                ; internals
-                'flower.eval {'pretty-print pretty-print}
-                ; flower API
-                'flower.fs (merge (dissoc (copy-ns 'flower.fs) 'slurp-)
-                                  (copy-ns 'babashka.fs {:dst 'flower.fs
-                                                         :symbols bb-fs}))
-                'flower.reflect (assoc (copy-ns 'flower.reflect)
-                                       'preprocess-sunflower preprocess-sunflower)
-                ; TODO: use drop-bomb here too
-                'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
-                ; 'babashka.fs (copy-filtering 'babashka.fs bb-fs)
-                'flower.unsafe.fs (copy-ns 'babashka.fs {:dst 'flower.unsafe.fs})}
-   ; NOTE: the strings will give a class cast exception if someone tries to rebind them
-   :bindings (merge repl-bindings
-               {'« "«"
-                '» "»"
-                '◊ "◊"
-                '⋄ "⋄"
-                'print-trace (sci/copy-var print-trace userns)
-                'html (sci/copy-var flower.hiccup/html-2 userns)
-                'fmt (sci/copy-var fmt userns)})
-   ; keep this in sync with `dynamic` in native.clj
-   :classes {'java.lang.StringBuilder java.lang.StringBuilder
-             'java.util.List java.util.List
-             'java.util.regex.Pattern java.util.regex.Pattern
-             'java.nio.charset.StandardCharsets java.nio.charset.StandardCharsets
-             'java.net.URLEncoder java.net.URLEncoder
-             'java.net.URI java.net.URI
-             'java.net.URISyntaxException java.net.URISyntaxException
-             'clojure.lang.PersistentVector clojure.lang.PersistentVector
-             'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
-             'java.time.OffsetDateTime 'java.time.OffsetDateTime
-             'org.jsoup.Jsoup org.jsoup.Jsoup
-             'org.jsoup.select.Elements org.jsoup.select.Elements
-             'org.jsoup.nodes.Node org.jsoup.nodes.Node
-             'org.jsoup.nodes.Element org.jsoup.nodes.Element
-             'org.jsoup.nodes.Comment org.jsoup.nodes.Comment
-             'org.jsoup.nodes.TextNode org.jsoup.nodes.TextNode
-             'org.jsoup.nodes.Document org.jsoup.nodes.Document
-             'org.jsoup.nodes.DocumentType org.jsoup.nodes.DocumentType
-             'org.jsoup.nodes.Attribute org.jsoup.nodes.Attribute
-             'org.jsoup.nodes.Attributes org.jsoup.nodes.Attributes
-             'org.jsoup.nodes.XmlDeclaration org.jsoup.nodes.XmlDeclaration
-             'org.jsoup.parser.Parser org.jsoup.parser.Parser}})
-
-(defn create-sci-cx
-  "Create SCI context with standard library and local variables"
-  ([filename] (create-sci-cx filename {}))
-  ([filename opts]
-   (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
-     (with-meta cx {:flower/filename filename}))))
 
 ; span tracking
 
@@ -363,17 +291,6 @@
    (let [events (transformer tree src cx)]
      (apply str (map #(on-parse-event cx src %) events)))))
 
-;; utils
-
-(defn merge-cx [bindings filename]
-  ; NOTE: :bindings doesn't work here, upstream bug
-  (let [opts {:namespaces {'user bindings 'flower.locals bindings}}]
-    (if (some? *cx*)
-      ; NOTE: state changes in the inner template are not visible in the outside context
-      ; TODO: fork this new context before merging so we don't bind 'locals into the parent
-      (with-meta (sci/merge-opts *cx* opts) {:flower/filename filename})
-      (create-sci-cx filename opts))))
-
 ;; API
 
 ; TODO: should include metadata parsed from frontmatter
@@ -387,14 +304,96 @@
 ; - once all preprocessors have run, convert the markup language to html
 ; for now, hard-code the clojure preprocessor and language markdown.
 ; actually no, the markup renderer needs to live in build.clj so people can write custom commands.
+(declare merge-cx)
 (defn preprocess-sunflower
   "Preprocess a sunflower page with local variables available"
-  ; TODO: this causes nothing but problems, replace it with an options map
-  ([src filename] (preprocess-sunflower src filename {}))
-  ([src filename locals]
+  ([{:keys [content filename locals]}]
    ; NOTE: we have to use `new-var` here or using `def` on a bound local will crash SCI
    (let [bindings (into {} (for [[name val] locals]
                              [name (sci/new-var name val)]))
          cx (merge-cx bindings filename)]
      (binding [*cx* cx]
-       (teval (parse-or-fatal parse src filename) src *cx*)))))
+       (teval (parse-or-fatal parse content filename) content *cx*)))))
+
+(alter-var-root #'flower.reflect/preprocess-sunflower (constantly preprocess-sunflower))
+
+;; SCI context handling
+
+; needs to be a function, otherwise preprocess-file won't be bound
+(defn sci-defaults []
+  {
+   :load-fn load-fn
+   ; NOTE: dynamic vars are *not* bound, which means that
+   ; e.g. `*html-mode*` will not see any changes in the guest.
+   ; see https://clojurians.slack.com/archives/C015LCR9MHD/p1753046766042839?thread_ts=1753045763.706789&cid=C015LCR9MHD
+   ; maybe we can figure out a way to find dynamic vars with `dir`?
+   ; but that still doesn't help find all functions that use them…
+   :namespaces {; re-exported libs
+                'clojure.core clojure-core
+                'clojure.data.json (copy-ns 'clojure.data.json) 
+                'nextjournal.markdown (copy-ns 'nextjournal.markdown)
+                'hiccup2.core hiccup-core 
+                'hiccup.util (copy-ns 'hiccup.util)
+                'hiccup.compiler hiccup-compiler
+                'instaparse.core (copy-ns 'instaparse.core)
+                'clj-commons.digest (copy-ns 'clj-commons.digest)
+                'java-time.api (copy-ns 'java-time.api)
+                ; internals
+                'flower.eval {'pretty-print pretty-print}
+                ; flower API
+                'flower.fs (merge (dissoc (copy-ns 'flower.fs) 'slurp-)
+                                  (copy-ns 'babashka.fs {:dst 'flower.fs
+                                                         :symbols bb-fs}))
+                'flower.reflect (copy-ns 'flower.reflect)
+                ; TODO: use drop-bomb here too
+                'flower.unsafe (dissoc (copy-ns 'flower.unsafe) '*drop-bomb*)
+                ; 'babashka.fs (copy-filtering 'babashka.fs bb-fs)
+                'flower.unsafe.fs (copy-ns 'babashka.fs {:dst 'flower.unsafe.fs})}
+   ; NOTE: the strings will give a class cast exception if someone tries to rebind them
+   :bindings (merge repl-bindings
+               {'« "«"
+                '» "»"
+                '◊ "◊"
+                '⋄ "⋄"
+                'print-trace (sci/copy-var print-trace userns)
+                'html (sci/copy-var flower.hiccup/html-2 userns)
+                'fmt (sci/copy-var fmt userns)})
+   ; keep this in sync with `dynamic` in native.clj
+   :classes {'java.lang.StringBuilder java.lang.StringBuilder
+             'java.util.List java.util.List
+             'java.util.regex.Pattern java.util.regex.Pattern
+             'java.nio.charset.StandardCharsets java.nio.charset.StandardCharsets
+             'java.net.URLEncoder java.net.URLEncoder
+             'java.net.URI java.net.URI
+             'java.net.URISyntaxException java.net.URISyntaxException
+             'clojure.lang.PersistentVector clojure.lang.PersistentVector
+             'java.time.format.DateTimeParseException java.time.format.DateTimeParseException
+             'java.time.OffsetDateTime 'java.time.OffsetDateTime
+             'org.jsoup.Jsoup org.jsoup.Jsoup
+             'org.jsoup.select.Elements org.jsoup.select.Elements
+             'org.jsoup.nodes.Node org.jsoup.nodes.Node
+             'org.jsoup.nodes.Element org.jsoup.nodes.Element
+             'org.jsoup.nodes.Comment org.jsoup.nodes.Comment
+             'org.jsoup.nodes.TextNode org.jsoup.nodes.TextNode
+             'org.jsoup.nodes.Document org.jsoup.nodes.Document
+             'org.jsoup.nodes.DocumentType org.jsoup.nodes.DocumentType
+             'org.jsoup.nodes.Attribute org.jsoup.nodes.Attribute
+             'org.jsoup.nodes.Attributes org.jsoup.nodes.Attributes
+             'org.jsoup.nodes.XmlDeclaration org.jsoup.nodes.XmlDeclaration
+             'org.jsoup.parser.Parser org.jsoup.parser.Parser}})
+
+(defn create-sci-cx
+  "Create SCI context with standard library and local variables"
+  ([filename] (create-sci-cx filename {}))
+  ([filename opts]
+   (let [cx (->> opts (merge-deep (sci-defaults)) sci/init)]
+     (with-meta cx {:flower/filename filename}))))
+
+(defn merge-cx [bindings filename]
+  ; NOTE: :bindings doesn't work here, upstream bug
+  (let [opts {:namespaces {'user bindings 'flower.locals bindings}}]
+    (if (some? *cx*)
+      ; NOTE: state changes in the inner template are not visible in the outside context
+      ; TODO: fork this new context before merging so we don't bind 'locals into the parent
+      (with-meta (sci/merge-opts *cx* opts) {:flower/filename filename})
+      (create-sci-cx filename opts))))
