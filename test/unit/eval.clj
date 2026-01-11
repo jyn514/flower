@@ -4,7 +4,7 @@
    [clojure.test.check.clojure-test :refer [defspec]]
    [clojure.test.check.properties :as prop]
    [expectations.clojure.test :as expect :refer [expect more-of]]
-   [flower.eval :as eval]
+   [test.helpers :as helpers]
    [test.unit.parser :refer [gen-sunflower]]))
 
 ; (s/def :flower.eval/exception
@@ -29,7 +29,7 @@
           (ex-data (ex-cause e)) (ex-cause e)))
 
 (defn expect-valid-or-trace [s]
-  (try (eval/preprocess-sunflower s "<proptest>")
+  (try (helpers/render s "<proptest>")
        (catch clojure.lang.ExceptionInfo e
          (condp #(get %2 %1) (ex-data e)
            :flower/parse (expect-parse-error e)
