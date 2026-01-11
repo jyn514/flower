@@ -45,7 +45,8 @@
 
 (defn- load-meta [f]
   (let [content (-> f fs/file slurp)
-        parsed (flower.frontmatter/split-frontmatter {:filename f :content content})]
+        parsed (flower.frontmatter/split-frontmatter
+                 {:filename f :content content :inject-builtins true})]
    [(str f) (:frontmatter parsed)]))
 
 ; TODO: allow pages/index.edn so we can avoid repeating configuration
@@ -128,7 +129,9 @@
   [opts]
   (write-json
     (flower.frontmatter/split-frontmatter
-      (assoc opts :content (slurp *in*)))))
+      (assoc opts
+             :content (slurp *in*)
+             :inject-builtins true))))
 
 (defn join-frontmatter
   [{files :path out :out-file}]

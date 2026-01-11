@@ -5,6 +5,9 @@
    ; https://clojurians.slack.com/archives/CLX41ASCS/p1753986315453519
    [babashka.process.pprint]
    [clojure.string :as str]
+   [flower.eval :refer [preprocess-sunflower]]
+   [flower.frontmatter :refer [print-frontmatter split-frontmatter]]
+   [flower.reflect :refer [preprocess-file]]
    [flower.unsafe :as unsafe])
   (:import
    [clojure.lang ExceptionInfo]))
@@ -146,3 +149,38 @@
 (defn make-dispatch-table [dispatch-dsl]
   (->> dispatch-dsl (map ->bb) flatten
        (map (juxt :cmd identity)) (into {})))
+
+(def all-preprocessors
+  {"sunflower" preprocess-sunflower})
+
+(defn render-cmd [{:keys [filename define] :as opts}]
+  (run-tracked
+    (fn [_]
+      (let [{:keys [content frontmatter]}
+              (split-frontmatter (assoc opts :content (slurp filename)))
+            locals (merge {:pages {filename frontmatter}} define)
+            rendered (preprocess-file
+                       (as-map content frontmatter all-preprocessors locals))]
+        (print-frontmatter frontmatter)
+        (print rendered)))
+    opts))
+
+(def render-spec
+  {"render"
+   {:fn render-cmd
+    :aliases #{"r"}
+    :desc "Render a page containing a program written in the Sunflower template language into a string."
+    :args->opts [:filename]
+    :spec {:filename {:coerce :string
+                      :desc "The file path to the page."
+                      :require true}
+           :define {:alias :D
+                    :coerce []
+                    :collect parse-kv
+                    :desc "Define a variable to be set in this run only."}
+           :depfile {:coerce :string
+                     :desc "Path in which to store a dependency file, used by ninja to track rebuilds."}
+           :out-file {:coerce :string
+                      :desc (str "Path in which to store the output of the transformers. "
+                                 ; TODO: this is very silly lol
+                                 "Note that `transform` does not actually write to this file, it just uses it for :depfile.")}}}})

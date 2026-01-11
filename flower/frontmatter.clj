@@ -61,14 +61,16 @@
 
 ; TODO: allow customizing :flower/path
 (defn split-frontmatter
-  [{:keys [filename content]}]
+  [{:keys [filename content inject-builtins]}]
   (let [[frontmatter body] (parse-frontmatter filename content)
         [base ext] (-> filename remove-parent fs/split-ext)
         dst (or (:path frontmatter) (str (remove-ext base) ".html"))
-        merged (assoc frontmatter
+        merged (if-not inject-builtins
+                 frontmatter
+                 (assoc frontmatter
                       :flower/source-file filename
                       :flower/path dst
-                      :flower/filetype ext)]
+                      :flower/filetype ext))]
     {:content body :frontmatter merged}))
 
 (defn serialize-key

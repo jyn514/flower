@@ -8,5 +8,6 @@ Commands:
   watch             Build a flower site, serve its content over HTTP, and automatically rebuild on changes.
   build             Build a flower site.
   repl              Start a REPL with access to the Clojure in your site.
+  render            Render a page containing a program written in the Sunflower template language into a string.
   version           Print flower's version: 0.0.1 (<unknown commit>)
   help              Print this help

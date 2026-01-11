@@ -68,6 +68,7 @@
 
 (declare dispatch-table)
 (def dispatch-dsl
+ (merge render-spec
    ;; meta commands
   {[] {:fn unknown-cmd :needs-metadata true}
    "help"
@@ -169,7 +170,7 @@
                            :collect cli-read-json
                            :desc "A list of mappings from file extension to command runners. Currently ignored."}
            :transformers {:coerce []
-                          :desc "List of transformers to run on the input."}}}})
+                          :desc "List of transformers to run on the input."}}}}))
 
 (def dispatch-table (make-dispatch-table dispatch-dsl))
 
