@@ -10,7 +10,7 @@
    [clojure.string :as str]
    [flower.defaults :refer [path-considering-vfs]]
    [flower.eval :as eval]
-   [flower.frontmatter :refer [serialize-key]]
+   [flower.frontmatter :refer [write-json]]
    [flower.reflect :as reflect]
    [flower.unsafe :refer [*dependencies*]]
    [flower.utils :as utils])
@@ -39,9 +39,6 @@
 
 (defn read-stdin-json []
   (read-json *in* "stdin"))
-
-(defn write-json [data]
-  (json/write data *out* :key-fn serialize-key))
 
 (defn read-json-file [path]
   (read-json (-> path fs/file io/reader) (str path)))

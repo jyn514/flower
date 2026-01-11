@@ -6,6 +6,7 @@
    [expectations.clojure.test :refer [expect]]
    [expressions.transform-sorter :as transform-sorter]
    [flower.cmd :as cmd]
+   [flower.frontmatter :refer [write-json]]
    [flower.stacktrace :refer [print-trace]]
    [flower.unsafe :as unsafe]
    [flower.utils :as utils :refer [merge-deep remove-parent]]))
@@ -21,7 +22,7 @@
   ([page opts]
    (let [opts (merge {:transformers all-transformers :standalone true} opts)
          page (merge-deep {:frontmatter {:flower/source-file "<transform test>"}} page)
-         serialized (with-out-str (cmd/write-json page))]
+         serialized (with-out-str (write-json page))]
      (binding [unsafe/*dependencies* #{}
                unsafe/*drop-bomb* false
                utils/*site* "defaults"]

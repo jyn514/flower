@@ -9,7 +9,7 @@
    [clojure.edn       :as edn]
    [clojure.string :as str]
    [clojure.walk :refer [postwalk]]
-   [flower.utils :refer [remove-ext remove-parent]]
+   [flower.utils :refer [remove-ext remove-parent warn]]
    [toml-clj.core :as toml]) 
   (:import
    [java.time LocalDate LocalDateTime ZoneOffset]
@@ -34,8 +34,8 @@
               toml)))
 
 (defn- parse-json [s]
-  (json/read-str (str "{" s "}")
-                 :key-fn keyword))
+  (if (str/blank? s) {}
+    (json/read-str s :key-fn keyword)))
 
 (defn- parse-edn [s]
   (edn/read-string (str "{" s "}")))
@@ -76,10 +76,39 @@
   [k]
   (cond (keyword? k) (subs (str k) 1)
         (symbol? k) (name k)
-        :else (str k)))
+        (string? k) k
+        :else (do
+                (warn "type information for" k "will be discarded when serializing to JSON")
+                (str k))))
+
+(defn pprint-type-name [v]
+  ; special-case some built-in types
+  (cond (set? v) "set"
+        (list? v) "list"
+        :else
+        (let [class-name (.getSimpleName (type v))]
+          (if (> (count (filter Character/isUpperCase class-name)) 1)
+            class-name
+            (str/lower-case class-name)))))
+
+(defn serialize-value
+  [_k v]
+  (when-not ((some-fn vector? map? boolean? integer? string? double?) v)
+    (warn "type information for" (pprint-type-name v) v
+          "will be discarded when serializing to JSON"))
+  (if (or (keyword? v) (symbol? v))
+    (serialize-key v)
+    v))
+
+(defn write-json [map & {:as opts}]
+  (json/write map *out*
+              (merge {:key-fn serialize-key
+                      :value-fn serialize-value
+                      :escape-slash false}
+                     opts)))
 
 (defn print-frontmatter [frontmatter]
-  (println "+++")
-  (doall (for [[k v] frontmatter]
-           (println (format "%s: %s" (serialize-key k) v))))
-  (println "+++"))
+  (when (seq frontmatter)
+    (println "===")
+    (write-json frontmatter :indent true)
+    (printf "\n===\n")))
