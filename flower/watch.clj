@@ -204,6 +204,11 @@
 (defn no-opts [f & args]
   (fn [_opts] (apply f args)))
 
+(defn open [opts]
+  (let [url (str "http://localhost:" (:port opts))]
+    (browse-url url)
+    (info "opened %s in default browser" url)))
+
 (def commands
   {\? {:fn help
        :name "Help"
@@ -214,7 +219,7 @@
    \i {:fn (no-opts run-non-fatal (ninja "-t inputs"))
        :name "Inputs"
        :desc "Print all build [i]nputs"}
-   \o {:fn #(browse-url (str "http://localhost:" (:port %)))
+   \o {:fn open
        :name "Open"
        :desc "[O]pen your flower site in the browser"}
    \w {:fn (no-opts run-non-fatal (ninja "-n -d explain"))
