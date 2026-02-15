@@ -138,7 +138,7 @@
   ; TODO: filter `-t inputs` to only those needed for outputs in `out-dir`
   ; actually no this is fine as-is
   ; TODO: this doesn't notice files that are only listed in depfiles
-  (let [all-inputs (apply parse-ninja (ninja "-t inputs --no-shell-escape"))
+  (let [all-inputs (parse-ninja (ninja "-t inputs --no-shell-escape"))
         temp-file? #(str/starts-with? % (str (:build-dir opts) "/"))
         ; TODO: reconsider if we actually want to filter out build.ninja
         ; also this will be wrong when *site* is set

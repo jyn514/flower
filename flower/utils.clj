@@ -164,7 +164,7 @@
 (defn ninja [args] (concat [(ninja-path)] (ps/tokenize args)))
 
 (defn parse-ninja [args]
-  (let [out (:out (system! {:out :string} args))]
+  (let [out (:out (apply system! {:out :string} args))]
     ; handle empty string
     (if (seq out)
       (str/split out #"\n")
