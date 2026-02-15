@@ -213,28 +213,28 @@
   {\? {:fn help
        :name "Help"
        :desc "Print this help"}
-   \t {:fn (no-opts run-non-fatal (ninja "-t targets"))
+   \t {:fn (apply no-opts run-non-fatal (ninja "-t targets"))
        :name "Targets"
        :desc "Print all build [t]argets (sometimes called 'outputs' or 'artifacts')"}
-   \i {:fn (no-opts run-non-fatal (ninja "-t inputs"))
+   \i {:fn (apply no-opts run-non-fatal (ninja "-t inputs"))
        :name "Inputs"
        :desc "Print all build [i]nputs"}
    \o {:fn open
        :name "Open"
        :desc "[O]pen your flower site in the browser"}
-   \w {:fn (no-opts run-non-fatal (ninja "-n -d explain"))
+   \w {:fn (apply no-opts run-non-fatal (ninja "-n -d explain"))
        :name "Why"
        :desc "Print all targets that ninja will rebuild next time it is invoked, and [w]hy they will be built."}
    ; TODO: run this automatically
-   \m {:fn (no-opts run-non-fatal (ninja "-t missingdeps"))
+   \m {:fn (apply no-opts run-non-fatal (ninja "-t missingdeps"))
        :name "Missing"
        :desc "Show [m]issing dependency edges in the build graph"}
    ; TODO: run this automatically
-   \c {:fn (no-opts run-non-fatal (ninja "-t cleandead"))
+   \c {:fn (apply no-opts run-non-fatal (ninja "-t cleandead"))
        :name "Clean"
        :desc "Delete ('[c]lean') outdated artifacts in the public/ directory"}
    \backspace {:fn #(do
-                      (run-non-fatal (ninja "-t clean"))
+                      (apply run-non-fatal (ninja "-t clean"))
                       (rerun-ninja % {}))
                :name "Delete"
                :desc (str "Delete all generated build artifacts and rerun ninja. "
