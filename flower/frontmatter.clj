@@ -89,7 +89,7 @@
     (set? v) "set"
     (list? v) "list"
     :else
-    (let [class-name (.getSimpleName (type v))]
+    (let [class-name (Class/.getSimpleName (type v))]
       (if (> (count (filter Character/isUpperCase class-name)) 1)
         class-name
         (str/lower-case class-name)))))
