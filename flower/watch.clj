@@ -205,9 +205,9 @@
   (fn [_opts] (apply f args)))
 
 (defn open [opts]
-  (let [url (str "http://localhost:" (:port opts))]
+  (let [url (format "http://%s:%d" (hostname) (:port opts))]
     (browse-url url)
-    (info "opened %s in default browser" url)))
+    (info (fmt "opened ${url} in default browser"))))
 
 (def commands
   {\? {:fn help

@@ -6,7 +6,9 @@
    [clojure.java.io :as io]
    [clojure.set :as set :refer [union]]
    [clojure.string :as str]
-   [instaparse.core :as insta]))
+   [instaparse.core :as insta])
+  (:import
+   [java.net InetAddress]))
 
 ;;; general helpers
 
@@ -250,6 +252,9 @@
     (:mac :linux :unknown) (fs/xdg-state-home)))
 
 (defn state-dir [] (fs/path (platform-state-dir) "flower"))
+
+(defn hostname []
+  (InetAddress/.getHostName (InetAddress/getLocalHost)))
 
 (defn graal? []
   (some? (System/getProperty "org.graalvm.home")))
