@@ -85,17 +85,18 @@
 
 (defn pprint-type-name [v]
   ; special-case some built-in types
-  (cond (set? v) "set"
-        (list? v) "list"
-        :else
-        (let [class-name (.getSimpleName (type v))]
-          (if (> (count (filter Character/isUpperCase class-name)) 1)
-            class-name
-            (str/lower-case class-name)))))
+  (cond
+    (set? v) "set"
+    (list? v) "list"
+    :else
+    (let [class-name (.getSimpleName (type v))]
+      (if (> (count (filter Character/isUpperCase class-name)) 1)
+        class-name
+        (str/lower-case class-name)))))
 
 (defn serialize-value
   [_k v]
-  (when-not ((some-fn vector? map? boolean? integer? string? double?) v)
+  (when-not ((some-fn nil? vector? map? boolean? integer? string? double?) v)
     (warn "type information for" (pprint-type-name v) v
           "will be discarded when serializing to JSON"))
   (if (or (keyword? v) (symbol? v))
