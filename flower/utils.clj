@@ -254,7 +254,8 @@
 (defn state-dir [] (fs/path (platform-state-dir) "flower"))
 
 (defn hostname []
-  (InetAddress/.getHostName (InetAddress/getLocalHost)))
+  (let [name (InetAddress/.getHostName (InetAddress/getLocalHost))]
+    (if (= :mac (platform)) (str name ".local") name)))
 
 (defn graal? []
   (some? (System/getProperty "org.graalvm.home")))
