@@ -295,7 +295,8 @@
         cmd-meta (get dispatch-table resolved-cmd)]
     (when-not cmd-meta
       (unknown-cmd {:args args}))
-    (let [opts (cli/parse-args rest (dissoc cmd-meta :aliases))
+    (let [parse-opts (assoc (dissoc cmd-meta :aliases) :exec-args default-opts)
+          opts (cli/parse-args rest parse-opts)
           merged-opts (update opts :opts merge global-opts)]
       (init-fn (:fn cmd-meta) resolved-cmd merged-opts))))
 
