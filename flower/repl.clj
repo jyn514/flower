@@ -63,6 +63,10 @@
         ((:fn spec) template)
         (evaluator str)))))
 
+(defn print-template [s]
+  (when (seq s)
+    (println s)))
+
 ; TODO: this only supports page mode. support transform mode too.
 (defn repl
   [{:keys [template]}]
@@ -76,6 +80,7 @@
       (printf "Flower %s repl (:help for help)\n" desc)
       (clojure.main/repl :prompt (fn []) ; handled by readline
                          :eval (flower-eval template)
+                         :print (if template print-template prn)
                          ; TODO: bind `sci/*e`
                          :caught #(print-trace % (not template))
                          :read readline))))
