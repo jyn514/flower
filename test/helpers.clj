@@ -12,8 +12,8 @@
 
 (defn render [s filename]
   (eval/preprocess-sunflower
-    {:content s
-     :filename filename}))
+    s
+    filename))
 
 (defn system!
   [desc opts & args]
