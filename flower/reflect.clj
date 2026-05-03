@@ -10,7 +10,7 @@
 ; so they must record their file dependencies.
 
 (def ^:dynamic *dependencies* "not for public use; see flower.fs and flower.unsafe" #{})
-(def ^:dynamic *ninja* "not for public use; see write-ninja!" (java.io.StringWriter.))
+(def ^:dynamic *ninja* "not for public use; see write-ninja!" (StringWriter.))
 (def ^:dynamic *watch-port*
   "Set to a TCP port number when `flower watch` is running."
   nil)

@@ -7,6 +7,12 @@
    [flower.reflect :as reflect :refer [*dependencies*]]
    [flower.utils :refer [remove-parent]]))
 
+; HACK: avoid crashing when live-reloading tests.
+(defn- set-deps! [new-val]
+  (when (thread-bound? #'*dependencies*)
+    (set! *dependencies* new-val)))
+
+
 (defn- id-map [vals]
   (into {} (map (juxt identity identity) vals)))
 
@@ -28,7 +34,7 @@
          dirs (filter fs/directory? (vals relative-paths))]
      ; TODO: this is missing all the directories in the glob :/
      ; TODO: see https://codeberg.org/jyn514/flower/issues/116
-     (set! *dependencies* (union *dependencies* (set dirs)))
+     (set-deps! (union *dependencies* (set dirs)))
      faked-paths)))
 
 (defn read-all-bytes
@@ -36,7 +42,7 @@
   ([path {:keys [no-vfs]}]
    (let [rel (if no-vfs path (path-considering-vfs path))]
      ; TODO: does this break ninja if it doesn't exist?
-     (set! *dependencies* (conj *dependencies* rel))
+     (set-deps! (conj *dependencies* rel))
      (fs/read-all-bytes rel))))
 
 (defn directory?
@@ -54,7 +60,7 @@
          exists (fs/exists? rel real-opts)
          ; NOTE: when paths don't exist, we assume the defaults don't change and only depend on the materialized path
          dep (if exists rel (fs/parent path))]
-     (set! *dependencies* (conj *dependencies* dep))
+     (set-deps! (conj *dependencies* dep))
      exists)))
 
 (defn path?
